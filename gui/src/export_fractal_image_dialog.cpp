@@ -23,6 +23,9 @@
 
 #include <float.h>
 
+#include <mpfr.h>
+#include <mpc.h>
+
 #include <QApplication>
 #include <QDesktopServices>
 #include <QFileDialog>
@@ -46,7 +49,7 @@ ExportFractalImageDialog::ExportFractalImageDialog(const FractalConfig &config,
 	this->floatPrecision = FP_DOUBLE;
 	this->imageDir = imageDir;
 	if (this->imageDir.isEmpty()) {
-		this->imageDir = QDesktopServices::storageLocation(QDesktopServices::PicturesLocation);
+		this->imageDir = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
 	}
 
 	setWindowTitle(tr("Export image"));
@@ -276,7 +279,7 @@ void ExportFractalImageDialog::exportImage()
 		mpfr_div_ui(spanY, spanY, width, MPFR_RNDN);
 	}
 	Fractal fractal;
-	InitFractal(&fractal, this->fractal.fractalFormula, this->fractal.p, this->fractal.c,
+	InitFractal2(&fractal, this->fractal.fractalFormula, this->fractal.p, this->fractal.c,
 			this->fractal.centerX, this->fractal.centerY, spanX, spanY,
 			this->fractal.escapeRadius, this->fractal.maxIter);
 	mpfr_clear(spanX);

@@ -1,6 +1,6 @@
 FractalNow
-Version 0.8.0 (2012-05-13)
-Copyright: 2011-2012 Marc Pegon <pe.marc@free.fr>
+Version 0.8.2 (2017-10-28)
+Copyright: 2011-2017 Marc Pegon <pe.marc@free.fr>
 Homepage: http://fractalnow.sourceforge.net/
 
 Description
@@ -50,6 +50,6 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
+You should have received A copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.

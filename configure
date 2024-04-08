@@ -1,6 +1,6 @@
 #!/bin/bash
 
-version_number="0.8.1"
+version_number="0.8.2"
 
 win32=`uname -o | grep -i "msys\|cygwin\|mingw"`
 if test -n "${win32}"; then
@@ -13,6 +13,7 @@ else
 fi
 debug=
 no_spinlock=
+use_builtin_complex=
 qt_debug_char=
 
 project_pretty_name="FractalNow"
@@ -46,9 +47,10 @@ usage="Usage: configure [-prefix DIR] [-debug] [-no-spinlock]
 
 Options:
 
-  -prefix DIR         Set the instalation directory to DIR (default: ${prefix})
-  -debug              Build with debugging symbols
-  -no-spinlock        Disable POSIX spinlocks (use mutexes only)
+  -prefix DIR              Set the instalation directory to DIR (default: ${prefix})
+  -debug                   Build with debugging symbols
+  -no-spinlock             Disable POSIX spinlocks (use mutexes only)
+  -use-builtin-complex     Use builtin complex instead of standard C99 complex
 "
 
 while test $# -gt 0; do
@@ -59,6 +61,10 @@ while test $# -gt 0; do
 		;;
 	"-debug" )
 		debug="-debug"
+		shift
+		;;
+	"-use-builtin-complex" )
+		use_builtin_complex="-use-builtin-complex"
 		shift
 		;;
 	"-no-spinlock" )
@@ -81,10 +87,28 @@ if test -n "${debug}"; then
 	qt_debug_char='d';
 fi
 
+if test -n "${use_builtin_complex}"; then
+	builtin_complex_define="_USE_BUILTIN_COMPLEX"
+else
+	builtin_complex_define=""
+fi
+
 if test -n "${no_spinlock}"; then
 	spinlock_define="NO_SPINLOCK"
 else
 	spinlock_define="_POSIX_C_SOURCE=200809L"
+fi
+
+if test -n "${no_mp_floats}"; then
+	mp_floats_define=""
+else
+	mp_floats_define="_ENABLE_MP_FLOATS"
+fi
+
+if test -n "${no_ldouble_floats}"; then
+	ldouble_floats_define=""
+else
+	ldouble_floats_define="_ENABLE_LDOUBLE_FLOATS"
 fi
 
 is_absolute=`echo "${prefix}" | grep '^/'`
@@ -100,6 +124,12 @@ else
 	echo "Debug: no"
 fi
 
+if test -n "${use_builtin_complex}"; then
+	echo "Standard C99 complex: no (builtin)"
+else
+	echo "Standard C99 complex: yes"
+fi
+
 if test -n "${no_spinlock}"; then
 	echo "Spin locks: no"
 else
@@ -113,8 +143,8 @@ if qmake -v &>/dev/null; then
 	echo "Found qmake (Qt ${qt_version})"
 	major=`echo $qt_version | sed -e "s/\([0-9][0-9]*\).*/\1/"`
 	minor=`echo $qt_version | sed -e "s/[0-9][0-9]*\.\([0-9][0-9]*\).*/\1/"`
-	if test ${major} -ne 4 -o ${minor} -lt 6; then
-		echo "*** ERROR: ${gui_pretty_name} requires Qt 4.6 or greater."
+	if test ${major} -ne 5 -o ${minor} -lt 0; then
+		echo "*** ERROR: ${gui_pretty_name} requires Qt 5.0 or greater."
 		exit 1
 	fi;
 else
@@ -142,7 +172,10 @@ fi
 #Used for common part of Makefiles
 config="VERSION_NUMBER = ${version_number}
 DEBUG = ${debug}
+BUILTIN_COMPLEX_DEFINE = ${builtin_complex_define}
 SPINLOCK_DEFINE = ${spinlock_define}
+MP_FLOATS_DEFINE = ${mp_floats_define}
+LDOUBLE_FLOATS_DEFINE = ${ldouble_floats_define}
 quiet-command = "'$(if $(VERB),$1,$(if $(2),@echo $2 && $1, @$1))
 '
 
@@ -342,7 +375,7 @@ fi
 
 echo "#!/bin/bash
 
-./configure -prefix \"${prefix}\" ${debug} ${no_spinlock}
+./configure -prefix \"${prefix}\" "${debug}" "${no_spinlock}" "${use_builtin_complex}"
 " > config.status
 chmod +x config.status >/dev/null
 

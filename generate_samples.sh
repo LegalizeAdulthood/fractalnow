@@ -61,7 +61,7 @@ FRACTALNOW OPTIONS (see fractalnow help) :
 -x <width>
 -y <height>
 -l <float_type>
--L <MP_float_precision>
+-L <MP_float_precision> (if enabled)
 -a <aa_method>
 -s <aa_size>
 -j <nb_threads>

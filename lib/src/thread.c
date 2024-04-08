@@ -22,9 +22,13 @@
 #include "error.h"
 #include "fractalnow.h"
 #include "misc.h"
-#include <mpfr.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef _ENABLE_MP_FLOATS
+#include <stdio.h>
+#include <mpfr.h>
+#endif
 
 void *StartThreadRoutine(void *arg);
 
@@ -53,7 +57,7 @@ Threads *CreateThreads(uint_fast32_t N)
 		res->startThreadArg[i].startRoutine = NULL;
 		res->startThreadArg[i].arg = NULL;
 		res->startThreadArg[i].result = &res->lastResult[i];
-                safePThreadCreate(&(res->thread[i]),NULL,StartThreadRoutine,&res->startThreadArg[i]);
+		safePThreadCreate(&(res->thread[i]),NULL,StartThreadRoutine,&res->startThreadArg[i]);
 	}
 
 	/* Wait till all threads are ready before returning. */
@@ -65,7 +69,9 @@ Threads *CreateThreads(uint_fast32_t N)
 
 void *StartThreadRoutine(void *arg)
 {
-	mpfr_set_default_prec(fractalnow_mpfr_precision);
+#ifdef _ENABLE_MP_FLOATS
+	mpfr_set_default_prec((mpfr_prec_t)fractalnow_mp_precision);
+#endif
 
 	StartThreadArg *startThreadArg = (StartThreadArg *)arg;
 	Threads *threads = startThreadArg->threads;
@@ -99,7 +105,9 @@ void *StartThreadRoutine(void *arg)
 		*(startThreadArg->result) = startThreadArg->startRoutine(startThreadArg->arg);
 	} while (1);
 
+#ifdef _ENABLE_MP_FLOATS
 	mpfr_free_cache();
+#endif
 
 	return NULL;
 }

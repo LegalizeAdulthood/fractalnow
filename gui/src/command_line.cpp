@@ -57,7 +57,9 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 	quadInterpolationSize = DEFAULT_QUAD_INTERPOLATION_SIZE;
 	nbThreads = -1;
 	floatPrecision = FP_DOUBLE;
-	MPFloatPrecision = fractalnow_mpfr_precision;
+#ifdef _ENABLE_MP_FLOATS
+	MPFloatPrecision = DEFAULT_MP_PRECISION;
+#endif
 
 	width = 0;
 	height = 0;
@@ -98,17 +100,19 @@ debug mode.\n", QApplication::applicationName().toStdString().c_str());
 				invalid_use_error("\n");
 			}
 			break;
+#ifdef _ENABLE_MP_FLOATS
 		case 'L':
 			if (sscanf(optarg, "%ld", &tmp) < 1) {
 				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
 			}
-			if (tmp < MPFR_PREC_MIN || tmp > MPFR_PREC_MAX) {
-				invalid_use_error("MP floats precision must be between %ld and %ld.\n",
-					(long int)MPFR_PREC_MIN, (long int)MPFR_PREC_MAX);
+			if (tmp < GetMinMPFloatPrecision() || tmp > GetMaxMPFloatPrecision()) {
+				invalid_use_error("MP floats precision must be between %"PRId64" and %"PRId64".\n",
+					GetMinMPFloatPrecision(), GetMaxMPFloatPrecision());
 			} else {
-				MPFloatPrecision = (mpfr_prec_t)tmp;
+				MPFloatPrecision = tmp;
 			}
 			break;
+#endif
 		case 'i':
 			if (sscanf(optarg, "%ld", &tmp) < 1) {
 				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
@@ -121,7 +125,7 @@ debug mode.\n", QApplication::applicationName().toStdString().c_str());
 			break;
 		case 'j':
 			if (sscanf(optarg, "%d", &nbThreads) < 1) {
-				invalid_use_error("Command-line argument \'%s\' is not a number.\n    ", optarg);
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
 			}
 
 			if (nbThreads <= 0) {
@@ -130,7 +134,7 @@ debug mode.\n", QApplication::applicationName().toStdString().c_str());
 			break;
 		case 'm':
 			if (sscanf(optarg, "%ld", &tmp) < 1) {
-				invalid_use_error("Command-line argument \'%s\' is not a number.\n    ", optarg);
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
 			}
 			if (tmp < 2) {
 				invalid_use_error("Minimum anti-aliasing size must be >= 2.\n");
@@ -140,7 +144,7 @@ debug mode.\n", QApplication::applicationName().toStdString().c_str());
 			break;
 		case 'n':
 			if (sscanf(optarg, "%ld", &tmp) < 1) {
-				invalid_use_error("Command-line argument \'%s\' is not a number.\n    ", optarg);
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
 			}
 			if (tmp < 1) {
 				invalid_use_error("Anti-aliasing size iteration must be >= 1.\n");
@@ -150,7 +154,7 @@ debug mode.\n", QApplication::applicationName().toStdString().c_str());
 			break;
 		case 'M':
 			if (sscanf(optarg, "%ld", &tmp) < 1) {
-				invalid_use_error("Command-line argument \'%s\' is not a number.\n    ", optarg);
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
 			}
 			if (tmp < 2) {
 				invalid_use_error("Maximum anti-aliasing size must be >= 2.\n");
@@ -160,7 +164,7 @@ debug mode.\n", QApplication::applicationName().toStdString().c_str());
 			break;
 		case 'x':
 			if (sscanf(optarg, "%ld", &tmp) < 1) {
-				invalid_use_error("Command-line argument \'%s\' is not a number.\n    ", optarg);
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
 			}
 			if (tmp < 2) {
 				invalid_use_error("Output image width must be >= 2.\n");
@@ -170,7 +174,7 @@ debug mode.\n", QApplication::applicationName().toStdString().c_str());
 			break;
 		case 'y':
 			if (sscanf(optarg, "%ld", &tmp) < 1) {
-				invalid_use_error("Command-line argument \'%s\' is not a number.\n    ", optarg);
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
 			}
 			if (tmp < 2) {
 				invalid_use_error("Output image height must be >= 2.\n");

@@ -47,6 +47,7 @@ void ParseCommandLineArguments(CommandLineArguments *dst, int argc, char *argv[]
 	dst->colorDissimilarityThreshold = DEFAULT_COLOR_DISSIMILARITY_THRESHOLD;
 
 	int64_t tmp;
+	double unused;
 	dst->fractalConfigFileName = NULL;
 	dst->fractalFileName = NULL;
 	dst->renderingFileName = NULL;
@@ -57,7 +58,9 @@ void ParseCommandLineArguments(CommandLineArguments *dst, int argc, char *argv[]
 	dst->adaptiveAAMThreshold = -1;
 	dst->nbThreads = -1;
 	dst->floatPrecision = FP_DOUBLE;
-	dst->MPFloatPrecision = fractalnow_mpfr_precision;
+#ifdef _ENABLE_MP_FLOATS
+	dst->MPFloatPrecision = DEFAULT_MP_PRECISION;
+#endif
 
 	int widthSpecified = 0, heightSpecified = 0;
 	dst->width = 0;
@@ -108,17 +111,20 @@ debug mode.\n");
 				invalid_use_error("\n");
 			}
 			break;
+#ifdef _ENABLE_MP_FLOATS
 		case 'L':
 			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
 				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
 			}
-			if (tmp < MPFR_PREC_MIN || tmp > MPFR_PREC_MAX) {
-				invalid_use_error("MP floats precision must be between %ld and %ld.\n",
-					(long int)MPFR_PREC_MIN, (long int)MPFR_PREC_MAX);
+			if (tmp < GetMinMPFloatPrecision() || tmp > GetMaxMPFloatPrecision()) {
+				invalid_use_error("MP floats precision must be between %"PRId64
+									" and %"PRId64".\n", GetMinMPFloatPrecision(),
+									GetMaxMPFloatPrecision());
 			} else {
 				dst->MPFloatPrecision = (mpfr_prec_t)tmp;
 			}
 			break;
+#endif
 		case 'i':
 			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
 				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
@@ -253,7 +259,7 @@ specified when anti-aliasing method is oversampling.\n");
 anti-aliasing.\n");
 		}
 
-		if (!complexIsInteger(dst->antiAliasingSize)) {
+			if (modf(dst->antiAliasingSize, &unused) != 0) {
 			invalid_use_error("Size parameter ('-s') for adaptive anti-aliasing \
 should be an integer.\n");
 		}

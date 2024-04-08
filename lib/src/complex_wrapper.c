@@ -1,7 +1,7 @@
 /*
- *  fractalnow.c -- part of FractalNow
+ *  complex_wrapper.c -- part of FractalNow
  *
- *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
+ *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -18,13 +18,11 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#include "fractalnow.h"
+#include "complex_wrapper.h"
 
-#define STR_EXPAND(tok) #tok
-#define STR(tok) STR_EXPAND(tok)
-
-const char *FractalNow_VersionNumber()
-{
-	return STR(VERSION_NUMBER);
-}
+#ifdef _USE_BUILTIN_COMPLEX
+#include "builtin_complex.c"
+#else
+#include "c99_complex_wrapper.c"
+#endif
 

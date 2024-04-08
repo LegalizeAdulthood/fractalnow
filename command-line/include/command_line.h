@@ -75,8 +75,10 @@ typedef struct CommandLineArguments {
  /*!< Threshold used when anti-aliasing method is adaptive.*/
 	FloatPrecision floatPrecision;
  /*!< Float precision.*/
-	mpfr_prec_t MPFloatPrecision;
+#ifdef _ENABLE_MP_FLOATS
+	int64_t MPFloatPrecision;
  /*!< Precision (value) of Multiple Precision floats.*/
+#endif
 } CommandLineArguments;
 
 /**

@@ -74,8 +74,10 @@ class CommandLineArguments {
 	double colorDissimilarityThreshold;
 	//! Float precision for computing fractal.
 	FloatPrecision floatPrecision;
+#ifdef _ENABLE_MP_FLOATS
 	//! Precision (value) of Multiple Precision floats.
-	mpfr_prec_t MPFloatPrecision;
+	int64_t MPFloatPrecision;
+#endif
 };
 
 #endif

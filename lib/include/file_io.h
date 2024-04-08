@@ -28,9 +28,9 @@
 #define __FILE_IO_H__
 
 #include "color.h"
+#include "float_precision.h"
 #include <stdint.h>
 #include <stdio.h>
-#include <mpfr.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,14 +67,14 @@ int readUint32(FILE *file, uint32_t *dst);
 int readDouble(FILE *file, double *dst);
 
 /**
- * \fn int readMPFR(FILE *file, mpfr_t dst)
- * \brief Read mpfr_t from file.
+ * \fn int readBiggestFloat(FILE *file, BiggestFloat *dst)
+ * \brief Read BiggestFloat from file.
  *
- * \param file File from which to read mpfr_t.
- * \param dst Destination mpfr_t.
+ * \param file File from which to read float.
+ * \param dst Destination.
  * \return Number of elements successfully read or EOF (like fscanf).
  */
-int readMPFR(FILE *file, mpfr_t dst);
+int readBiggestFloat(FILE *file, BiggestFloat *dst);
 
 /**
  * \fn int readColor(FILE *file, int_fast8_t bytesPerComponent, Color *dst)
@@ -120,18 +120,28 @@ int writeUint32(FILE *file, uint32_t src, const char *suffix);
  * \param suffix Suffix to add after double.
  * \return Number of characters written, negative in case of error (like fprintf).
  */
-int writeDouble(FILE *file, double src, const char *suffix);
+int writeDouble(FILE *file, const double src, const char *suffix);
 
 /**
- * \fn int writeMPFR(FILE *file, mpfr_t src, const char *suffix)
- * \brief Write mpfr_t into file.
+ * \fn int writeBiggestFloat(FILE *file, const BiggestFloat src, const char *suffix)
+ * \brief Write BiggestFloat into file.
  *
  * \param file File to write into.
- * \param src Source mpfr_t.
- * \param suffix Suffix to add after mpfr_t.
+ * \param src Source float.
+ * \param suffix Suffix to add after float.
  * \return Number of characters written, negative in case of error (like fprintf).
  */
-int writeMPFR(FILE *file, const mpfr_t src, const char *suffix);
+int writeBiggestFloat(FILE *file, const BiggestFloat src, const char *suffix);
+
+/**
+ * \fn int writeBiggestFloat(FILE *file, cBiggestFloat *dst)
+ * \brief Read BiggestFloat from file.
+ *
+ * \param file File from which to read float.
+ * \param dst Destination.
+ * \return Number of elements successfully read or EOF (like fscanf).
+ */
+int readBiggestFloat(FILE *file, BiggestFloat *dst);
 
 /**
  * \fn int writeColor(FILE *file, Color src, const char *suffix)

@@ -1,10 +1,13 @@
+0.8.2  2017-10-28  Marc Pegon  <pe.marc@free.fr>
+    * Switched to Qt5.
+
 0.8.1  2012-07-11  Marc Pegon  <pe.marc@free.fr>
 
     * Made gradient offset spin box circular.
     * Improved icons.
     * Updated file formats documentation.
-    * Minor bug fixes
-    * Source cleaning
+    * Minor bug fixes.
+    * Source cleaning.
 
 0.8.0  2012-05-13  Marc Pegon  <pe.marc@free.fr>
 
@@ -13,4 +16,4 @@
         mpfr_t) at runtime.
 
 0.7.5  2012-04-12  Marc Pegon  <pe.marc@free.fr>
-    * Initial release
+    * Initial release.

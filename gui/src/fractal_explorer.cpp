@@ -276,8 +276,12 @@ void FractalExplorer::setGradient(const Gradient &gradient)
 	if (gradient.bytesPerComponent == 2) {
 		QMessageBox::critical(this, tr("Gradient color depth is 16 bits."),
 			tr("16-bits gradient will be converted to 8-bits gradient."));
+		Gradient newGradient = Gradient8(&gradient);
+		ResetGradient(&fractalConfig.render, newGradient);
+		FreeGradient(newGradient);
+	} else {
+		ResetGradient(&fractalConfig.render, gradient);
 	}
-	ResetGradient(&fractalConfig.render, gradient);
 	adjustSpan();
 
 	emit renderingParametersChanged(render);
@@ -411,7 +415,7 @@ QSize FractalExplorer::sizeHint() const
 void FractalExplorer::reInitFractal()
 {
 	Fractal newFractal;
-	InitFractal(&newFractal, fractal.fractalFormula, fractal.p, fractal.c,
+	InitFractal2(&newFractal, fractal.fractalFormula, fractal.p, fractal.c,
 			fractal.centerX, fractal.centerY,
 			fractal.spanX, fractal.spanY, 
 			fractal.escapeRadius, fractal.maxIter);
@@ -868,7 +872,7 @@ void FractalExplorer::mousePressEvent(QMouseEvent *event)
 		movingFractalDeferred = true;
 		mpfr_set(fractalCenterXOnPress, fractal.centerX, MPFR_RNDN);
 		mpfr_set(fractalCenterYOnPress, fractal.centerY, MPFR_RNDN);
-		mousePosOnPress = event->posF();
+		mousePosOnPress = event->localPos();
 		QApplication::setOverrideCursor(Qt::ClosedHandCursor);
 		break;
 	case Qt::MidButton:
@@ -878,7 +882,7 @@ void FractalExplorer::mousePressEvent(QMouseEvent *event)
 	default:
 		QLabel::mousePressEvent(event);
 	}
-	prevMousePos = event->posF();
+	prevMousePos = event->localPos();
 }
 
 void FractalExplorer::mouseReleaseEvent(QMouseEvent *event)
@@ -914,7 +918,7 @@ void FractalExplorer::mouseMoveEvent(QMouseEvent *event)
 			imageCopyOnPress = fractalQImage->copy();
 		}
 		fractalMoved = true;
-		QVector2D vect(event->posF()-mousePosOnPress);
+		QVector2D vect(event->localPos()-mousePosOnPress);
 		mpfr_t dx, dy;
 		mpfr_init(dx);
 		mpfr_init(dy);
@@ -945,7 +949,7 @@ void FractalExplorer::mouseMoveEvent(QMouseEvent *event)
 		reInitFractal();
 		emit fractalChanged(fractal);
 	} else if (movingFractalRealTime) {
-		QVector2D vect(event->posF()-prevMousePos);
+		QVector2D vect(event->localPos()-prevMousePos);
 		mpfr_t dx, dy;
 		mpfr_init(dx);
 		mpfr_init(dy);
@@ -957,7 +961,7 @@ void FractalExplorer::mouseMoveEvent(QMouseEvent *event)
 		mpfr_div_ui(dy, dy, fractalImage.height, MPFR_RNDN);
 
 		moveFractal(dx, dy, true);
-		prevMousePos = event->posF();
+		prevMousePos = event->localPos();
 
 		mpfr_clear(dx);
 		mpfr_clear(dy);
@@ -1252,7 +1256,7 @@ void FractalExplorer::setSpaceColor(const QColor &color)
 
 inline static bool pos_less_than(const QGradientStop &s1, const QGradientStop &s2)
 {
-    return s1.first < s2.first;
+	return s1.first < s2.first;
 }
 
 void FractalExplorer::setGradient(const QGradientStops &gradientStops)

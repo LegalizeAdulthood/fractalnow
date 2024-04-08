@@ -36,8 +36,8 @@ void DisplayHelp();
 
 #define invalid_use_error(...) \
 	FractalNow_message(stderr, T_QUIET, __VA_ARGS__);\
-	DisplayHelp(); \
-        exit(EXIT_FAILURE)
+	DisplayHelp();\
+	exit(EXIT_FAILURE)
 
 #ifdef __cplusplus
 }

@@ -35,6 +35,7 @@
 #include <QInputDialog>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QMimeData>
 #include <QSettings>
 #include <QTextCodec>
 #include <QTimer>
@@ -45,7 +46,8 @@
 
 void initDefaultFractal(Fractal &fractal)
 {
-	InitFractal2(&fractal, FRAC_MANDELBROT, 2, 0.4+I*0.25, -0.7, 0, 3, 3, 1E3, 1000);
+	InitFractal(&fractal, FRAC_MANDELBROT, cbuild_l(2,0), cbuild_l(0.4,0.25),
+				-0.7, 0, 3, 3, 1E3, 1000);
 }
 
 void initDefaultGradient(Gradient &gradient)
@@ -79,12 +81,12 @@ void MainWindow::loadSettings()
 {
 	QSettings settings;
 
-	imageDir = settings.value("imageDir", QDesktopServices::storageLocation(
-			QDesktopServices::PicturesLocation)).toString();
-	configDir = settings.value("configDir", QDesktopServices::storageLocation(
-			QDesktopServices::DocumentsLocation)).toString();
-	gradientDir = settings.value("gradientDir", QDesktopServices::storageLocation(
-			QDesktopServices::DocumentsLocation)).toString();
+	imageDir = settings.value("imageDir", QStandardPaths::writableLocation(
+			QStandardPaths::PicturesLocation)).toString();
+	configDir = settings.value("configDir", QStandardPaths::writableLocation(
+			QStandardPaths::DocumentsLocation)).toString();
+	gradientDir = settings.value("gradientDir", QStandardPaths::writableLocation(
+			QStandardPaths::DocumentsLocation)).toString();
 	adaptExplorerSize = settings.value("adaptExplorerSize", false).toBool();
 	lastPreferredExplorerWidth = settings.value("preferredExplorerWidth",
 		DEFAULT_EXPLORER_WIDTH).toUInt();
@@ -96,8 +98,8 @@ void MainWindow::loadSettings()
 	cacheSize = settings.value("cacheSize",
 			(unsigned int)DEFAULT_FRACTAL_CACHE_SIZE).toUInt();
 	solidGuessing = settings.value("solidGuessing", true).toBool();
-	fractalnow_mpfr_precision = settings.value("MPFRPrec",
-		(unsigned int)DEFAULT_MPFR_PRECISION).toUInt();
+	fractalnow_mp_precision = settings.value("MPFRPrec",
+		(unsigned int)DEFAULT_MP_PRECISION).toUInt();
 }
 
 void MainWindow::saveSettings()
@@ -133,8 +135,6 @@ MainWindow::MainWindow(int argc, char *argv[])
 	setAcceptDrops(true);
 
 	/* Set C numeric locale and codecs for strings. */
-	QTextCodec::setCodecForCStrings(QTextCodec::codecForName("UTF-8"));
-	QTextCodec::setCodecForTr(QTextCodec::codecForName("UTF-8"));
 	setlocale(LC_NUMERIC, "C");
 
 	/* Load settings. */
@@ -142,8 +142,7 @@ MainWindow::MainWindow(int argc, char *argv[])
 
 	/* Read arguments on command-line. */
 	CommandLineArguments args(argc, argv);
-	fractalnow_mpfr_precision = args.MPFloatPrecision;
-	mpfr_set_default_prec(fractalnow_mpfr_precision);
+	SetMPFloatPrecision(args.MPFloatPrecision);
 
 	FractalConfig config;
 	Fractal &fractal = config.fractal;
@@ -234,7 +233,7 @@ MainWindow::MainWindow(int argc, char *argv[])
 		}
 		/* Reinit fractal, since we changed spanX or spanY. */
 		Fractal newFractal;
-		InitFractal(&newFractal, fractal.fractalFormula, fractal.p, fractal.c,
+		InitFractal2(&newFractal, fractal.fractalFormula, fractal.p, fractal.c,
 				fractal.centerX, fractal.centerY, spanX, spanY,
 				fractal.escapeRadius, fractal.maxIter);
 		ResetFractal(&config, newFractal);
@@ -395,7 +394,11 @@ MainWindow::MainWindow(int argc, char *argv[])
 	hBoxLayout->setStretch(1, 0);
 	editMPFloatPrecisionWidget = new QWidget();
 	editMPFloatPrecisionWidget->setLayout(hBoxLayout);
-	editMPFloatPrecisionWidget->setEnabled((int)args.floatPrecision);
+#ifdef _ENABLE_MP_FLOATS
+	editMPFloatPrecisionWidget->setEnabled(args.floatPrecision == FP_MP);
+#else
+	editMPFloatPrecisionWidget->setEnabled(false);
+#endif
 	connect(floatTypeComboBox, SIGNAL(currentIndexChanged(int)),
 		this, SLOT(onFloatTypeChanged(int)));
 	connect(fractalExplorer, SIGNAL(fractalCacheSizeChanged(int)),
@@ -407,7 +410,7 @@ MainWindow::MainWindow(int argc, char *argv[])
 	useCacheCheckBox->setChecked(fractalExplorer->getFractalCacheEnabled());
 	cacheSizeSpinBox->setValue(fractalExplorer->getFractalCacheSize());
 	floatTypeComboBox->setCurrentIndex((int)args.floatPrecision);
-	MPFloatPrecisionSpinBox->setValue((int)fractalnow_mpfr_precision);
+	MPFloatPrecisionSpinBox->setValue((int)GetMPFloatPrecision());
 	/* Add widgets to layout. */
 	otherParamLayout->addRow(tr("Preferred image width:"), preferredImageWidthSpinBox);
 	otherParamLayout->addRow(tr("Preferred image height:"), preferredImageHeightSpinBox);
@@ -636,15 +639,18 @@ void MainWindow::adaptExplorerToWindow(bool checked)
 {
 	if (checked) {
 		fractalExplorer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+		fractalExplorer->updateGeometry();
 	} else {
+		centralWidget()->updateGeometry();
 		fractalExplorer->resize(preferredImageWidthSpinBox->value(),
 					preferredImageHeightSpinBox->value());
 		fractalExplorer->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+		fractalExplorer->updateGeometry();
 	}
 	centralWidget()->updateGeometry();
 }
 
-void MainWindow::loadConfigFile(const char *fileName)
+void MainWindow::loadConfigFile(QString fileName)
 {
 	FractalConfig newConfig;
 	/* Set locale each time, because apparently some Qt
@@ -653,7 +659,7 @@ void MainWindow::loadConfigFile(const char *fileName)
 	 * changes back locale...
 	 */
 	setlocale(LC_NUMERIC, "C");
-	if (ReadFractalConfigFile(&newConfig, fileName)) {
+	if (ReadFractalConfigFile(&newConfig, fileName.toStdString().c_str())) {
 		QMessageBox::critical(this, tr("Failed to read config file"),
 			tr("Error occured while reading config file."));
 	} else {
@@ -665,11 +671,11 @@ void MainWindow::loadConfigFile(const char *fileName)
 	}
 }
 
-void MainWindow::loadFractalFile(const char *fileName)
+void MainWindow::loadFractalFile(QString fileName)
 {
 	Fractal newFractal;
 	setlocale(LC_NUMERIC, "C");
-	if (ReadFractalFile(&newFractal, fileName)) {
+	if (ReadFractalFile(&newFractal, fileName.toStdString().c_str())) {
 		QMessageBox::critical(this, tr("Failed to read fractal file"),
 			tr("Error occured while reading fractal file."));
 	} else {
@@ -681,11 +687,11 @@ void MainWindow::loadFractalFile(const char *fileName)
 	}
 }
 
-void MainWindow::loadRenderingFile(const char *fileName)
+void MainWindow::loadRenderingFile(QString fileName)
 {
 	RenderingParameters newRender;
 	setlocale(LC_NUMERIC, "C");
-	if (ReadRenderingFile(&newRender, fileName)) {
+	if (ReadRenderingFile(&newRender, fileName.toStdString().c_str())) {
 		QMessageBox::critical(this, tr("Failed to read rendering file"),
 			tr("Error occured while reading rendering file."));
 	} else {
@@ -697,11 +703,11 @@ void MainWindow::loadRenderingFile(const char *fileName)
 	}
 }
 
-void MainWindow::loadGradientFile(const char *fileName)
+void MainWindow::loadGradientFile(QString fileName)
 {
 	Gradient newGradient;
 	setlocale(LC_NUMERIC, "C");
-	if (ReadGradientFile(&newGradient, fileName)) {
+	if (ReadGradientFile(&newGradient, fileName.toStdString().c_str())) {
 		QMessageBox::critical(this, tr("Failed to read rendering file"),
 			tr("Error occured while reading rendering file."));
 	} else {
@@ -735,7 +741,7 @@ void MainWindow::openConfigFile()
 	
 	if (!fileName.isEmpty()) {
 		configDir = QFileInfo(fileName).absolutePath();
-		loadConfigFile(fileName.toStdString().c_str());
+		loadConfigFile(fileName);
 	}
 }
 
@@ -748,13 +754,13 @@ void MainWindow::saveConfigFile()
 	if (!fileName.isEmpty()) {
 		configDir = QFileInfo(fileName).absolutePath();
 		const Fractal &expFractal = fractalExplorer->getFractalConfig().fractal;
-		mpfr_t spanY;
-		mpfr_init(spanY);
-		mpfr_set(spanY, expFractal.spanX, MPFR_RNDN);
+		//mpfr_t spanY;
+		//mpfr_init(spanY);
+		//mpfr_set(spanY, expFractal.spanX, MPFR_RNDN);
 		Fractal fractal;
-		InitFractal(&fractal, expFractal.fractalFormula, expFractal.p, expFractal.c,
+		InitFractal2(&fractal, expFractal.fractalFormula, expFractal.p, expFractal.c,
 				expFractal.centerX, expFractal.centerY,
-				expFractal.spanX, spanY, 
+				expFractal.spanX, expFractal.spanY, 
 				expFractal.escapeRadius, expFractal.maxIter);
 		RenderingParameters render = CopyRenderingParameters(
 						&fractalExplorer->getFractalConfig().render);
@@ -764,7 +770,7 @@ void MainWindow::saveConfigFile()
 			QMessageBox::critical(this, tr("Failed to write configuration file"),
 				tr("Error occured while writing configuration file."));
 		}
-		mpfr_clear(spanY);
+		//mpfr_clear(spanY);
 		FreeFractalConfig(fractalConfig);
 	}
 }
@@ -776,7 +782,7 @@ void MainWindow::openGradientFile()
 				tr("Gradient (*.gradient)"));
 	if (!fileName.isEmpty()) {
 		gradientDir = QFileInfo(fileName).absolutePath();
-		loadGradientFile(fileName.toStdString().c_str());
+		loadGradientFile(fileName);
 	}
 }
 
@@ -829,40 +835,45 @@ void MainWindow::onCacheSizeChanged()
 
 void MainWindow::onFloatTypeChanged(int index)
 {
+#ifdef __ENABLE_MP_FLOATS
 	if ((FloatPrecision)index == FP_MP) {
 		editMPFloatPrecisionWidget->setEnabled(true);
 	} else {
 		editMPFloatPrecisionWidget->setEnabled(false);
 	}
+#else
+	UNUSED(index);
+#endif
 }
 
 void MainWindow::editMPFloatPrecision()
 {
 	bool ok;
-	int new_mpfr_precision = QInputDialog::getInt(this, tr("Change value"), tr("MP Float Precision"),
+	int new_mp_precision = QInputDialog::getInt(this, tr("Change value"), tr("MP Float Precision"),
 				MPFloatPrecisionSpinBox->value(), MPFR_PREC_MIN,
 				std::min<long long int>(std::numeric_limits<int>::max(),(long long int)MPFR_PREC_MAX),
 				1, &ok);
 	if (ok) {
-		MPFloatPrecisionSpinBox->setValue(new_mpfr_precision);
-		if (fractalnow_mpfr_precision != new_mpfr_precision) {
+		MPFloatPrecisionSpinBox->setValue(new_mp_precision);
+		if (GetMPFloatPrecision() != new_mp_precision) {
 			QMessageBox::information(this, tr("Restart application"),
 				tr("You must restart application to apply changes."));
 		}
 	}
 }
 
-enum MainWindow::FileType MainWindow::getFileType(const char *fileName)
+enum MainWindow::FileType MainWindow::getFileType(QString fileName)
 {
 	enum MainWindow::FileType res = MainWindow::UNKNOWN_FILE;
+	std::string sFileName = fileName.toStdString();
 
-	if (isSupportedFractalConfigFile(fileName)) {
+	if (isSupportedFractalConfigFile(sFileName.c_str())) {
 		res = MainWindow::CONFIG_FILE;
-	} else if (isSupportedFractalFile(fileName)) {
+	} else if (isSupportedFractalFile(sFileName.c_str())) {
 		res = MainWindow::FRACTAL_FILE;
-	} else if (isSupportedRenderingFile(fileName)) {
+	} else if (isSupportedRenderingFile(sFileName.c_str())) {
 		res  = MainWindow::RENDER_FILE;
-	} else if (isSupportedGradientFile(fileName)) {
+	} else if (isSupportedGradientFile(sFileName.c_str())) {
 		res = MainWindow::GRADIENT_FILE;
 	}
 
@@ -870,21 +881,20 @@ enum MainWindow::FileType MainWindow::getFileType(const char *fileName)
 }
 
 void MainWindow::openFile(QString fileName) {
-	const char *cFileName = fileName.toStdString().c_str();
-	enum MainWindow::FileType fileType = getFileType(cFileName);
+	enum MainWindow::FileType fileType = getFileType(fileName);
 
 	switch (fileType) {
 	case MainWindow::CONFIG_FILE:
-		loadConfigFile(cFileName);
+		loadConfigFile(fileName);
 		break;
 	case MainWindow::FRACTAL_FILE:
-		loadFractalFile(cFileName);
+		loadFractalFile(fileName);
 		break;
 	case MainWindow::RENDER_FILE:
-		loadRenderingFile(cFileName);
+		loadRenderingFile(fileName);
 		break;
 	case MainWindow::GRADIENT_FILE:
-		loadGradientFile(cFileName);
+		loadGradientFile(fileName);
 		break;
 	default:
 		/* This should never happen. */
@@ -902,8 +912,7 @@ void MainWindow::dragEnterEvent(QDragEnterEvent *event)
 		QList<QUrl> urls(event->mimeData()->urls());
 		QString fileName(urls.at(0).toLocalFile());
 		if (urls.size() == 1 && !fileName.isEmpty()) {
-			const char *cFileName = fileName.toStdString().c_str();
-			if (getFileType(cFileName) != MainWindow::UNKNOWN_FILE) {
+			if (getFileType(fileName) != MainWindow::UNKNOWN_FILE) {
 				event->acceptProposedAction();
 			}
 		}

@@ -32,6 +32,9 @@
 
 #include "fractalnow.h"
 
+#include <mpfr.h>
+#include <mpc.h>
+
 #include <QAction>
 #include <QFutureWatcher>
 #include <QImage>

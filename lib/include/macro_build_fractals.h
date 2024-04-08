@@ -33,11 +33,29 @@ extern "C" {
 #endif
 
 #define FLOAT_PRECISIONS(x,y,z,t,u,v,w) MACRO_BUILD_FRACTAL(x,y,z,t,u,v,w)
+
+#if defined(_ENABLE_MP_FLOATS) && defined(_ENABLE_LDOUBLE_FLOATS)
 #define BUILD_FLOAT_PRECISIONS(x,y,z,t,u,v) \
 	FLOAT_PRECISIONS(x,y,z,t,u,v,SINGLE) \
 	FLOAT_PRECISIONS(x,y,z,t,u,v,DOUBLE) \
 	FLOAT_PRECISIONS(x,y,z,t,u,v,LDOUBLE) \
 	FLOAT_PRECISIONS(x,y,z,t,u,v,MP)
+#elif defined(_ENABLE_MP_FLOATS) && !defined(_ENABLE_LDOUBLE_FLOATS)
+#define BUILD_FLOAT_PRECISIONS(x,y,z,t,u,v) \
+	FLOAT_PRECISIONS(x,y,z,t,u,v,SINGLE) \
+	FLOAT_PRECISIONS(x,y,z,t,u,v,DOUBLE) \
+	FLOAT_PRECISIONS(x,y,z,t,u,v,MP)
+#elif !defined(_ENABLE_MP_FLOATS) && defined(_ENABLE_LDOUBLE_FLOATS)
+#define BUILD_FLOAT_PRECISIONS(x,y,z,t,u,v) \
+	FLOAT_PRECISIONS(x,y,z,t,u,v,SINGLE) \
+	FLOAT_PRECISIONS(x,y,z,t,u,v,LDOUBLE) \
+	FLOAT_PRECISIONS(x,y,z,t,u,v,DOUBLE)
+#else
+#define BUILD_FLOAT_PRECISIONS(x,y,z,t,u,v) \
+	FLOAT_PRECISIONS(x,y,z,t,u,v,SINGLE) \
+	FLOAT_PRECISIONS(x,y,z,t,u,v,DOUBLE)
+#endif
+
 #define INTERPOLATION_METHOD(x,y,z,t,u,v) BUILD_FLOAT_PRECISIONS(x,y,z,t,u,v)
 #define BUILD_INTERPOLATION_METHODS(x,y,z,t,u) \
 	INTERPOLATION_METHOD(x,y,z,t,u,NONE) \

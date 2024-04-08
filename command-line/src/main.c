@@ -33,8 +33,9 @@ int main(int argc, char *argv[]) {
 	CommandLineArguments arg;
 	ParseCommandLineArguments(&arg, argc, argv);
 
-	fractalnow_mpfr_precision = arg.MPFloatPrecision;
-	mpfr_set_default_prec(fractalnow_mpfr_precision);
+#ifdef _ENABLE_MP_FLOATS
+	SetMPFloatPrecision(arg.MPFloatPrecision);
+#endif
 
 	FractalConfig fractalConfig;
 	if (arg.fractalConfigFileName != NULL) {
@@ -80,19 +81,19 @@ int main(int argc, char *argv[]) {
 	uint_fast32_t width = arg.width;
 	uint_fast32_t height = arg.height;
 	if (width == 0) {
-		mpfr_t dwidth;
-		mpfr_init(dwidth);
-		mpfr_mul_ui(dwidth, fractal.spanX, height, MPFR_RNDN);
-		mpfr_div(dwidth, dwidth, fractal.spanY, MPFR_RNDN);
-		width = roundl(mpfr_get_d(dwidth, MPFR_RNDN));
-		mpfr_clear(dwidth);
+		BiggestFloat dwidth;
+		initBiggestF(dwidth);
+		mul_uiBiggestF(dwidth, fractal.spanX, height);
+		divBiggestF(dwidth, dwidth, fractal.spanY);
+		width = roundl(toDoubleBiggestF(dwidth));
+		clearBiggestF(dwidth);
 	} else if (height == 0) {
-		mpfr_t dheight;
-		mpfr_init(dheight);
-		mpfr_mul_ui(dheight, fractal.spanY, width, MPFR_RNDN);
-		mpfr_div(dheight, dheight, fractal.spanX, MPFR_RNDN);
-		height = roundl(mpfr_get_d(dheight, MPFR_RNDN));
-		mpfr_clear(dheight);
+		BiggestFloat dheight;
+		initBiggestF(dheight);
+		mul_uiBiggestF(dheight, fractal.spanY, width);
+		divBiggestF(dheight, dheight, fractal.spanX);
+		height = roundl(toDoubleBiggestF(dheight));
+		clearBiggestF(dheight);
 	}
 
 	Threads *threads = CreateThreads((arg.nbThreads <= 0) ? DEFAULT_NB_THREADS :

@@ -86,86 +86,105 @@ const WriteFractalFileFunction writeFractalFileFunction[] = {
 	WriteFractalFileV075
 };
 
-void InitFractal(Fractal *fractal, FractalFormula fractalFormula, const mpc_t p,
-			const mpc_t c, const mpfr_t centerX, const mpfr_t centerY,
-			const mpfr_t spanX, const mpfr_t spanY,
-			double escapeRadius, uint_fast32_t maxIter)
+inline void InitFractal(Fractal *fractal, FractalFormula fractalFormula, Complex_l p,
+			Complex_l c, long double centerX, long double centerY,
+			long double spanX, long double spanY, double escapeRadius,
+			uint_fast32_t maxIter)
 {
-	cinitF(FP_MP, fractal->p);
-	cinitF(FP_MP, fractal->c);
-	initF(FP_MP, fractal->centerX);
-	initF(FP_MP, fractal->centerY);
-	initF(FP_MP, fractal->spanX);
-	initF(FP_MP, fractal->spanY);
-	initF(FP_MP, fractal->x1);
-	initF(FP_MP, fractal->y1);
+	cinitBiggestF(fractal->p);
+	cinitBiggestF(fractal->c);
+	initBiggestF(fractal->centerX);
+	initBiggestF(fractal->centerY);
+	initBiggestF(fractal->spanX);
+	initBiggestF(fractal->spanY);
+	initBiggestF(fractal->x1);
+	initBiggestF(fractal->y1);
 
 	fractal->fractalFormula = fractalFormula;
 
 	if (fractalFormula == FRAC_MANDELBROT || fractalFormula == FRAC_JULIA) {
-		cfromUiF(FP_MP, fractal->p, 2);
-	} else {
-		cassignF(FP_MP, fractal->p, p);
+		p = cbuild_l(2, 0);
 	}
-	cassignF(FP_MP, fractal->c, c);
+
+	cfromCLDoubleBiggestF(fractal->p, p);
+	cfromCLDoubleBiggestF(fractal->c, c);
 	fractal->escapeRadius = escapeRadius;
 	fractal->maxIter = maxIter;
 
-	assignF(FP_MP, fractal->centerX, centerX);
-	assignF(FP_MP, fractal->centerY, centerY);
-	assignF(FP_MP, fractal->spanX, spanX);
-	assignF(FP_MP, fractal->spanY, spanY);
+	fromDoubleBiggestF(fractal->centerX, centerX);
+	fromDoubleBiggestF(fractal->centerY, centerY);
+	fromDoubleBiggestF(fractal->spanX, spanX);
+	fromDoubleBiggestF(fractal->spanY, spanY);
+	fromDoubleBiggestF(fractal->x1, centerX - spanX/2);
+	fromDoubleBiggestF(fractal->y1, centerY - spanY/2);
+}
+
+#ifdef _ENABLE_MP_FLOATS
+inline void InitFractal2(Fractal *fractal, FractalFormula fractalFormula, const mpc_t p,
+			const mpc_t c, const mpfr_t centerX, const mpfr_t centerY,
+			const mpfr_t spanX, const mpfr_t spanY,
+			double escapeRadius, uint_fast32_t maxIter)
+{
+	cinitBiggestF(fractal->p);
+	cinitBiggestF(fractal->c);
+	initBiggestF(fractal->centerX);
+	initBiggestF(fractal->centerY);
+	initBiggestF(fractal->spanX);
+	initBiggestF(fractal->spanY);
+	initBiggestF(fractal->x1);
+	initBiggestF(fractal->y1);
+
+	fractal->fractalFormula = fractalFormula;
+
+	if (fractalFormula == FRAC_MANDELBROT || fractalFormula == FRAC_JULIA) {
+		cfromUiBiggestF(fractal->p, 2);
+	} else {
+		cfromMPCBiggestF(fractal->p, p);
+	}
+	cfromMPCBiggestF(fractal->c, c);
+	fractal->escapeRadius = escapeRadius;
+	fractal->maxIter = maxIter;
+
+	fromMPFRBiggestF(fractal->centerX, centerX);
+	fromMPFRBiggestF(fractal->centerY, centerY);
+	fromMPFRBiggestF(fractal->spanX, spanX);
+	fromMPFRBiggestF(fractal->spanY, spanY);
 
 	mpfr_t tmp;
 	initF(FP_MP, tmp);
 
 	div_uiF(FP_MP, tmp, spanX, 2);
-	subF(FP_MP, fractal->x1, centerX, tmp);
+	subF(FP_MP, tmp, centerX, tmp);
+	fromMPFRBiggestF(fractal->x1, tmp);
 
 	div_uiF(FP_MP, tmp, spanY, 2);
-	subF(FP_MP, fractal->y1, centerY, tmp);
+	subF(FP_MP, tmp, centerY, tmp);
+	fromMPFRBiggestF(fractal->y1, tmp);
 
 	clearF(FP_MP, tmp);
 }
+#endif
 
-void InitFractal2(Fractal *fractal, FractalFormula fractalFormula, long double complex p,
-			long double complex c, long double centerX, long double centerY,
-			long double spanX, long double spanY, double escapeRadius,
-			uint_fast32_t maxIter)
+static void InitFractalBiggestF(Fractal *fractal, FractalFormula fractalFormula,
+					const BiggestComplexFloat p, const BiggestComplexFloat c,
+					const BiggestFloat centerX, const BiggestFloat centerY,
+					const BiggestFloat spanX, const BiggestFloat spanY,
+					double escapeRadius, uint_fast32_t maxIter)
 {
-	cinitF(FP_MP, fractal->p);
-	cinitF(FP_MP, fractal->c);
-	initF(FP_MP, fractal->centerX);
-	initF(FP_MP, fractal->centerY);
-	initF(FP_MP, fractal->spanX);
-	initF(FP_MP, fractal->spanY);
-	initF(FP_MP, fractal->x1);
-	initF(FP_MP, fractal->y1);
-
-	fractal->fractalFormula = fractalFormula;
-
-	if (fractalFormula == FRAC_MANDELBROT || fractalFormula == FRAC_JULIA) {
-		p = 2;
-	}
-
-	cfromCDoubleF(FP_MP, fractal->p, p);
-	cfromCDoubleF(FP_MP, fractal->c, c);
-	fractal->escapeRadius = escapeRadius;
-	fractal->maxIter = maxIter;
-
-	fromDoubleF(FP_MP, fractal->centerX, centerX);
-	fromDoubleF(FP_MP, fractal->centerY, centerY);
-	fromDoubleF(FP_MP, fractal->spanX, spanX);
-	fromDoubleF(FP_MP, fractal->spanY, spanY);
-	fromDoubleF(FP_MP, fractal->x1, centerX - spanX/2);
-	fromDoubleF(FP_MP, fractal->y1, centerY - spanY/2);
+#ifdef _ENABLE_MP_FLOATS
+	InitFractal2(fractal, fractalFormula, p, c, centerX, centerY, spanX, spanY,
+					escapeRadius, maxIter);
+#else // #ifndef _ENABLE_MP_FLOATS
+	InitFractal(fractal, fractalFormula, p, c, centerX, centerY, spanX, spanY,
+					escapeRadius, maxIter);
+#endif
 }
 
 Fractal CopyFractal(const Fractal *fractal)
 {
 	Fractal res;
 
-	InitFractal(&res, fractal->fractalFormula, fractal->p, fractal->c,
+	InitFractalBiggestF(&res, fractal->fractalFormula, fractal->p, fractal->c,
 			fractal->centerX, fractal->centerY,
 			fractal->spanX, fractal->spanY,
 			fractal->escapeRadius, fractal->maxIter);
@@ -177,16 +196,22 @@ int ReadFractalFileV075(Fractal *fractal, const char *fileName, FILE *file)
 {
 	int res = 0;
 	char tmp[6][256];
-	mpc_t p;
-	cinitF(FP_MP, p);
-	mpc_t c;
-	cinitF(FP_MP, c);
-	mpfr_t centerX, centerY;
-	initF(FP_MP, centerX);
-	initF(FP_MP, centerY);
-	mpfr_t spanX, spanY;
-	initF(FP_MP, spanX);
-	initF(FP_MP, spanY);
+	BiggestComplexFloat p;
+	cinitBiggestF(p);
+	BiggestFloat reP, imP;
+	initBiggestF(reP);
+	initBiggestF(imP);
+	BiggestComplexFloat c;
+	cinitBiggestF(c);
+	BiggestFloat reC, imC;
+	initBiggestF(reC);
+	initBiggestF(imC);
+	BiggestFloat centerX, centerY;
+	initBiggestF(centerX);
+	initBiggestF(centerY);
+	BiggestFloat spanX, spanY;
+	initBiggestF(spanX);
+	initBiggestF(spanY);
 
 	FractalFormula fractalFormula;
 	if (readString(file, tmp[0]) < 1) {
@@ -195,11 +220,12 @@ int ReadFractalFileV075(Fractal *fractal, const char *fileName, FILE *file)
 	if (GetFractalFormula(&fractalFormula, tmp[0])) {
 		FractalNow_werror("Invalid fractal file : could not get fractal formula.\n");
 	}
+
 	switch (fractalFormula) {
 	case FRAC_MANDELBROT:
 	case FRAC_JULIA:
-		fromUiF(FP_MP, mpc_realref(p), 2);
-		fromUiF(FP_MP, mpc_imagref(p), 0);
+		fromUiBiggestF(reP, 2);
+		fromUiBiggestF(imP, 0);
 		break;
 	case FRAC_MULTIBROT:
 	case FRAC_MULTIJULIA:
@@ -208,10 +234,10 @@ int ReadFractalFileV075(Fractal *fractal, const char *fileName, FILE *file)
 	case FRAC_MANDELBAR:
 	case FRAC_JULIABAR:
 	case FRAC_RUDY:
-		if (readMPFR(file, mpc_realref(p)) < 1) {
+		if (readBiggestFloat(file, &reP) < 1) {
 			FractalNow_read_werror(fileName);
 		}
-		if (readMPFR(file, mpc_imagref(p)) < 1) {
+		if (readBiggestFloat(file, &imP) < 1) {
 			FractalNow_read_werror(fileName);
 		}
 		break;
@@ -219,14 +245,16 @@ int ReadFractalFileV075(Fractal *fractal, const char *fileName, FILE *file)
 		FractalNow_werror("Unknown fractal formula \'%s\'.\n", tmp[0]);
 		break;
 	}
+	cfromReImBiggestF(p, reP, imP);
 
-	if (cmp_uiF(FP_MP, mpc_realref(p), 0) < 0 || cmp_uiF(FP_MP, mpc_realref(p), 100) > 0) {
+	if (cmp_uiBiggestF(reP, 0) < 0 || cmp_uiBiggestF(reP, 100) > 0) {
 		FractalNow_werror("Invalid fractal file : Re(p) must be between 0 and 100.\n");
 	}
-	if (cmp_uiF(FP_MP, mpc_imagref(p), 0) < 0 || cmp_uiF(FP_MP, mpc_imagref(p), 100) > 0) {
+	if (cmp_uiBiggestF(imP, 0) < 0 || cmp_uiBiggestF(imP, 100) > 0) {
 		FractalNow_werror("Invalid fractal file : Im(p) must be between 0 and 100.\n");
 	}
-	cfromCDoubleF(FP_MP, c, 0.5+I*0.5);
+	fromDoubleBiggestF(reC, 0.5);
+	fromDoubleBiggestF(imC, 0.5);
 
 	switch (fractalFormula) {
 	case FRAC_MANDELBROT:
@@ -239,10 +267,10 @@ int ReadFractalFileV075(Fractal *fractal, const char *fileName, FILE *file)
 	case FRAC_JULIABURNINGSHIP:
 	case FRAC_JULIABAR:
 	case FRAC_RUDY:
-		if (readMPFR(file, mpc_realref(c)) < 1) {
+		if (readBiggestFloat(file, &reC) < 1) {
 			FractalNow_read_werror(fileName);
 		}
-		if (readMPFR(file, mpc_imagref(c)) < 1) {
+		if (readBiggestFloat(file, &imC) < 1) {
 			FractalNow_read_werror(fileName);
 		}
 		break;
@@ -250,23 +278,24 @@ int ReadFractalFileV075(Fractal *fractal, const char *fileName, FILE *file)
 		FractalNow_werror("Unknown fractal formula \'%s\'.\n", tmp[0]);
 		break;
 	}
+	cfromReImBiggestF(c, reC, imC);
 
-	if (readMPFR(file, centerX) < 1) {
+	if (readBiggestFloat(file, &centerX) < 1) {
 		FractalNow_read_werror(fileName);
 	}
-	if (readMPFR(file, centerY) < 1) {
+	if (readBiggestFloat(file, &centerY) < 1) {
 		FractalNow_read_werror(fileName);
 	}
-	if (readMPFR(file, spanX) < 1) {
+	if (readBiggestFloat(file, &spanX) < 1) {
 		FractalNow_read_werror(fileName);
 	}
-	if (cmp_uiF(FP_MP, spanX, 0) <= 0) {
+	if (cmp_uiBiggestF(spanX, 0) <= 0) {
 		FractalNow_werror("Invalid fractal file : spanX must be > 0.\n");
 	}
-	if (readMPFR(file, spanY) < 1) {
+	if (readBiggestFloat(file, &spanY) < 1) {
 		FractalNow_read_werror(fileName);
 	}
-	if (cmp_uiF(FP_MP, spanY, 0) <= 0) {
+	if (cmp_uiBiggestF(spanY, 0) <= 0) {
 		FractalNow_werror("Invalid fractal file : spanY must be > 0.\n");
 	}
 	double escapeRadius;
@@ -281,16 +310,20 @@ int ReadFractalFileV075(Fractal *fractal, const char *fileName, FILE *file)
 		FractalNow_read_werror(fileName);
 	}
 
-	InitFractal(fractal, fractalFormula, p, c, centerX, centerY, spanX, spanY,
-			escapeRadius, nbIterMax);
+	InitFractalBiggestF(fractal, fractalFormula, p, c, centerX, centerY, spanX,
+						spanY, escapeRadius, nbIterMax);
 	end:
 
-	cclearF(FP_MP, p);
-	cclearF(FP_MP, c);
-	clearF(FP_MP, centerX);
-	clearF(FP_MP, centerY);
-	clearF(FP_MP, spanX);
-	clearF(FP_MP, spanY);
+	cclearBiggestF(p);
+	clearBiggestF(reP);
+	clearBiggestF(imP);
+	cclearBiggestF(c);
+	clearBiggestF(reC);
+	clearBiggestF(imC);
+	clearBiggestF(centerX);
+	clearBiggestF(centerY);
+	clearBiggestF(spanX);
+	clearBiggestF(spanY);
 
 	return res;
 }
@@ -419,6 +452,13 @@ int WriteFractalFileV075(const Fractal *fractal, const char *fileName, FILE *fil
 {
 	int res = 0;
 
+	BiggestFloat reP, imP;
+	initBiggestF(reP);
+	initBiggestF(imP);
+	BiggestFloat reC, imC;
+	initBiggestF(reC);
+	initBiggestF(imC);
+
 	const char *fractalFormula = fractalFormulaStr[(int)fractal->fractalFormula];
 	if (writeString(file, fractalFormula, "\n") < 0) {
 		FractalNow_write_werror(fileName);
@@ -434,10 +474,12 @@ int WriteFractalFileV075(const Fractal *fractal, const char *fileName, FILE *fil
 	case FRAC_MANDELBAR:
 	case FRAC_JULIABAR:
 	case FRAC_RUDY:
-		if (writeMPFR(file, mpc_realref(fractal->p), " ") < 0) {
+		crealBiggestF(reP, fractal->p);
+		if (writeBiggestFloat(file, reP, " ") < 0) {
 			FractalNow_write_werror(fileName);
 		}
-		if (writeMPFR(file, mpc_imagref(fractal->p), "\n") < 0) {
+		cimagBiggestF(imP, fractal->p);
+		if (writeBiggestFloat(file, imP, "\n") < 0) {
 			FractalNow_write_werror(fileName);
 		}
 		break;
@@ -458,10 +500,12 @@ int WriteFractalFileV075(const Fractal *fractal, const char *fileName, FILE *fil
 	case FRAC_JULIABURNINGSHIP:
 	case FRAC_JULIABAR:
 	case FRAC_RUDY:
-		if (writeMPFR(file, mpc_realref(fractal->c), " ") < 0) {
+		crealBiggestF(reC, fractal->c);
+		if (writeBiggestFloat(file, reC, " ") < 0) {
 			FractalNow_write_werror(fileName);
 		}
-		if (writeMPFR(file, mpc_imagref(fractal->c), "\n") < 0) {
+		cimagBiggestF(imC, fractal->c);
+		if (writeBiggestFloat(file, imC, "\n") < 0) {
 			FractalNow_write_werror(fileName);
 		}
 		break;
@@ -471,16 +515,16 @@ int WriteFractalFileV075(const Fractal *fractal, const char *fileName, FILE *fil
 		break;
 	}
 
-	if (writeMPFR(file, fractal->centerX, " ") < 0) {
+	if (writeBiggestFloat(file, fractal->centerX, " ") < 0) {
 		FractalNow_write_werror(fileName);
 	}
-	if (writeMPFR(file, fractal->centerY, " ") < 0) {
+	if (writeBiggestFloat(file, fractal->centerY, " ") < 0) {
 		FractalNow_write_werror(fileName);
 	}
-	if (writeMPFR(file, fractal->spanX, " ") < 0) {
+	if (writeBiggestFloat(file, fractal->spanX, " ") < 0) {
 		FractalNow_write_werror(fileName);
 	}
-	if (writeMPFR(file, fractal->spanY, "\n") < 0) {
+	if (writeBiggestFloat(file, fractal->spanY, "\n") < 0) {
 		FractalNow_write_werror(fileName);
 	}
 	if (writeDouble(file, fractal->escapeRadius, " ") < 0) {
@@ -491,6 +535,10 @@ int WriteFractalFileV075(const Fractal *fractal, const char *fileName, FILE *fil
 	}
 
 	end:
+	clearBiggestF(reP);
+	clearBiggestF(imP);
+	clearBiggestF(reC);
+	clearBiggestF(imC);
 
 	return res;
 }
@@ -646,13 +694,6 @@ static void aux1_DrawFractalThreadRoutine(ThreadArgHeader *threadArgHeader,
 	SetThreadProgress(threadArgHeader, 100);
 }
 
-static inline int IsTooBigForInterpolation(const UIRectangle *rectangle,
-						uint_fast32_t quadInterpolationSize)
-{
-	return ((rectangle->x2-rectangle->x1+1 > quadInterpolationSize)
-		|| (rectangle->y2-rectangle->y1+1 > quadInterpolationSize));
-}
-
 static inline int_fast8_t GetCornerIndex(const UIRectangle *rectangle, uint_fast32_t x, uint_fast32_t y)
 {
 	if ((x == rectangle->x1 && y == rectangle->y1)) {
@@ -767,7 +808,11 @@ void *DrawFractalThreadRoutine(void *arg)
 	ThreadArgHeader *threadArgHeader = GetThreadArgHeader(arg);
 	DrawFractalArguments *c_arg = (DrawFractalArguments *)GetThreadArgBody(arg);
 	FractalEngine engine;
-	CreateFractalEngine(&engine, c_arg->fractal, c_arg->render, c_arg->floatPrecision);
+	int res = CreateFractalEngine(&engine, c_arg->fractal, c_arg->render,
+									c_arg->floatPrecision);
+	if (res != 0) {
+		return NULL;
+	}
 
 	if (c_arg->size == 1) {
 		aux1_DrawFractalThreadRoutine(threadArgHeader, c_arg, &engine);
@@ -920,7 +965,10 @@ void *AntiAliaseFractalThreadRoutine(void *arg)
 	uint_fast32_t width = image->width;
 	uint_fast32_t height = image->height;
 	FractalEngine engine;
-	CreateFractalEngine(&engine, c_arg->fractal, c_arg->render, c_arg->floatPrecision);
+	int res = CreateFractalEngine(&engine, c_arg->fractal, c_arg->render, c_arg->floatPrecision);
+	if (res != 0) {
+		return NULL;
+	}
 
 	Image tmpImage1, tmpImage2;
 	CreateImage(&tmpImage1, antialiasingSize, antialiasingSize, image->bytesPerComponent);
@@ -1085,13 +1133,16 @@ void AntiAliaseFractal(Image *image, const Fractal *fractal, const RenderingPara
 
 void FreeFractal(Fractal fractal)
 {
-	cclearF(FP_MP, fractal.p);
-	cclearF(FP_MP, fractal.c);
-	clearF(FP_MP, fractal.centerX);
-	clearF(FP_MP, fractal.centerY);
-	clearF(FP_MP, fractal.spanX);
-	clearF(FP_MP, fractal.spanY);
-	clearF(FP_MP, fractal.x1);
-	clearF(FP_MP, fractal.y1);
+	/* Because depending on BiggestFloat type, nothing could be done here. */
+	UNUSED(fractal);
+
+	cclearBiggestF(fractal.p);
+	cclearBiggestF(fractal.c);
+	clearBiggestF(fractal.centerX);
+	clearBiggestF(fractal.centerY);
+	clearBiggestF(fractal.spanX);
+	clearBiggestF(fractal.spanY);
+	clearBiggestF(fractal.x1);
+	clearBiggestF(fractal.y1);
 }
 

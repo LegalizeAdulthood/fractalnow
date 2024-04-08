@@ -20,8 +20,13 @@
 
 #include "misc.h"
 #include "error.h"
-#include <complex.h>
 #include <ctype.h>
+
+#ifdef _ENABLE_MP_FLOATS
+#include <stdio.h>
+#include <mpfr.h>
+#include <mpc.h>
+#endif
 
 void toLowerCase(char *str)
 {
@@ -69,52 +74,14 @@ void *safeCalloc(const char *name, uint_least64_t nmemb, uint_least64_t size)
 	return res;
 }
 
-int mpcIsInteger(const mpc_t x) {
+#ifdef _ENABLE_MP_FLOATS
+int mpcIsInteger(const mpc_t x)
+{
 	if (mpfr_cmp_ui(mpc_imagref(x), 0) != 0) {
 		return 0;
 	} else {
 		return mpfr_integer_p(mpc_realref(x));
 	}
 }
-
-int complexIsInteger(long double complex x) {
-	if (cimagl(x) != 0) {
-		return 0;
-	} else {
-		long double fptr, iptr;
-		fptr = modfl(creall(x), &iptr);
-
-		return (fptr == 0);
-	}
-}
-
-#define BUILD_cipow(ftype, suffix) \
-/* Function assumes that y >= 1 and computes x^y. */\
-ftype complex cipow##suffix(ftype complex x, uint_fast32_t y)\
-{\
-	ftype complex res;\
-\
-	if (y == 0) {\
-		res = 1;\
-	}\
-\
-	ftype complex rem;\
-	rem = 1;\
-	res = x;\
-	while (y > 1) {\
-		if (y % 2) {\
-			rem *= res;\
-			--y;\
-		}\
-		y >>= 1;\
-		res *= res;\
-	}\
-\
-	res *= rem;\
-\
-	return res;\
-}
-BUILD_cipow(float, f)
-BUILD_cipow(double, )
-BUILD_cipow(long double, l)
+#endif
 

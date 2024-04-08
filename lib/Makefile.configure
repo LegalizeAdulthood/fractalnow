@@ -11,6 +11,15 @@ AR        = ar
 ARFLAGS = -r -c -s
 
 CFLAGS    = -std=c99 -pedantic -Wall -Wextra -D${SPINLOCK_DEFINE}
+ifdef BUILTIN_COMPLEX_DEFINE
+    CFLAGS += -D${BUILTIN_COMPLEX_DEFINE}
+endif
+ifdef MP_FLOATS_DEFINE
+    CFLAGS += -D${MP_FLOATS_DEFINE}
+endif
+ifdef LDOUBLE_FLOATS_DEFINE
+    CFLAGS += -D${LDOUBLE_FLOATS_DEFINE}
+endif
 ifdef VERSION_NUMBER
 CFLAGS   += -DVERSION_NUMBER=${VERSION_NUMBER}
 endif
@@ -23,6 +32,7 @@ endif
 CFLAGS    += -I${INCLUDEDIR}
 
 OBJECTS = \
+	$(OBJDIR)/complex_wrapper.o \
 	$(OBJDIR)/float_precision.o \
 	$(OBJDIR)/fractal_addend_function.o \
 	$(OBJDIR)/fractal_cache.o \

@@ -19,6 +19,9 @@
  */
 
 #include "gradient_dialog.h"
+#include <QDialogButtonBox>
+#include <QPushButton>
+#include <QVBoxLayout>
 
 GradientDialog::GradientDialog(const QGradientStops &gradientStops, QWidget *parent,
 				Qt::WindowFlags f) : QDialog(parent,f)

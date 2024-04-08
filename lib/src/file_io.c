@@ -23,6 +23,11 @@
 #include <float.h>
 #include <inttypes.h>
 
+#ifdef _ENABLE_MP_FLOATS
+#include <stdio.h>
+#include <mpfr.h>
+#endif
+
 int readString(FILE *file, char *dst)
 {
 	return fscanf(file, "%s", dst);
@@ -50,9 +55,27 @@ int readDouble(FILE *file, double *dst)
 	return fscanf(file,"%lf",dst);
 }
 
-int readMPFR(FILE *file, mpfr_t dst)
+#ifdef _ENABLE_MP_FLOATS
+static inline int readMPFR(FILE *file, mpfr_t dst)
 {
 	return (mpfr_inp_str(dst, file, 10, MPFR_RNDN) == 0) ? -1 : 1;
+}
+#endif
+
+int readBiggestFloat(FILE *file, BiggestFloat *dst)
+{
+#ifdef _ENABLE_MP_FLOATS
+	return readMPFR(file, *dst);
+#else // #ifndef _ENABLE_MP_FLOATS
+	double tmp;
+	int res = readDouble(file, &tmp);
+	
+	if (res > 0) {
+		fromDoubleBiggestF(*dst, tmp);
+	}
+
+	return res;
+#endif
 }
 
 int readColor(FILE *file, int_fast8_t bytesPerComponent, Color *dst)
@@ -92,14 +115,31 @@ int writeUint32(FILE *file, uint32_t src, const char *suffix)
 	return fprintf(file, "%"PRIu32"%s", src, suffix);
 }
 
-int writeDouble(FILE *file, double src, const char *suffix)
+int writeDouble(FILE *file, const double src, const char *suffix)
 {
-	return fprintf(file, "%.*lG%s", DBL_DIG, src, suffix);
+	/* We use %G instead of %lG because:
+	 * -both are acceptable for printing doubles
+	 *  (floats are actually promoted to doubles)
+	 * -some implementations of printf do not accept
+	 *  %lG (like Windows')
+	 */
+	return fprintf(file, "%.*G%s", DBL_DIG, src, suffix);
 }
 
-int writeMPFR(FILE *file, const mpfr_t src, const char *suffix)
+#ifdef _ENABLE_MP_FLOATS
+static inline int writeMPFR(FILE *file, const mpfr_t src, const char *suffix)
 {
 	return mpfr_fprintf(file, "%RE%s", src, suffix);
+}
+#endif
+
+int writeBiggestFloat(FILE *file, const BiggestFloat src, const char *suffix)
+{
+#ifdef _ENABLE_MP_FLOATS
+	return writeMPFR(file, src, suffix);
+#else // #ifndef _ENABLE_MP_FLOATS
+	return writeDouble(file, src, suffix);
+#endif
 }
 
 int writeColor(FILE *file, Color src, const char *suffix)

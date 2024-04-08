@@ -20,9 +20,9 @@
 ****************************************************************************/
 
 #include "gradient_editor.h"
+#include <QVBoxLayout>
 
-GradientEditor::GradientEditor(QWidget *parent)
-    : QWidget(parent)
+GradientEditor::GradientEditor(QWidget *parent) : QWidget(parent)
 {
 	QVBoxLayout *vbox = new QVBoxLayout;
 	vbox->setSpacing(1);

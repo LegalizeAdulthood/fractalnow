@@ -23,6 +23,7 @@
 #include "uirectangle.h"
 #include <inttypes.h>
 #include <string.h>
+#include <math.h>
 
 #define HandleRequests(max_counter) \
 if (counter == max_counter) {\

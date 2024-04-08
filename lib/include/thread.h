@@ -31,6 +31,10 @@
 #include <pthread.h>
 #include <stdint.h>
 
+#ifndef PTHREAD_CANCELED
+#define PTHREAD_CANCELED ((void *) -1)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

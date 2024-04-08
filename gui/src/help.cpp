@@ -51,14 +51,18 @@ rendering file.\n\
   -y <Height>              Specify image height.\n\
   -l <FloatType>           Specify float precision:\n\
                                single        Single precision.\n\
-                               double        Double precision.\n\
-                               ldouble       Long double \
-precision.\n\
-                               mp            Multiple \
+                               double        Double precision.\n"
+#ifdef _ENABLE_LDOUBLE_FLOATS
+"                               ldouble       Long double \
+precision.\n"
+#endif
+#ifdef _ENABLE_MP_FLOATS
+"                               mp            Multiple \
 precision.\n\
   -L <MPPrecision>         Specify precision for Multiple \
-Precision (MP) floats (%ld by default).\n\
-  -m <MinAAMSize>          Specify minimum size of adaptive \
+Precision (MP) floats (%"PRId64" by default).\n"
+#endif
+"  -m <MinAAMSize>          Specify minimum size of adaptive \
 anti-aliasing (%"PRIuFAST32" by default).\n\
                            Must be an integer strictly greater \
 than 1.\n\
@@ -70,7 +74,7 @@ than 1 and MinAAMSize.\n\
                            Anti-aliasing size will increase by \
 steps of AAMSizeIteration from MinAAMSize to MaxAAMSize.\n\
   -p <AAMThreshold>        Threshold for adaptive \
-anti-aliasing (%.*lf by default).\n\
+anti-aliasing (%G by default).\n\
   -i <QuadSize>            Maximum size of quadrilaterals for \
 linear interpolation.\n\
                            %"PRIuFAST32" by default, which is \
@@ -79,18 +83,20 @@ good for no visible loss of quality.\n\
 pixels are computed).\n\
   -t <Threshold>           Dissimilarity threshold for quad \
 interpolation.\n\
-                           %.*lf by default, which is \
+                           %G by default, which is \
 good for no visible loss of quality.\n\
                            A quadrilateral that shows too \
 dissimilar values at its corners will be computed, \
 as opposed to interpolated.\n",
 	FractalNow_VersionNumber(),
 	DEFAULT_NB_THREADS,
-	(long int)DEFAULT_MPFR_PRECISION,
+#ifdef _ENABLE_MP_FLOATS
+	DEFAULT_MP_PRECISION,
+#endif
 	DEFAULT_MIN_ANTIALIASING_SIZE,
 	DEFAULT_MAX_ANTIALIASING_SIZE,
-	DBL_DIG, DEFAULT_ADAPTIVE_AAM_THRESHOLD,
+	DEFAULT_ADAPTIVE_AAM_THRESHOLD,
 	DEFAULT_QUAD_INTERPOLATION_SIZE,
-	DBL_DIG, DEFAULT_COLOR_DISSIMILARITY_THRESHOLD);
+	DEFAULT_COLOR_DISSIMILARITY_THRESHOLD);
 }
 

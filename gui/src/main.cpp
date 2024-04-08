@@ -25,7 +25,6 @@
  
 int main(int argc, char *argv[])
 {
-	QApplication::setGraphicsSystem(QString("raster"));
 	QApplication::setApplicationName("QFractalNow");
 	QApplication::setOrganizationName("fractalnow");
 	QApplication::setApplicationVersion(QString(FractalNow_VersionNumber()));

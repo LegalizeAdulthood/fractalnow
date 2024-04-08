@@ -42,6 +42,7 @@
 #define __FRACTAL_H__
 
 #include "float_precision.h"
+#include "complex_wrapper.h"
 #include "gradient.h"
 #include "image.h"
 #include "fractal_cache.h"
@@ -49,15 +50,10 @@
 #include "fractal_rendering_parameters.h"
 #include "task.h"
 #include "thread.h"
-#include <complex.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-#ifndef complex
-#define complex _Complex
 #endif
 
 /**
@@ -95,17 +91,17 @@ extern "C" {
 typedef struct Fractal {
 	FractalFormula fractalFormula;
  /*!< Fractal formula.*/
-	mpc_t p;
+	BiggestComplexFloat p;
  /*!< Parameter for some fractals (main power in iteration z = z^p + ...).*/
-	mpc_t c;
+	BiggestComplexFloat c;
  /*!< Parameter for Julia and Rudy fractal.*/
-	mpfr_t centerX;
+	BiggestFloat centerX;
  /*!< X coordinate of the center of the fractal subset.*/
-	mpfr_t centerY;
+	BiggestFloat centerY;
  /*!< Y coordinate of the center of the fractal subset.*/
-	mpfr_t spanX;
+	BiggestFloat spanX;
  /*!< X span of the fractal subset.*/
-	mpfr_t spanY;
+	BiggestFloat spanY;
  /*!< Y span of the fractal subset.*/
 	double escapeRadius;
  /*!< Escape radius for computing fractal.*/
@@ -113,14 +109,14 @@ typedef struct Fractal {
  /*!< Maximum number of iterations for computing fractal.*/
 
  /* Some parameters for internal use.*/
-	mpfr_t x1;
+	BiggestFloat x1;
  /*!< X coordinate of the upper left point of the fractal subset.*/
-	mpfr_t y1;
+	BiggestFloat y1;
  /*!< Y coordinate of the upper left point of the fractal subset.*/
 } Fractal;
 
 /**
- * \fn void InitFractal(Fractal *fractal, FractalFormula fractalFormula, const mpc_t p, const mpc_t c, const mpfr_t centerX, const mpfr_t centerY, const mpfr_t spanX, const mpfr_t spanY, double escapeRadius, uint_fast32_t maxIter)
+ * \fn void InitFractal(Fractal *fractal, FractalFormula fractalFormula, Complex_l p, Complex_l complex c, long double centerX, long double centerY, long double spanX, long double spanY, double escapeRadius, uint_fast32_t maxIter)
  * \brief Initialize fractal structure.
  *
  * \param fractal Pointer to fractal structure to initialize.
@@ -134,30 +130,32 @@ typedef struct Fractal {
  * \param escapeRadius Escape radius for computing fractal.
  * \param maxIter Maximum number of iterations for computing fractal.
  */
-void InitFractal(Fractal *fractal, FractalFormula fractalFormula, const mpc_t p, 
+void InitFractal(Fractal *fractal, FractalFormula fractalFormula, Complex_l p,
+		Complex_l c, long double centerX, long double centerY,
+		long double spanX, long double spanY, double escapeRadius,
+		uint_fast32_t maxIter);
+
+#ifdef _ENABLE_MP_FLOATS
+/**
+ * \fn void InitFractal2(Fractal *fractal, FractalFormula fractalFormula, const mpc_t p, const mpc_t c, const mpfr_t centerX, const mpfr_t centerY, const mpfr_t spanX, const mpfr_t spanY, double escapeRadius, uint_fast32_t maxIter)
+ * \brief Initialize fractal structure.
+ *
+ * \param fractal Pointer to fractal structure to initialize.
+ * \param fractalFormula Fractal type.
+ * \param p (main power in iteration) parameter for fractal.
+ * \param c Parameter for Julia fractal (will be ignored for Mandelbrot fractal).
+ * \param centerX X coordinate of the center of the fractal subset.
+ * \param centerY Y coordinate of the center of the fractal subset.
+ * \param spanX
+ * \param spanY
+ * \param escapeRadius Escape radius for computing fractal.
+ * \param maxIter Maximum number of iterations for computing fractal.
+ */
+void InitFractal2(Fractal *fractal, FractalFormula fractalFormula, const mpc_t p, 
 			const mpc_t c, const mpfr_t centerX, const mpfr_t centerY,
 			const mpfr_t spanX, const mpfr_t spanY,
 			double escapeRadius, uint_fast32_t maxIter);
-
-/**
- * \fn void InitFractal2(Fractal *fractal, FractalFormula fractalFormula, long double complex p, long double complex c, long double centerX, long double centerY, long double spanX, long double spanY, double escapeRadius, uint_fast32_t maxIter)
- * \brief Initialize fractal structure.
- *
- * \param fractal Pointer to fractal structure to initialize.
- * \param fractalFormula Fractal type.
- * \param p (main power in iteration) parameter for fractal.
- * \param c Parameter for Julia fractal (will be ignored for Mandelbrot fractal).
- * \param centerX X coordinate of the center of the fractal subset.
- * \param centerY Y coordinate of the center of the fractal subset.
- * \param spanX
- * \param spanY
- * \param escapeRadius Escape radius for computing fractal.
- * \param maxIter Maximum number of iterations for computing fractal.
- */
-void InitFractal2(Fractal *fractal, FractalFormula fractalFormula, long double complex p,
-		long double complex c, long double centerX, long double centerY,
-		long double spanX, long double spanY, double escapeRadius,
-		uint_fast32_t maxIter);
+#endif
 
 /**
  * \fn Fractal CopyFractal(const Fractal *fractal)

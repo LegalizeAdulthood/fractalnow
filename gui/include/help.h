@@ -43,6 +43,6 @@ class Help
 #define invalid_use_error(...) \
 	FractalNow_message(stderr, T_QUIET, __VA_ARGS__);\
 	Help::Print(); \
-        exit(EXIT_FAILURE)
+	exit(EXIT_FAILURE)
 
 #endif

@@ -160,17 +160,17 @@ void InitEngine##formula##ptype##coloring##iterationcount##addend##interpolation
 	initF(FP_##fprec, data->escapeRadius2);\
 	cinitF(FP_##fprec, data->fractalP);\
 	cinitF(FP_##fprec, data->fractalC);\
-	fromMPFRF(FP_##fprec, data->centerX, fractal->centerX);\
-	fromMPFRF(FP_##fprec, data->centerY, fractal->centerY);\
-	fromMPFRF(FP_##fprec, data->spanX, fractal->spanX);\
-	fromMPFRF(FP_##fprec, data->spanY, fractal->spanY);\
-	fromMPFRF(FP_##fprec, data->x1, fractal->x1);\
-	fromMPFRF(FP_##fprec, data->y1, fractal->y1);\
+	fromBiggestF(FP_##fprec, data->centerX, fractal->centerX);\
+	fromBiggestF(FP_##fprec, data->centerY, fractal->centerY);\
+	fromBiggestF(FP_##fprec, data->spanX, fractal->spanX);\
+	fromBiggestF(FP_##fprec, data->spanY, fractal->spanY);\
+	fromBiggestF(FP_##fprec, data->x1, fractal->x1);\
+	fromBiggestF(FP_##fprec, data->y1, fractal->y1);\
 	fromDoubleF(FP_##fprec, data->escapeRadius, fractal->escapeRadius);\
 	mulF(FP_##fprec, data->escapeRadius2, data->escapeRadius, data->escapeRadius);\
-	cfromMPCF(FP_##fprec, data->fractalP, fractal->p);\
-	cfromMPCF(FP_##fprec, data->fractalC, fractal->c);\
-	data->fractalP_INT = (uint_fast32_t)creal(ctoCDoubleF(FP_##fprec, data->fractalP));\
+	cfromBiggestF(FP_##fprec, data->fractalP, fractal->p);\
+	cfromBiggestF(FP_##fprec, data->fractalC, fractal->c);\
+	data->fractalP_INT = (uint_fast32_t)creal_(ctoCDoubleF(FP_##fprec, data->fractalP));\
 	ENGINE_INIT_VAR_FRAC_##formula(FP_##fprec)\
 	ENGINE_INIT_VAR_CM_##coloring(IC_##iterationcount,AF_##addend,IM_##interpolation,FP_##fprec)\
 }
@@ -218,7 +218,8 @@ MACRO_BUILD_FRACTALS
 #define VAL_PFLOATT 0
 
 /*#define BUILD_InitEngine(formula,ptype,coloring,iterationcount,addend,interpolation,fprec) \
-if (fractal->fractalFormula == FRAC_##formula && mpcIsInteger(fractal->p) == VAL_##ptype && \
+if (fractal->fractalFormula == FRAC_##formula && \
+	biggestComplexFloatIsInteger(fractal->p) == VAL_##ptype && \
 	render->coloringMethod == CM_##coloring && render->iterationCount == IC_##iterationcount && \
 	render->addendFunction == AF_##addend && render->interpolationMethod == IM_##interpolation && \
 	floatPrecision == FP_##fprec) {\
@@ -230,22 +231,22 @@ if (fractal->fractalFormula == FRAC_##formula && mpcIsInteger(fractal->p) == VAL
 
 #define BUILD_InitEngine_CM_ITERATIONCOUNT(formula,ptype,iterationcount,addend,interpolation,fprec)\
 if (render->coloringMethod == CM_ITERATIONCOUNT && fractal->fractalFormula == FRAC_##formula && \
-	mpcIsInteger(fractal->p) == VAL_##ptype && render->iterationCount == IC_##iterationcount && \
-	floatPrecision == FP_##fprec) {\
+	cisintegerBiggestF(fractal->p) == VAL_##ptype && \
+	render->iterationCount == IC_##iterationcount && floatPrecision == FP_##fprec) {\
 \
 	InitEngine##formula##ptype##ITERATIONCOUNT##iterationcount##TRIANGLEINEQUALITY##NONE##fprec(\
 		fractal,render,engine);\
-	return;\
+	goto end;\
 }
 
 #define BUILD_InitEngine_CM_AVERAGECOLORING(formula,ptype,iterationcount,addend,interpolation,fprec)\
 if (render->coloringMethod == CM_AVERAGECOLORING && fractal->fractalFormula == FRAC_##formula && \
-	mpcIsInteger(fractal->p) == VAL_##ptype && render->addendFunction == AF_##addend && \
+	cisintegerBiggestF(fractal->p) == VAL_##ptype && render->addendFunction == AF_##addend && \
 	render->interpolationMethod == IM_##interpolation && floatPrecision == FP_##fprec) {\
 \
 	InitEngine##formula##ptype##AVERAGECOLORING##DISCRETE##addend##interpolation##fprec(\
 		fractal,render,engine);\
-	return;\
+	goto end;\
 }
 
 #define BUILD_InitEngine(formula,ptype,coloring,iterationcount,addend,interpolation,fprec) \
@@ -255,15 +256,19 @@ if (render->coloringMethod == CM_AVERAGECOLORING && fractal->fractalFormula == F
 #define MACRO_BUILD_FRACTAL(formula,ptype,coloring,iterationcount,addend,interpolation,fprec) \
 	BUILD_InitEngine(formula,ptype,coloring,iterationcount,addend,interpolation,fprec)
 
-void CreateFractalEngine(FractalEngine *engine, const Fractal *fractal,
+int CreateFractalEngine(FractalEngine *engine, const Fractal *fractal,
 				const RenderingParameters *render, FloatPrecision floatPrecision)
 {
+	int res = 0;
 	MACRO_BUILD_FRACTALS
 
 	/* This should never happen, because fractal engine is built by macros for all possible
 	 * values of each parameter.
 	 */
-	FractalNow_error("Could not create fractal compute engine for given parameters.\n");
+	FractalNow_werror("Could not create fractal compute engine for given parameters.\n");
+
+	end:
+	return res;
 }
 
 void FreeFractalEngine(FractalEngine *engine)

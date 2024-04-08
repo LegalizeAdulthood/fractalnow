@@ -28,7 +28,7 @@
 #define __FRACTAL_FORMULA_H__
 
 #include "float_precision.h"
-#include <complex.h>
+#include "complex_wrapper.h"
 #include <stdint.h>
 
 #ifdef __cplusplus

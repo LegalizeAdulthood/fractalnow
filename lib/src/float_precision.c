@@ -26,15 +26,23 @@
 const char *floatPrecisionStr[] = {
 	(const char *)"single",
 	(const char *)"double",
+#ifdef _ENABLE_LDOUBLE_FLOATS
 	(const char *)"ldouble",
+#endif
+#ifdef _ENABLE_MP_FLOATS
 	(const char *)"mp"
+#endif
 };
 
 const char *floatPrecisionDescStr[] = {
 	(const char *)"Single",
 	(const char *)"Double",
+#ifdef _ENABLE_LDOUBLE_FLOATS
 	(const char *)"Long double",
+#endif
+#ifdef _ENABLE_MP_FLOATS
 	(const char *)"Multiple"
+#endif
 };
 
 const uint_fast32_t nbFloatPrecisions = sizeof(floatPrecisionStr) / sizeof(const char *);
@@ -67,4 +75,39 @@ int GetFloatPrecision(FloatPrecision *floatPrecision, const char *str)
 	end:
 	return res;
 }
+
+#ifdef _ENABLE_MP_FLOATS
+int64_t fractalnow_mp_precision = DEFAULT_MP_PRECISION;
+
+int64_t GetMinMPFloatPrecision()
+{
+	if (MPFR_PREC_MIN < INT64_MIN) {
+		return INT64_MIN;
+	} else {
+		return (int64_t)MPFR_PREC_MIN;
+	}
+}
+
+int64_t GetMaxMPFloatPrecision()
+{
+	if (MPFR_PREC_MAX > INT64_MAX) {
+		return INT64_MAX;
+	} else {
+		return (int64_t)MPFR_PREC_MAX;
+	}
+}
+
+int64_t GetMPFloatPrecision()
+{
+	return fractalnow_mp_precision;
+}
+
+void SetMPFloatPrecision(int64_t precision)
+{
+	if (precision >= MPFR_PREC_MIN && precision <= MPFR_PREC_MAX) {
+		fractalnow_mp_precision = precision;
+		mpfr_set_default_prec((mpfr_prec_t)fractalnow_mp_precision);
+	}
+}
+#endif
 

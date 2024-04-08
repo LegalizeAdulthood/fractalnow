@@ -69,15 +69,16 @@ typedef struct FractalEngine {
 } FractalEngine;
 
 /**
- * \fn void CreateFractalEngine(FractalEngine *engine, const struct Fractal *fractal, const RenderingParameters *render, FloatPrecision floatPrecision)
+ * \fn int CreateFractalEngine(FractalEngine *engine, const struct Fractal *fractal, const RenderingParameters *render, FloatPrecision floatPrecision)
  * \brief Create fractal engine for given fractal, rendering parameters and float precision.
  *
  * \param engine Pointer to structure to be initialized.
  * \param fractal Fractal to be computed.
  * \param render Rendenring parameters.
  * \param floatPrecision Float precision.
+ * \return 0 in case of success, 1 otherwise.
  */
-void CreateFractalEngine(FractalEngine *engine, const struct Fractal *fractal,
+int CreateFractalEngine(FractalEngine *engine, const struct Fractal *fractal,
 				const RenderingParameters *render, FloatPrecision floatPrecision);
 
 /**

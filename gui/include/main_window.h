@@ -88,14 +88,14 @@ class MainWindow : public QMainWindow
 	bool solidGuessing;
 	QAction *switchFullScreenAction;
 
-	enum FileType getFileType(const char *fileName);
+	enum FileType getFileType(QString fileName);
 	void saveSettings();
 	void loadSettings();
-	void loadFile(const char *fileName);
-	void loadConfigFile(const char *fileName);
-	void loadFractalFile(const char *fileName);
-	void loadRenderingFile(const char *fileName);
-	void loadGradientFile(const char *fileName);
+	void loadFile(QString fileName);
+	void loadConfigFile(QString fileName);
+	void loadFractalFile(QString fileName);
+	void loadRenderingFile(QString fileName);
+	void loadGradientFile(QString fileName);
 	void openFile(QString fileName);
 	void dragEnterEvent(QDragEnterEvent *event);
 	void dropEvent(QDropEvent *event);

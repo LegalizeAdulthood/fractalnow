@@ -47,14 +47,18 @@ inline void FreeCacheEntry(CacheEntry entry)
 		clearF(FP_DOUBLE, entry.x.val_FP_DOUBLE);
 		clearF(FP_DOUBLE, entry.y.val_FP_DOUBLE);
 		break;
+#ifdef _ENABLE_LDOUBLE_FLOATS
 	case FP_LDOUBLE:
 		clearF(FP_LDOUBLE, entry.x.val_FP_LDOUBLE);
 		clearF(FP_LDOUBLE, entry.y.val_FP_LDOUBLE);
 		break;
+#endif
+#ifdef _ENABLE_MP_FLOATS
 	case FP_MP:
 		clearF(FP_MP, entry.x.val_FP_MP);
 		clearF(FP_MP, entry.y.val_FP_MP);
 		break;
+#endif
 	default:
 		FractalNow_error("Unknown float precision.\n");
 		break;
@@ -833,8 +837,8 @@ enum TaskType {
 static inline int PartCompareFractals(const Fractal *fractal1, const Fractal *fractal2)
 {
 	return (fractal1->fractalFormula != fractal2->fractalFormula ||
-		mpc_cmp(fractal1->p, fractal2->p) ||
-		mpc_cmp(fractal1->c, fractal2->c) ||
+		!ceqBiggestF(fractal1->p, fractal2->p) ||
+		!ceqBiggestF(fractal1->c, fractal2->c) ||
 		fractal1->escapeRadius != fractal2->escapeRadius ||
 		fractal1->maxIter != fractal2->maxIter);
 }

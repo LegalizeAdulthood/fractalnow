@@ -10,6 +10,12 @@ CC            = gcc
 LD            = gcc
 
 CFLAGS        = -std=c99 -pedantic -Wall -Wextra -D${SPINLOCK_DEFINE}
+ifdef BUILTIN_COMPLEX_DEFINE
+    CFLAGS += -D${BUILTIN_COMPLEX_DEFINE}
+endif
+ifdef MP_FLOATS_DEFINE
+    CFLAGS += -D${MP_FLOATS_DEFINE}
+endif
 
 ifdef DEBUG
 	CFLAGS += -O0 -g -DDEBUG
@@ -18,7 +24,11 @@ else
 endif
 CFLAGS       += -I${INCLUDEDIR} -I${FRACTALLIBDIR}/include
 
-LDFLAGS   = ${STATIC_FLAG} -L${FRACTALLIBDIR}/bin -l${FRACTAL2D_LIB} -lmpc -lmpfr -lgmp -lm -lpthread 
+LDFLAGS       = ${STATIC_FLAG} -L${FRACTALLIBDIR}/bin -l${FRACTAL2D_LIB} 
+ifeq ($(MP_FLOATS_DEFINE), _ENABLE_MP_FLOATS)
+    LDFLAGS  += -lmpc -lmpfr -lgmp 
+endif
+LDFLAGS      += -lm -lpthread 
 
 OBJECTS = \
 	$(OBJDIR)/anti_aliasing.o \

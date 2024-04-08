@@ -28,6 +28,7 @@
 #define __FRACTALNOW_H__
 
 #include "color.h"
+#include "complex_wrapper.h"
 #include "error.h"
 #include "file_io.h"
 #include "filter.h"
@@ -50,8 +51,6 @@
 #include "task.h"
 #include "thread.h"
 
-#include <mpfr.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -63,10 +62,6 @@ extern "C" {
  */
 #define VERSION_NUMBER ?.?.?
 #endif
-
-#define DEFAULT_MPFR_PRECISION (mpfr_prec_t)(128)
-
-extern mpfr_prec_t fractalnow_mpfr_precision;
 
 /**
  * \fn const char *FractalNow_VersionNumber()

@@ -88,9 +88,9 @@ extern TraceLevel FractalNow_traceLevel;
 
 #ifdef DEBUG
 #define FractalNow_debug_prefix(output) \
-    if (FractalNow_debug) { \
-	fprintf(output,"[%s: %s, l.%d] ", __FILE__, __func__, __LINE__); \
-    }
+	if (FractalNow_debug) { \
+		fprintf(output,"[%s: %s, l.%d] ", __FILE__, __func__, __LINE__); \
+	}
 #else
 #define FractalNow_debug_prefix(output) (void)NULL;
 #endif
@@ -103,17 +103,17 @@ extern TraceLevel FractalNow_traceLevel;
  * is greater (>=) than message trace level.
  */
 #define FractalNow_message(output, msg_trace,...) \
-        if (msg_trace <= FractalNow_traceLevel) { \
-            FractalNow_debug_prefix(output); \
-            fprintf(output, __VA_ARGS__); \
-        }
+	if (msg_trace <= FractalNow_traceLevel) { \
+		FractalNow_debug_prefix(output); \
+		fprintf(output, __VA_ARGS__); \
+}
 
 #define FractalNow_errmsg(...) \
 	FractalNow_message(stderr, T_QUIET, __VA_ARGS__);
 
 #define FractalNow_error(...) \
 	FractalNow_errmsg(__VA_ARGS__);\
-        exit(EXIT_FAILURE)
+	exit(EXIT_FAILURE)
 
 #define FractalNow_werror(...) \
 	FractalNow_message(stderr, T_QUIET, __VA_ARGS__);\

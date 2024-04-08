@@ -35,10 +35,6 @@
 extern "C" {
 #endif
 
-#ifndef complex
-#define complex _Complex
-#endif
-
 /**
  * \def UNUSED(x)
  * \brief Macro for unused variables.
@@ -94,53 +90,16 @@ void *safeRealloc(const char *name, void *ptr, uint_least64_t size);
  */
 void *safeCalloc(const char *name, uint_least64_t nmemb, uint_least64_t size);
 
+#ifdef _ENABLE_MP_FLOATS
 /**
- * \fn float complex cipowf(float complex x, uint_fast32_t y)
- * \brief Compute positive integer power of a complex float.
- *
- * \param x Complex float to be raised.
- * \param y Exponent.
- * \return x raised to the power y.
- */
-float complex cipowf(float complex x, uint_fast32_t y);
-
-/**
- * \fn double complex cipow(double complex x, uint_fast32_t y)
- * \brief Compute positive integer power of a complex double.
- *
- * \param x Complex double to be raised to y.
- * \param y Exponent.
- * \return x raised to the power y.
- */
-double complex cipow(double complex x, uint_fast32_t y);
-
-/**
- * \fn long double complex cipowl(long double complex x, uint_fast32_t y)
- * \brief Compute positive integer power of a complex long double.
- *
- * \param x Complex long double to be raised to y.
- * \param y Exponent.
- * \return x raised to the power y.
- */
-long double complex cipowl(long double complex x, uint_fast32_t y);
-
-/**
- * \fn int complexIsInteger(long double complex x)
- * \brief Test if a long double complex is a (real) integer.
+ * \fn int mpcIsInteger(const mpc_t x)
+ * \brief Test if a mpc complex is a (real) integer.
  *
  * \param x Complex to be tested.
  * \return 1 if complex is a (real) integer, 0 otherwise.
  */
-int complexIsInteger(long double complex x);
-
-/**
- * \fn int mpcIsInteger(const mpc_t x)
- * \brief Test whether or not mpc complex is an integer.
- *
- * \param x mpc complex to test.
- * \return 1 is x is an integer, 0 instead.
- */
 int mpcIsInteger(const mpc_t x);
+#endif
 
 #ifdef __cplusplus
 }
