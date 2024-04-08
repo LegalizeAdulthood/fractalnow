@@ -50,7 +50,7 @@ FLOAT cubeF(FLOAT x)
 	return x*x*x;
 }
 
-const TransferFunctionPtr TransferFunctionsArray[] = {
+const TransferFunctionPtr transferFunctionsArray[] = {
 	logp1F,
 	cubertF,
 	SQRTF,
@@ -60,27 +60,27 @@ const TransferFunctionPtr TransferFunctionsArray[] = {
 	EXPF
 };
 
-const char *TransferFunctionStr[] = {
-	(char *)"log",
-	(char *)"cuberoot",
-	(char *)"squareroot",
-	(char *)"identity",
-	(char *)"square",
-	(char *)"cube",
-	(char *)"exp"
+const char *transferFunctionStr[] = {
+	(const char *)"log",
+	(const char *)"cuberoot",
+	(const char *)"squareroot",
+	(const char *)"identity",
+	(const char *)"square",
+	(const char *)"cube",
+	(const char *)"exp"
 };
 
-const char *TransferFunctionDescStr[] = {
-	(char *)"Logarithm",
-	(char *)"Cube root",
-	(char *)"Square root",
-	(char *)"Identity",
-	(char *)"Square",
-	(char *)"Cube",
-	(char *)"Exponential"
+const char *transferFunctionDescStr[] = {
+	(const char *)"Logarithm",
+	(const char *)"Cube root",
+	(const char *)"Square root",
+	(const char *)"Identity",
+	(const char *)"Square",
+	(const char *)"Cube",
+	(const char *)"Exponential"
 };
 
-uint_fast32_t nbTransferFunctions = sizeof(TransferFunctionStr) / sizeof(char *);
+const uint_fast32_t nbTransferFunctions = sizeof(transferFunctionStr) / sizeof(const char *);
 
 int GetTransferFunction(TransferFunction *transferFunction, const char *str)
 {
@@ -97,7 +97,7 @@ int GetTransferFunction(TransferFunction *transferFunction, const char *str)
 
 	uint_fast32_t i;
 	for (i = 0; i < nbTransferFunctions; ++i) {
-		if (strcmp(TFStr, TransferFunctionStr[i]) == 0) {
+		if (strcmp(TFStr, transferFunctionStr[i]) == 0) {
 			*(transferFunction) = (TransferFunction)i;
 			break;
 		}
@@ -112,6 +112,6 @@ int GetTransferFunction(TransferFunction *transferFunction, const char *str)
 
 TransferFunctionPtr GetTransferFunctionPtr(TransferFunction transferFunction)
 {
-	return TransferFunctionsArray[(int)transferFunction];
+	return transferFunctionsArray[(int)transferFunction];
 }
 

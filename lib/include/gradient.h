@@ -33,49 +33,112 @@ extern "C" {
 
 #include "color.h"
 #include <stdint.h>
+#include <stdio.h>
 
 /**
- * \def DEFAULT_GRADIENT_TRANSITIONS ((uint_fast32_t(UINT16_MAX+1)
+ * \def DEFAULT_GRADIENT_TRANSITIONS
  * \brief Default number of transitions between two colors used for gradient.
  */
 #define DEFAULT_GRADIENT_TRANSITIONS (uint_fast32_t)(UINT16_MAX+1)
 
 /**
- * \struct s_Gradient
+ * \def DEFAULT_GRADIENT_SIZE
+ * \brief Default gradient size (total number of colors).
+ */
+#define DEFAULT_GRADIENT_SIZE (uint_fast32_t)(200000)
+
+/**
+ * \struct Gradient
  * \brief Gradient structure.
  *
  * This structure is to represent a gradient, i.e. continous
  * transitions between colors.
  */
-typedef struct s_Gradient {
+/**
+ * \typedef Gradient
+ * \brief Convenient typedef for struct Gradient.
+ */
+typedef struct Gradient {
 	uint_fast64_t size;
  /*!< Gradient size (total number of colors).*/
 	Color *data;
  /*!< Gradient data.*/
-	Color *originalColor;
- /*!< Copy of colors used when building gradient (used for conversion if needed).*/
-	uint_fast32_t originalColorSize;
- /*!< originalColor array size.*/
-	uint_fast32_t N;
- /*!< Number of transitions used to generate gradient for originalColor array.*/
+	uint_fast32_t nbStops;
+ /*!< Number of stops i.e. (pos,color) pairs used to build the gradient.*/
+	FLOAT *positionStop;
+ /*!< Stops positions. */
+	Color *colorStop;
+ /*!< Stops colors. */
 } Gradient;
 
 /**
- * \fn void GenerateGradient(Gradient *gradient, Color *color, uint_fast32_t size, uint_fast32_t N)
+ * \fn void GenerateGradient(Gradient *gradient, uint_fast32_t nbStops, FLOAT *positionStop, Color *colorStop, uint_fast32_t size)
  * \brief Generate a gradient.
  *
- * Generate a gradient from some colors and the number of transitions
- * between two colors.
+ * Number of stops must be > 2 (exit program with error otherwise).
+ * Position stops must begin with 0, end with 1, and be strictly
+ * increasing (exit program with error otherwise).
+ * Gradient size must be stricly positive (exit program with
+ * error otherwise).
  * All the colors in given array must have the same number of bytes
- * per component. This is not checked by the function, hence it
- * is NOT safe.
+ * per component (undefined behaviour otherwise).
  *
  * \param gradient Pointer to the (already allocated) gradient structure to initialize.
- * \param color Pointer to a colors array.
- * \param size Size of the colors array (previous argument).
- * \param N Number of transitions between two colors in the gradient.
+ * \param nbStops Number of stops (different colors) for gradient.
+ * \param positionStop Position stops.
+ * \param colorStop Color stops.
+ * \param size Gradient size.
  */
-void GenerateGradient(Gradient *gradient, Color *color, uint_fast32_t size, uint_fast32_t N);
+void GenerateGradient(Gradient *gradient, uint_fast32_t nbStops, FLOAT *positionStop, Color *colorStop,
+				uint_fast32_t size);
+
+/**
+ * \fn void GenerateGradient2(Gradient *gradient, uint_fast32_t nbStops, Color *colorStop, uint_fast32_t nbTransitions)
+ * \brief Generate a gradient.
+ *
+ * Generate a gradient from colors stops and the number of transitions
+ * between two colors.
+ * Number of stops must be > 2 (exit with error otherwise).
+ * All the colors in given array must have the same number of bytes
+ * per component (undefined behaviour otherwise).
+ * Number of transitions must be strictly positive (exit program with
+ * error otherwise).
+ *
+ * \param gradient Pointer to the (already allocated) gradient structure to initialize.
+ * \param nbStops Number of stops (different colors) for gradient.
+ * \param colorStop Color stops.
+ * \param nbTransitions Number of transitions between two colors in the gradient.
+ */
+void GenerateGradient2(Gradient *gradient, uint_fast32_t nbStops, Color *colorStop, uint_fast32_t nbTransitions);
+
+/**
+ * \fn int ReadGradientFile(Gradient *gradient, const char *fileName)
+ * \brief Read and parse a gradient file, and create the according gradient.
+ *
+ * \param gradient Pointer to the gradient structure to create.
+ * \param fileName Gradient file name.
+ * \return 0 in case of success, 1 in case of failure.
+ */
+int ReadGradientFile(Gradient *gradient, const char *fileName);
+
+/**
+ * \fn int ReadGradientFileBody(Gradient *gradient, uint_fast8_t bytesPerComponent, const char *fileName, FILE *file, const char *format)
+ * \brief Create gradient from gradient file body.
+ *
+ * The body of a gradient file is everything that comes after
+ * the format version and the bytes per component.
+ * fileName is used only for error messages.
+ * This function should only be used internally by the library.
+ *
+ * \param gradient Pointer to the gradient structure to create.
+ * \param bytesPerComponent Gradient file bytes per component (read from header).
+ * \param fileName Gradient file name.
+ * \param file Pointer to opened file, positioned at the beginning of the body.
+ * \param format Gradient file format.
+ * \return 0 in case of success, 1 in case of failure.
+ */
+int ReadGradientFileBody(Gradient *gradient, uint_fast8_t bytesPerComponent, const char *fileName,
+			FILE *file, const char *format);
 
 /**
  * \fn Gradient CopyGradient(const Gradient *gradient)

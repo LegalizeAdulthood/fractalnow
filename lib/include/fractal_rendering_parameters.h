@@ -40,10 +40,14 @@ extern "C" {
 #include <stdint.h>
 
 /**
- * \struct s_RenderingParameters
+ * \struct RenderingParameters
  * \brief Structure containing fractal rendering parameters.
  */
-typedef struct s_RenderingParameters {
+/**
+ * \typedef RenderingParameters
+ * \brief Convenient typedef for struct RenderingParameters.
+ */
+typedef struct RenderingParameters {
 	uint_fast8_t bytesPerComponent;
  /*!< Bytes per component for colors of rendering.*/
 	Color spaceColor;
@@ -122,6 +126,24 @@ RenderingParameters CopyRenderingParameters(const RenderingParameters *param);
  * \return 0 in case of success, 1 in case of failure.
  */
 int ReadRenderingFile(RenderingParameters *param, const char *fileName);
+
+/**
+ * \fn int ReadRenderingFileBody(RenderingParameters *param, const char *fileName, FILE *file, const char *format)
+ * \brief Read fractal rendering parameters from rendering file body.
+ *
+ * The body of a rendering file is everything that comes after
+ * the format version.
+ * fileName is used only for error messages.
+ * This function should only be used internally by the library.
+ *
+ * \param param Pointer to the rendering parameters structure to create.
+ * \param fileName Gradient file name.
+ * \param file Pointer to opened file, positioned at the beginning of the body.
+ * \param format Rendering file format.
+ * \return 0 in case of success, 1 in case of failure.
+ */
+int ReadRenderingFileBody(RenderingParameters *param, const char *fileName,
+			FILE *file, const char *format);
 
 /**
  * \fn void FreeRenderingParameters(RenderingParameters param)

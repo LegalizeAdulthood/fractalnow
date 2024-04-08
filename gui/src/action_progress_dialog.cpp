@@ -25,13 +25,11 @@
 
 int ActionProgressDialog::progress(Action *action, QString labelText, QString cancelButtonText, QWidget *parent)
 {
-	QFuture<int> future(QtConcurrent::run(WaitForFinished, action));
-
 	QProgressDialog progress(labelText, cancelButtonText, 0, 1000, parent);
 	progress.setWindowModality(Qt::WindowModal);
 	progress.setMinimumDuration(500);
 
-	while (!future.isFinished()) {
+	while (!ActionIsFinished(action)) {
 		progress.setValue(GetActionProgress(action) * 1000);
 
 		if (progress.wasCanceled()) {
@@ -41,6 +39,6 @@ int ActionProgressDialog::progress(Action *action, QString labelText, QString ca
 	}
 	progress.setValue(1000);
 
-	return future.result();
+	return GetActionResult(action);
 }
 

@@ -45,25 +45,25 @@ FLOAT SmoothIterationCount(const Fractal *fractal, uint_fast32_t N, FLOAT rN)
 	return N+1+logF(fractal->logEscapeRadius/logF(rN))/fractal->logP;
 }
 
-const CountingFunctionPtr CountingFunctionsArray[] = {
+const CountingFunctionPtr countingFunctionsArray[] = {
 	DiscreteIterationCount,
 	ContinuousIterationCount,
 	SmoothIterationCount
 };
 
-const char *CountingFunctionStr[] = {
-	(char *)"discrete",
-	(char *)"continuous",
-	(char *)"smooth"
+const char *countingFunctionStr[] = {
+	(const char *)"discrete",
+	(const char *)"continuous",
+	(const char *)"smooth"
 };
 
-const char *CountingFunctionDescStr[] = {
-	(char *)"Discrete iteration",
-	(char *)"Continuous iteration",
-	(char *)"Smooth iteration"
+const char *countingFunctionDescStr[] = {
+	(const char *)"Discrete iteration",
+	(const char *)"Continuous iteration",
+	(const char *)"Smooth iteration"
 };
 
-uint_fast32_t nbCountingFunctions = sizeof(CountingFunctionStr) / sizeof(char *);
+const uint_fast32_t nbCountingFunctions = sizeof(countingFunctionStr) / sizeof(const char *);
 
 int GetCountingFunction(CountingFunction *countingFunction, const char *str)
 {
@@ -79,7 +79,7 @@ int GetCountingFunction(CountingFunction *countingFunction, const char *str)
 
 	uint_fast32_t i;
 	for (i = 0; i < nbCountingFunctions; ++i) {
-		if (strcmp(CFStr, CountingFunctionStr[i]) == 0) {
+		if (strcmp(CFStr, countingFunctionStr[i]) == 0) {
 			*(countingFunction) = (CountingFunction)i;
 			break;
 		}
@@ -94,5 +94,5 @@ int GetCountingFunction(CountingFunction *countingFunction, const char *str)
 
 CountingFunctionPtr GetCountingFunctionPtr(CountingFunction countingFunction)
 {
-	return CountingFunctionsArray[(int)countingFunction];
+	return countingFunctionsArray[(int)countingFunction];
 }

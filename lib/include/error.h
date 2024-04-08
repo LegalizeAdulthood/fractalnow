@@ -53,7 +53,10 @@ extern "C" {
  * Note that error messages trace level is T_QUIET, i.e. are always
  * printed, except when application current trace level is
  * T_QUIET_ERROR.
- * 
+ */
+/**
+ * \typedef TraceLevel
+ * \brief Convenient typedef for enum TraceLevel.
  */
 typedef enum e_TraceLevel {
 	T_QUIET_ERROR = 0,
@@ -105,8 +108,11 @@ extern TraceLevel fractal2D_traceLevel;
             fprintf(output, __VA_ARGS__); \
         }
 
+#define fractal2D_errmsg(...) \
+	fractal2D_message(stderr, T_QUIET, __VA_ARGS__);
+
 #define fractal2D_error(...) \
-	fractal2D_message(stderr, T_QUIET, __VA_ARGS__);\
+	fractal2D_errmsg(__VA_ARGS__);\
         exit(EXIT_FAILURE)
 
 #define fractal2D_werror(...) \
@@ -114,21 +120,36 @@ extern TraceLevel fractal2D_traceLevel;
 	res = 1; \
 	goto end;
 
+// Common error messages
+#define alloc_error_msg(s) "Error occured when allocated memory for %s.\n", s
+#define existence_error_msg(fileName) "Error: \'%s\' does not exist.\n", fileName
+#define open_error_msg(fileName) "Error occured when opening file \'%s\'.\n", fileName
+#define read_error_msg(fileName) "Error occured when reading file \'%s\'.\n", fileName
+#define write_error_msg(fileName) "Error occured when writing in file \'%s\'.\n", fileName
+#define close_error_msg(fileName) "Error occured when closing file \'%s\'.\n", fileName
+
+#define fractal2D_alloc_errmsg(s) fractal2D_errmsg(alloc_error_msg(s))
+#define fractal2D_existence_errmsg(fileName) fractal2D_errmsg(existence_error_msg(fileName))
+#define fractal2D_open_errmsg(fileName) fractal2D_errmsg(open_error_msg(fileName))
+#define fractal2D_read_errmsg(fileName) fractal2D_errmsg(read_error_msg(fileName))
+#define fractal2D_write_errmsg(fileName) fractal2D_errmsg(write_error_msg(fileName))
+#define fractal2D_close_errmsg(fileName) fractal2D_errmsg(close_error_msg(fileName))
+
 // Common errors
-#define fractal2D_read_error(fileName) fractal2D_error("Error occured when reading file \'%s\'.\n", fileName)
-#define fractal2D_write_error(fileName) fractal2D_error("Error occured when writing in file \'%s\'.\n", fileName)
-#define fractal2D_open_error(fileName) fractal2D_error("Error occured when opening file \'%s\'.\n", fileName)
-#define fractal2D_existence_error(fileName) fractal2D_error("Error: \'%s\' does not exist.\n", fileName)
-#define fractal2D_close_error(fileName) fractal2D_error("Error occured when closing file \'%s\'.\n", fileName)
-#define fractal2D_alloc_error(s) fractal2D_error("Error occured when allocating memory for %s.\n", s)
+#define fractal2D_alloc_error(s) fractal2D_error(alloc_error_msg(s))
+#define fractal2D_existence_error(fileName) fractal2D_error(existence_error_msg(fileName))
+#define fractal2D_open_error(fileName) fractal2D_error(open_error_msg(fileName))
+#define fractal2D_read_error(fileName) fractal2D_error(read_error_msg(fileName))
+#define fractal2D_write_error(fileName) fractal2D_error(write_error_msg(fileName))
+#define fractal2D_close_error(fileName) fractal2D_error(close_error_msg(fileName))
 
 // Weak error
-#define fractal2D_read_werror(fileName) fractal2D_werror("Error occured when reading file \'%s\'.\n", fileName)
-#define fractal2D_write_werror(fileName) fractal2D_werror("Error occured when writing in file \'%s\'.\n", fileName)
-#define fractal2D_open_werror(fileName) fractal2D_werror("Error occured when opening file \'%s\'.\n", fileName)
-#define fractal2D_existence_werror(fileName) fractal2D_werror("Error: \'%s\' does not exist.\n", fileName)
-#define fractal2D_close_werror(fileName) fractal2D_werror("Error occured when closing file \'%s\'.\n", fileName)
-#define fractal2D_alloc_werror(s) fractal2D_werror("Error occured when allocating memory for %s.\n", s)
+#define fractal2D_alloc_werror(s) fractal2D_werror(alloc_error_msg(s))
+#define fractal2D_existence_werror(fileName) fractal2D_werror(existence_error_msg(fileName))
+#define fractal2D_open_werror(fileName) fractal2D_werror(open_error_msg(fileName))
+#define fractal2D_read_werror(fileName) fractal2D_werror(read_error_msg(fileName))
+#define fractal2D_write_werror(fileName) fractal2D_werror(write_error_msg(fileName))
+#define fractal2D_close_werror(fileName) fractal2D_werror(close_error_msg(fileName))
 
 #ifdef __cplusplus
 }

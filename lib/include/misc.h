@@ -39,6 +39,9 @@ extern "C" {
  * \fn void toLowerCase(char *str)
  * \brief Convert string letter to lower case.
  *
+ * str must be NULL-terminated (undefined behabiour
+ * otherwise).
+ *
  * \param str String to convert.
  */
 void toLowerCase(char *str);

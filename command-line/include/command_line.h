@@ -54,6 +54,8 @@ typedef struct s_CommandLineArguments {
  /*!< Height of output float table/image.*/
 	uint_fast32_t quadInterpolationSize;
  /*!< Maximum size of quadrilaterals for interpolation.*/
+	int nbThreads;
+ /*!< Number of threads. Negative if not specified. */
 	FLOAT colorDissimilarityThreshold;
  /*!< Dissimilarity threshold for interpolation.*/
 	AntiAliasingMethod antiAliasingMethod;

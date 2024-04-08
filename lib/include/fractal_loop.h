@@ -34,8 +34,13 @@ extern "C" {
 #include "fractal.h"
 #include "fractal_coloring.h"
 #include "floating_point.h"
+#include <complex.h>
 
-struct s_RenderingParameters;
+#ifndef complex
+#define complex _Complex
+#endif
+
+struct RenderingParameters;
 
 /**
  * \typedef FractalLoop
@@ -81,7 +86,7 @@ struct s_RenderingParameters;
  * \see fractal_addend_function.h
  * \see fractal_interpolation_method.h
  */
-typedef FLOAT (*FractalLoop)(const Fractal *fractal, const struct s_RenderingParameters *render,
+typedef FLOAT (*FractalLoop)(const Fractal *fractal, const struct RenderingParameters *render,
 				FLOAT complex pixel);
 
 /**

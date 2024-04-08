@@ -34,21 +34,63 @@ extern "C" {
 #include <stdint.h>
 #include "floating_point.h"
 
+/**
+ * \def GET_R8(x)
+ * \brief Get red component of uint32_t color.
+ */
 #define GET_R8(x) ((x >> 16) & 0xFF)
+
+/**
+ * \def GET_G8(x)
+ * \brief Get green component of uint32_t color.
+ */
 #define GET_G8(x) ((x >> 8) & 0xFF)
+
+/**
+ * \def GET_B8(x)
+ * \brief Get blue component of uint32_t color.
+ */
 #define GET_B8(x) (x & 0xFF)
+
+/**
+ * \def RGB8_TO_UINT32(r,g,b)
+ * \brief Create uint32_t color from 8-bits red, green, and blue components.
+ */
 #define RGB8_TO_UINT32(r,g,b) (0xFF000000+((uint32_t)(r)<<16)+((uint32_t)(g)<<8)+(uint32_t)b)
 
+/**
+ * \def GET_R16(x)
+ * \brief Get red component of uint64_t color.
+ */
 #define GET_R16(x) ((x >> 32) & 0xFFFF)
+
+/**
+ * \def GET_G16(x)
+ * \brief Get green component of uint64_t color.
+ */
 #define GET_G16(x) ((x >> 16) & 0xFFFF)
+
+/**
+ * \def GET_B16(x)
+ * \brief Get blue component of uint64_t color.
+ */
 #define GET_B16(x) (x & 0xFFFF)
+
+/**
+ * \def RGB16_TO_UINT64(r,g,b)
+ * \brief Create uint64_t color from 16-bits red, green, and blue components.
+ */
 #define RGB16_TO_UINT64(r,g,b) (0xFFFF000000000000+((uint64_t)(r)<<32)+((uint64_t)(g)<<16)+(uint64_t)b)
 
 /**
- * \struct s_Color
+ * \struct Color
  * \brief RGB8 color.
  */
-typedef struct s_Color {
+/**
+ * \typedef Color
+ * \brief Convenient typedef for struct Color.
+ */
+typedef struct Color {
 	uint_fast8_t bytesPerComponent; /*!< Either 1 (RGB8) or 2 (RGB16).*/
 	uint_fast16_t r; /*!< Red component.*/
 	uint_fast16_t g; /*!< Green component.*/
@@ -117,9 +159,8 @@ Color Color8(Color color);
  * \fn Color MixColors(Color C1, FLOAT weight1, Color C2, FLOAT weight2)
  * \brief Mix two weighted colors.
  *
- * Both colors must have same number of bytes per component,
- * and the function does not check for that : hence it is
- * NOT safe.
+ * Both colors must have same number of bytes per component
+ * (undefined behaviour otherwise).
  *
  * \param C1 First Color.
  * \param weight1 Weight given to first color for mixing.
@@ -134,6 +175,8 @@ Color MixColors(Color C1, FLOAT weight1, Color C2, FLOAT weight2);
  * \brief Compute manhattan distance between two colors.
  *
  * Distance is normalized (i.e. between 0 and 1).
+ * Both colors must have same number of bytes per component
+ * (undefined behaviour otherwise).
  *
  * \param C1 First color.
  * \param C2 Second color.
@@ -146,6 +189,8 @@ FLOAT ColorManhattanDistance(Color C1, Color C2);
  * \brief Compute average dissimilarity of a quadrilateral given its corner colors.
  *
  * Result is normalized (between 0 and 1).
+ * Colors must have same number of bytes per component
+ * (undefined behaviour otherwise).
  *
  * \param C Point to colors at the four corners.
  * \return Quadrilateral average anhattan dissimilarity.
@@ -157,8 +202,10 @@ FLOAT QuadAvgDissimilarity(const Color C[4]);
  * \brief Interpolate linearly some color of a quadrilateral.
  *
  * Interpolate color at point (x,y) according to its corner colors.
- * Coordinates x and y are relative (i.e. must be between 0 and 1) :
+ * Coordinates x and y are relative (undefined behaviour otherwise) :
  * (0,0 is the top left corner, (1,0) the top right, etc...
+ * Colors must have same number of bytes per component
+ * (undefined behaviour otherwise).
  *
  * \param C Quadrilateral corner colors.
  * \param x X (relative) coordinate of quad point to interpolate.

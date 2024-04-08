@@ -28,13 +28,15 @@
 #ifndef __MAIN_WINDOW_H__
 #define __MAIN_WINDOW_H__
 
-#include "command_line.h"
 #include "fractal.h"
-#include "fractal_config_widget.h"
 #include "fractal_rendering_parameters.h"
-#include "fractal_rendering_widget.h"
 #include "image.h"
+
+#include "command_line.h"
+#include "fractal_config_widget.h"
 #include "fractal_explorer.h"
+#include "fractal_rendering_widget.h"
+
 #include <QCloseEvent>
 #include <QDesktopServices>
 #include <QDoubleSpinBox>
@@ -49,6 +51,8 @@ class MainWindow : public QMainWindow
 	MainWindow(int argc, char *argv[]);
 
 	private:
+	uint_fast32_t fractalExplorerNbThreads;
+	uint_fast32_t exportImageNbThreads;
 	FractalExplorer *fractalExplorer;
 	FractalConfigWidget *fractalConfigWidget;
 	FractalRenderingWidget *fractalRenderingWidget;

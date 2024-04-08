@@ -21,8 +21,8 @@
 #include "main_window.h"
 #include "main.h"
 #include "export_fractal_image_dialog.h"
-#include "error.h"
 
+#include "error.h"
 #include "floating_point.h"
 #include "fractal2D.h"
 #include "fractal.h"
@@ -61,7 +61,7 @@ void initDefaultRenderingParameters(RenderingParameters &render)
 		color[i] = ColorFromUint32(hex_color[i]);
 	}
 	Gradient gradient;
-	GenerateGradient(&gradient, color, 5, 10000);
+	GenerateGradient2(&gradient, 5, color, DEFAULT_GRADIENT_TRANSITIONS);
 
 	std::string identityName = "identity";
 	std::string smoothName = "smooth";
@@ -80,19 +80,6 @@ MainWindow::MainWindow(int argc, char *argv[])
 	QTextCodec::setCodecForCStrings(QTextCodec::codecForName("UTF-8"));
 	QTextCodec::setCodecForTr(QTextCodec::codecForName("UTF-8"));
 	setlocale(LC_NUMERIC, "C");
-
-	/* Set number of threads.
-	 * We decide to launch more threads that the actual number
-	 * of cores, because some parts of fractalImage may need much
-	 * more calculations than others, so we may have one thread
-	 * taking much more time that the others, which is not good
-	 * (action terminates when all thread terminate).
-	 * With more threads, we "average" the time taken by each
-	 * thread.
-	 */
-	if (QThread::idealThreadCount() > 0) {
-		nbThreads = 8*QThread::idealThreadCount();
-	}
 
 	Fractal fractal;
 	RenderingParameters render;
@@ -155,10 +142,37 @@ MainWindow::MainWindow(int argc, char *argv[])
 	uint_fast32_t preferredExplorerWidth = args.width;
 	uint_fast32_t preferredExplorerHeight = args.height;
 
+	if (args.nbThreads <= 0) {
+		/* Number of threads not specified. */
+		if (QThread::idealThreadCount() > 0) {
+			fractalExplorerNbThreads = QThread::idealThreadCount();
+
+			/* To export image we decide to use more threads that the actual
+			 * number of cores, because some parts of image may need much
+			 * more calculations than others, so we may have one thread
+			 * taking much more time that the others, which is not good
+			 * (action finishes when all thread have finished).
+			 * In short, with more threads, we "average" the time taken by each
+			 * thread.
+			 * However, having more threads than number of cores is not good
+			 * for real-time, which is why fractal explorer uses exactly ideal
+			 * thread count.
+			 */
+			 exportImageNbThreads = 4*QThread::idealThreadCount();
+		} else {
+			fractalExplorerNbThreads = DEFAULT_NB_THREADS;
+			exportImageNbThreads = DEFAULT_NB_THREADS;
+		}
+	} else {
+		fractalExplorerNbThreads = args.nbThreads;
+		exportImageNbThreads = args.nbThreads;
+	}
+
 	/* Create fractalImage label which will be the central widget. */
 	fractalExplorer = new FractalExplorer(fractal, render, preferredExplorerWidth,
 					preferredExplorerHeight, args.minAntiAliasingSize,
-					args.maxAntiAliasingSize, args.antiAliasingSizeIteration);
+					args.maxAntiAliasingSize, args.antiAliasingSizeIteration,
+					fractalExplorerNbThreads);
 	fractalExplorer->setFocus();
 
 	centralWidget = new QWidget;
@@ -196,6 +210,8 @@ MainWindow::MainWindow(int argc, char *argv[])
 	/* Create rendering config widget.*/
 	fractalRenderingWidget = new FractalRenderingWidget(render);
 	/* Connect the fractal rendering widget combo and spin boxes to slots. */
+	connect(fractalExplorer, SIGNAL(renderingParametersChanged(RenderingParameters &)),
+		fractalRenderingWidget, SLOT(updateBoxesValues(RenderingParameters &)));
 	connect(fractalRenderingWidget->addendFunctionComboBox, SIGNAL(currentIndexChanged(int)),
 		fractalExplorer, SLOT(setAddendFunction(int)));
 	connect(fractalRenderingWidget->stripeDensitySpinBox, SIGNAL(valueChanged(int)),
@@ -214,6 +230,8 @@ MainWindow::MainWindow(int argc, char *argv[])
 		fractalExplorer, SLOT(setColorOffset(double)));
 	connect(fractalRenderingWidget->spaceColorButton, SIGNAL(currentColorChanged(QColor)),
 		fractalExplorer, SLOT(setSpaceColor(QColor)));
+	connect(fractalRenderingWidget->gradientBox, SIGNAL(gradientStopsChanged(
+		const QGradientStops&)), fractalExplorer, SLOT(setGradient(const QGradientStops&)));
 	
 	QWidget *otherParametersWidget = new QWidget;
 	QFormLayout *otherParamLayout = new QFormLayout;
@@ -366,7 +384,8 @@ void MainWindow::exportImage()
 
 	if (!fileName.isNull()) {
 		ExportFractalImageDialog dialog(fileName, fractalExplorer->getFractal(),
-						fractalExplorer->getRender(), this);
+						fractalExplorer->getRender(),
+						exportImageNbThreads, this);
 		dialog.exec();
 	}
 

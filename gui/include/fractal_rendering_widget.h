@@ -31,6 +31,7 @@ void FractalRenderingWidget::updateBoxesEnabledValue()
 
 #include "fractal_rendering_parameters.h"
 #include "color_button.h"
+#include "gradient_box.h"
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QWidget>
@@ -51,10 +52,15 @@ class FractalRenderingWidget : public QWidget
 	QDoubleSpinBox *colorScalingSpinBox;
 	QDoubleSpinBox *colorOffsetSpinBox;
 	ColorButton *spaceColorButton;
+	GradientBox *gradientBox;
 
 	public slots:
+	void updateBoxesValues(RenderingParameters &render);
 	void updateBoxesEnabledValue();
 	void updateColorScalingSingleStep();
+
+	private:
+	void blockBoxesSignals(bool block);
 };
 
 #endif

@@ -23,7 +23,28 @@
 #include "file_parsing.h"
 #include "misc.h"
 #include <ctype.h>
+#include <stdio.h>
 #include <string.h>
+
+const char *renderingFileFormatStr[] = {
+	(const char *)"r072",
+	(const char *)"r073"
+};
+
+int  ReadRenderingFileV072(RenderingParameters *param, const char *fileName,
+				FILE *file);
+int  ReadRenderingFileV073(RenderingParameters *param, const char *fileName,
+				FILE *file);
+
+typedef int (*ReadRenderingFileFunction)(RenderingParameters *param,
+					const char *fileName, FILE *file);
+
+const ReadRenderingFileFunction readRenderingFileFunction[] = {
+	ReadRenderingFileV072,
+	ReadRenderingFileV073
+};
+
+const uint_fast32_t nbRenderingFileFormats = sizeof(renderingFileFormatStr) / sizeof(const char *);
 
 inline void InitRenderingParameters(RenderingParameters *param, uint_fast8_t bytesPerComponent, Color spaceColor,
 				CountingFunction countingFunction, ColoringMethod coloringMethod,
@@ -56,34 +77,10 @@ RenderingParameters CopyRenderingParameters(const RenderingParameters *param)
 	return res;
 }
 
-char *supportedRenderingFileFormat[] = {
-	(char *)"r072"
-};
-
-int ReadRenderingFile(RenderingParameters *param, const char *fileName)
+int ReadRenderingFileV07x(RenderingParameters *param, const char *fileName, FILE *file,
+				const char *gradientFormat)
 {
-	fractal2D_message(stdout, T_NORMAL, "Reading rendering file...\n");
-
 	int res = 0;
-	FILE *file;
-
-	file=fopen(fileName,"r");
-	if (!file) {
-		fractal2D_open_werror(fileName);
-	}
-	
-	char str[256];
-	if (readString(file, str) < 1) {
-		fractal2D_read_werror(fileName);
-	}
-	if (strlen(str) != 4 || tolower(str[0]) != 'r') {
-		fractal2D_werror("Invalid rendering file (could not read format).\n");
-	}
-	toLowerCase(str);
-	if (strcmp(str, supportedRenderingFileFormat[0]) != 0) {
-		fractal2D_werror("Unsupported rendering file format '%s'.\n", str);
-	}
-
 	uint_fast8_t bytesPerComponent;
 	Color spaceColor;
 	CountingFunction countingFunction;
@@ -95,6 +92,7 @@ int ReadRenderingFile(RenderingParameters *param, const char *fileName)
 	FLOAT multiplier;
 	FLOAT offset;
 	Gradient gradient;
+	char str[256];
 
 	uint32_t bytesPerComponent32;
 	if (readUint32(file, &bytesPerComponent32) < 1) {
@@ -163,29 +161,86 @@ int ReadRenderingFile(RenderingParameters *param, const char *fileName)
 		fractal2D_read_werror(fileName);
 	}
 
-	Color color[256];
-	uint_fast32_t nbColors=0;
-	int nbread;
-	while ((nbread = readColor(file, bytesPerComponent, &color[nbColors])) != EOF) {
-		if (nbread < 1) {
-			fractal2D_read_werror(fileName);
-		}
-		nbColors++;
+	if (ReadGradientFileBody(&gradient, bytesPerComponent, fileName, file, gradientFormat)) {
+		fractal2D_werror("Invalid rendering file : failed to read gradient.\n");
 	}
-
-	if (nbColors < 2) {
-		fractal2D_werror("Invalid rendering file : number of colors must be between 2 and 256.\n");
-	}
-
-	GenerateGradient(&gradient, color, nbColors, DEFAULT_GRADIENT_TRANSITIONS);
 
 	InitRenderingParameters(param, bytesPerComponent, spaceColor, countingFunction, coloringMethod,
 				addendFunction, stripeDensity, interpolationMethod, transferFunction,
 				multiplier, offset, gradient);
 
 	end:
-	if (file) {
-		res |= fclose(file);
+
+	return res;
+}
+
+int ReadRenderingFileV072(RenderingParameters *param, const char *fileName, FILE *file)
+{
+	const char gradientFormat[] = "g072";
+	return ReadRenderingFileV07x(param, fileName, file, gradientFormat);
+}
+
+int ReadRenderingFileV073(RenderingParameters *param, const char *fileName, FILE *file)
+{
+	const char gradientFormat[] = "g073";
+	return ReadRenderingFileV07x(param, fileName, file, gradientFormat);
+}
+
+int ReadRenderingFileBody(RenderingParameters *param, const char *fileName,
+			FILE *file, const char *format)
+{
+	fractal2D_message(stdout, T_VERBOSE, "Reading rendering file body...\n");
+
+	int res = 0;
+	if (strlen(format) != 4) {
+		fractal2D_werror("Invalid rendering file format '%s'.\n", format);
+	}
+	char formatStr[5];
+	strcpy(formatStr, format);
+	toLowerCase(formatStr);
+
+	ReadRenderingFileFunction readRenderingFile;
+	uint_fast32_t i;
+	for (i = 0; i < nbRenderingFileFormats; ++i) {
+		if (strcmp(formatStr, renderingFileFormatStr[i]) == 0) {
+			readRenderingFile = (ReadRenderingFileFunction)readRenderingFileFunction[i];
+			break;
+		}
+	}
+	if (i == nbRenderingFileFormats) {
+		fractal2D_werror("Unsupported rendering file format '%s'.\n", format);
+	}
+
+	res |= readRenderingFile(param, fileName, file);
+
+	end:
+	fractal2D_message(stdout, T_VERBOSE, "Reading rendering file body : %s.\n", (res == 0) ? "DONE" : "FAILED");
+
+	return res;
+} 
+
+int ReadRenderingFile(RenderingParameters *param, const char *fileName)
+{
+	fractal2D_message(stdout, T_NORMAL, "Reading rendering file...\n");
+
+	int res = 0;
+	FILE *file;
+
+	file=fopen(fileName,"r");
+	if (!file) {
+		fractal2D_open_werror(fileName);
+	}
+	
+	char formatStr[256];
+	if (readString(file, formatStr) < 1) {
+		fractal2D_read_werror(fileName);
+	}
+	res = ReadRenderingFileBody(param, fileName, file, formatStr);
+
+	end:
+	if (file && fclose(file)) {
+		fractal2D_close_errmsg(fileName);
+		res = 1;
 	}
 
 	fractal2D_message(stdout, T_NORMAL, "Reading rendering file : %s.\n", (res == 0) ? "DONE" : "FAILED");

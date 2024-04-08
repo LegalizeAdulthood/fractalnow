@@ -42,8 +42,11 @@ class ExportFractalImageDialog : public QDialog
 	Q_OBJECT
 
 	public:
-	ExportFractalImageDialog(QString &fileName, Fractal &fractal, RenderingParameters &render,
+	ExportFractalImageDialog(const QString &fileName, const Fractal &fractal,
+					const RenderingParameters &render,
+					uint_fast32_t nbThreads,
 					QWidget *parent = 0, Qt::WindowFlags f = 0);
+	~ExportFractalImageDialog();
 
 	private:
 	void reInitFractal(Fractal &fractal);
@@ -57,9 +60,10 @@ class ExportFractalImageDialog : public QDialog
 	};
 	AntiAliasingMethod getAntiAliasingMethod();
 
-	Fractal &fractal;
-	RenderingParameters &render;
-	QString &fileName;
+	const QString &fileName;
+	const Fractal &fractal;
+	const RenderingParameters &render;
+	Threads *threads;
 	QComboBox *colorDepthBox;
 	QLineEdit *outputFileEdit;
 	QRadioButton *noAAMButton;

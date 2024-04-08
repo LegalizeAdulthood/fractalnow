@@ -40,12 +40,16 @@ extern "C" {
 #include <stdint.h>
 
 /**
- * \struct s_Filter
+ * \struct Filter
  * \brief Structure to represent a filter.
  *
  * A filter is typically a matrix (kernel) with a center of application.
  */
-typedef struct s_Filter
+/**
+ * \typedef Filter
+ * \brief Convenient typedef for struct Filter.
+ */
+typedef struct Filter
 {
 	uint_fast32_t sx; /*!< Number of columns.*/
 	uint_fast32_t sy; /*!< Number of rows.*/
@@ -68,8 +72,8 @@ typedef struct s_Filter
  * \param cy Y coordinate of filter's center.
  * \param data Filter data (NOT copied, and will be freed when the filter is freed).
  */
-void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, uint_fast32_t cx, uint_fast32_t cy,
-		FLOAT *data);
+void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy,
+		uint_fast32_t cx, uint_fast32_t cy, FLOAT *data);
 
 /**
  * \fn void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOAT *data)
@@ -99,6 +103,8 @@ Filter CopyFilter(const Filter *filter);
  * \fn void CreateHorizontalGaussianFilter(Filter *filter, FLOAT sigma)
  * \brief Create a horizontal gaussian filter given sigma.
  *
+ * sigma must be strictly positive (exit with error otherwise).
+ *
  * \param filter Pointer to the filter structure to initialize.
  * \param sigma See Wikipedia (or others) for that.
  */
@@ -107,6 +113,8 @@ void CreateHorizontalGaussianFilter(Filter *filter, FLOAT sigma);
 /**
  * \fn void CreateHorizontalGaussianFilter2(Filter *filter, FLOAT radius)
  * \brief Create a horizontal gaussian filter given its radius.
+ *
+ * radius must be strictly positive (exit with error otherwise).
  *
  * \param filter Pointer to the filter structure to initialize.
  * \param radius Blur radius.
@@ -117,6 +125,8 @@ void CreateHorizontalGaussianFilter2(Filter *filter, FLOAT radius);
  * \fn void CreateVerticalGaussianFilter(Filter *filter, FLOAT sigma)
  * \brief Create a vertical gaussian filter given sigma.
  *
+ * sigma must be strictly positive (exit with error otherwise).
+ *
  * \param filter Pointer to the filter structure to initialize.
  * \param sigma See Wikipedia (or others) for that.
  */
@@ -125,6 +135,8 @@ void CreateVerticalGaussianFilter(Filter *filter, FLOAT sigma);
 /**
  * \fn void CreateVerticalGaussianFilter2(Filter *filter, FLOAT radius)
  * \brief Create a vertical gaussian filter given its radius.
+ *
+ * radius must be strictly positive (exit with error otherwise).
  *
  * \param filter Pointer to the filter structure to initialize.
  * \param radius Blur radius.
@@ -135,6 +147,7 @@ void CreateVerticalGaussianFilter2(Filter *filter, FLOAT radius);
  * \fn void CreateGaussianFilter(Filter *filter, FLOAT sigma)
  * \brief Create a square gaussian filter given sigma.
  *
+ * sigma must be strictly positive (exit with error otherwise).
  * Note that it is actually more efficient (computationally speaking)
  * to apply a horizontal and then vertical gaussian filter (or vice
  * versa), with the same sigma, than to apply a square gaussian
@@ -149,6 +162,7 @@ void CreateGaussianFilter(Filter *filter, FLOAT sigma);
  * \fn void CreateGaussianFilter2(Filter *filter, FLOAT radius)
  * \brief Create a square gaussian filter given its radius.
  *
+ * radius must be strictly positive (exit with error otherwise).
  * Note that it is actually more efficient (computationally speaking)
  * to apply a horizontal and then vertical gaussian filter (or vice
  * versa), with the same radius, than to apply a square gaussian
@@ -163,9 +177,9 @@ void CreateGaussianFilter2(Filter *filter, FLOAT radius);
  * \fn FLOAT GetFilterValueUnsafe(const Filter *filter, uint_fast32_t x, uint_fast32_t y)
  * \brief Get some particular value of filter.
  *
- * Get value of filter at row x, column y. Warning, this function is
- * function is unsafe, meaning it does not check whether (x,y) is
- * within range or not.
+ * Get value of filter at row x, column y.
+ * Warning: function does not check whether (x,y) is within
+ * range or not (undefined behaviour otherwise).
  *
  * \param filter Filter we want to get some particular value.
  * \param x Row of the filter value.
@@ -202,8 +216,9 @@ int NormalizeFilter(Filter *filter);
  * \fn Color ApplyFilterOnSinglePixel(const Image *src, uint_fast32_t x, uint_fast32_t y, const Filter *filter)
  * \brief Apply a filter on the single pixel of an image.
  *
- * This function IS safe (pixels outside of the image will be
- * duplicates of the pixels at the sides of it).
+ * It is safe to pass (x,y) outside image.
+ * Pixels outside of the image will be duplicates of the pixels
+ * at the sides of it.
  *
  * \param src Image we apply the filter on.
  * \param x X coordinate of the pixel of the image we apply the filter on.
@@ -211,34 +226,37 @@ int NormalizeFilter(Filter *filter);
  * \param filter Filter we apply on the image.
  * @return Result of the application of the filter on pixel (x,y) of the image.
  */
-Color ApplyFilterOnSinglePixel(const Image *src, uint_fast32_t x, uint_fast32_t y, const Filter *filter);
+Color ApplyFilterOnSinglePixel(const Image *src, uint_fast32_t x, uint_fast32_t y,
+				const Filter *filter);
 
 /**
- * \fn void ApplyFilter(Image *dst, const Image *src, const Filter *filter)
+ * \fn void ApplyFilter(Image *dst, const Image *src, const Filter *filter, Threads *threads)
  * \brief Apply filter on image.
  *
  * This function does not work in place.
- * This function is parallelized : number of threads is given by nbThreads
- * variable.
  *
  * \param dst Destination image.
  * \param src Source image.
  * \param filter Filter to apply.
+ * \param threads Threads to be used for action.
  */
-void ApplyFilter(Image *dst, const Image *src, const Filter *filter);
+void ApplyFilter(Image *dst, const Image *src, const Filter *filter, Threads *threads);
 
 /**
- * \fn Action *LaunchApplyFilter(Image *dst, const Image *src, const Filter *filter)
- * \brief Launch apply filter action, but does not wait for termination.
+ * \fn Action *LaunchApplyFilter(Image *dst, const Image *src, const Filter *filter, Threads *threads)
+ * \brief Launch apply filter action (non-blocking).
  *
- * Action returned can be used to wait for termination or cancel filter applying.
+ * Launch action and return immediately.
+ * Action structure can be used to query progress, send
+ * cancellation request, etc.
  *
  * \param dst Destination image.
  * \param src Source image.
  * \param filter Filter to apply.
+ * \param threads Threads to be used for action.
  * \return Corresponding newly-allocated action.
  */
-Action *LaunchApplyFilter(Image *dst, const Image *src, const Filter *filter);
+Action *LaunchApplyFilter(Image *dst, const Image *src, const Filter *filter, Threads *threads);
 
 /**
  * \fn void FreeFilter(Filter filter)

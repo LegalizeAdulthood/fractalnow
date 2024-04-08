@@ -40,7 +40,8 @@ void FreeApplyFilterArguments(void *arg)
 	free(c_arg->filter);
 }
 
-void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, uint_fast32_t cx, uint_fast32_t cy, FLOAT *data)
+void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy,
+		uint_fast32_t cx, uint_fast32_t cy, FLOAT *data)
 {
 	filter->sx = sx;
 	filter->sy = sy;
@@ -211,7 +212,8 @@ int NormalizeFilter(Filter *filter)
 	}
 }
 
-Color ApplyFilterOnSinglePixel(const Image *src, uint_fast32_t x, uint_fast32_t y, const Filter *filter)
+Color ApplyFilterOnSinglePixel(const Image *src, uint_fast32_t x, uint_fast32_t y,
+				const Filter *filter)
 {
 	FLOAT value;
 	Color color;
@@ -240,9 +242,9 @@ Color ApplyFilterOnSinglePixel(const Image *src, uint_fast32_t x, uint_fast32_t 
 
 void *ApplyFilterThreadRoutine(void *arg)
 {
-	InternalThreadArg *internalThreadArg = getInternalThreadArg(arg);
-	volatile sig_atomic_t *cancel = internalThreadArg->cancel;
-	ApplyFilterArguments *c_arg = (ApplyFilterArguments *)getUserThreadArg(arg);
+	ThreadArgHeader *threadArgHeader = GetThreadArgHeader(arg);
+	volatile sig_atomic_t *cancel = threadArgHeader->cancel;
+	ApplyFilterArguments *c_arg = (ApplyFilterArguments *)GetThreadArgBody(arg);
 	Image *dst = c_arg->dst;
 	Rectangle *dstRect = c_arg->dstRect;
 	const Image *src = c_arg->src;
@@ -256,9 +258,9 @@ void *ApplyFilterThreadRoutine(void *arg)
 		for (uint_fast32_t j = dstRect->x1; j <= dstRect->x2 && !(*cancel); ++j) {
 			PutPixelUnsafe(dst, j, i, ApplyFilterOnSinglePixel(src, j, i, filter));
 		}
-		internalThreadArg->progress = 100 * (i - dstRect->y1) / dstRectHeight;
+		threadArgHeader->progress = 100 * (i - dstRect->y1) / dstRectHeight;
 	}
-	internalThreadArg->progress = 100;
+	threadArgHeader->progress = 100;
 
 	fractal2D_message(stdout, T_VERBOSE,"Applying filter from (%"PRIuFAST32",%"PRIuFAST32") to \
 (%"PRIuFAST32",%"PRIuFAST32") : %s.\n", dstRect->x1, dstRect->y1, dstRect->x2,
@@ -267,27 +269,28 @@ void *ApplyFilterThreadRoutine(void *arg)
 	return ((*cancel) ? PTHREAD_CANCELED : NULL);
 }
 
-inline Action *LaunchApplyFilter(Image *dst, const Image *src, const Filter *filter)
+inline Action *LaunchApplyFilter(Image *dst, const Image *src, const Filter *filter, Threads *threads)
 {
 	if (src->width == 0 || src->height == 0) {
 		return DoNothingAction();
 	}
 
 	uint_fast32_t nbPixels = src->width*src->height;
-	uint_fast32_t realNbThreads = (nbThreads > nbPixels) ? nbPixels : nbThreads;
+	uint_fast32_t nbThreadsNeeded = (threads->N > nbPixels) ? nbPixels : threads->N;
 
 	Rectangle *rectangle;
-	rectangle = (Rectangle *)safeMalloc("rectangles", realNbThreads * sizeof(Rectangle));
+	rectangle = (Rectangle *)safeMalloc("rectangles", nbThreadsNeeded * sizeof(Rectangle));
 	InitRectangle(&rectangle[0], 0, 0, dst->width-1, dst->height-1);
-	if (CutRectangleInN(rectangle[0], realNbThreads, rectangle)) {
+	if (CutRectangleInN(rectangle[0], nbThreadsNeeded, rectangle)) {
 		fractal2D_error("Could not cut rectangle ((%"PRIuFAST32",%"PRIuFAST32"),\
 (%"PRIuFAST32",%"PRIuFAST32") in %"PRIuFAST32" parts.\n", rectangle[0].x1, rectangle[0].y1,
-			rectangle[0].x2, rectangle[0].y2, realNbThreads);
+			rectangle[0].x2, rectangle[0].y2, nbThreadsNeeded);
 	}
 
 	ApplyFilterArguments *arg;
-	arg = (ApplyFilterArguments *)safeMalloc("arguments", realNbThreads * sizeof(ApplyFilterArguments));
-	for (uint_fast32_t i = 0; i < realNbThreads; ++i) {
+	arg = (ApplyFilterArguments *)safeMalloc("arguments", nbThreadsNeeded *
+							sizeof(ApplyFilterArguments));
+	for (uint_fast32_t i = 0; i < nbThreadsNeeded; ++i) {
 		arg[i].dst = dst;
 		arg[i].dstRect = (Rectangle *)safeMalloc("rectangle", sizeof(Rectangle));
 		*(arg[i].dstRect) = CopyRectangle(&rectangle[i]);
@@ -295,8 +298,9 @@ inline Action *LaunchApplyFilter(Image *dst, const Image *src, const Filter *fil
 		arg[i].filter = (Filter *)safeMalloc("filter", sizeof(Filter));
 		*(arg[i].filter) = CopyFilter(filter);
 	}
-	Action *res = LaunchThreads("Applying filter", realNbThreads, arg, sizeof(ApplyFilterArguments),
-					ApplyFilterThreadRoutine, FreeApplyFilterArguments);
+	Action *res = LaunchAction("Applying filter", threads, nbThreadsNeeded, arg,
+					sizeof(ApplyFilterArguments), ApplyFilterThreadRoutine,
+					FreeApplyFilterArguments);
 
 	free(rectangle);
 	free(arg);
@@ -304,13 +308,12 @@ inline Action *LaunchApplyFilter(Image *dst, const Image *src, const Filter *fil
 	return res;
 }
 
-void ApplyFilter(Image *dst, const Image *src, const Filter *filter)
+void ApplyFilter(Image *dst, const Image *src, const Filter *filter, Threads *threads)
 {
-	Action *action = LaunchApplyFilter(dst, src, filter);
-	int unused = WaitForFinished(action);
+	Action *action = LaunchApplyFilter(dst, src, filter, threads);
+	int unused = GetActionResult(action);
 	(void)unused;
-	FreeAction(*action);
-	free(action);
+	FreeAction(action);
 }
 
 void FreeFilter(Filter filter)

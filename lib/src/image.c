@@ -283,31 +283,33 @@ inline void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color
 	}
 }
 
-Action *LaunchApplyHorizontalGaussianBlur(Image *dst, const Image *src, FLOAT radius)
+Action *LaunchApplyHorizontalGaussianBlur(Image *dst, const Image *src, FLOAT radius, 
+						Threads *threads)
 {
 	Filter gaussianFilter;
 	CreateHorizontalGaussianFilter2(&gaussianFilter, radius);
 
-	Action *res = LaunchApplyFilter(dst, src, &gaussianFilter);
+	Action *res = LaunchApplyFilter(dst, src, &gaussianFilter, threads);
 
 	FreeFilter(gaussianFilter);
 
 	return res;
 }
 
-Action *LaunchApplyVerticalGaussianBlur(Image *dst, const Image *src, FLOAT radius)
+Action *LaunchApplyVerticalGaussianBlur(Image *dst, const Image *src, FLOAT radius,
+						Threads *threads)
 {
 	Filter gaussianFilter;
 	CreateVerticalGaussianFilter2(&gaussianFilter, radius);
 
-	Action *res = LaunchApplyFilter(dst, src, &gaussianFilter);
+	Action *res = LaunchApplyFilter(dst, src, &gaussianFilter, threads);
 
 	FreeFilter(gaussianFilter);
 
 	return res;
 }
 
-void ApplyGaussianBlur(Image *dst, const Image *src, FLOAT radius)
+void ApplyGaussianBlur(Image *dst, const Image *src, FLOAT radius, Threads *threads)
 {
 	Filter horizFilter, vertFilter;
 	CreateHorizontalGaussianFilter2(&horizFilter, radius);
@@ -316,8 +318,8 @@ void ApplyGaussianBlur(Image *dst, const Image *src, FLOAT radius)
 	Image temp;
 	CreateImage(&temp, src->width, src->height, src->bytesPerComponent);
 
-	ApplyFilter(&temp, src, &horizFilter);
-	ApplyFilter(dst, &temp, &vertFilter);
+	ApplyFilter(&temp, src, &horizFilter, threads);
+	ApplyFilter(dst, &temp, &vertFilter, threads);
 
 	FreeFilter(horizFilter);
 	FreeFilter(vertFilter);
@@ -346,9 +348,9 @@ void FreeDownscaleImageArguments(void *arg)
 
 void *DownscaleImageThreadRoutine(void *arg)
 {
-	InternalThreadArg *internalThreadArg = getInternalThreadArg(arg);
-	volatile sig_atomic_t *cancel = internalThreadArg->cancel;
-	DownscaleImageArguments *c_arg = (DownscaleImageArguments *)getUserThreadArg(arg);
+	ThreadArgHeader *threadArgHeader = GetThreadArgHeader(arg);
+	volatile sig_atomic_t *cancel = threadArgHeader->cancel;
+	DownscaleImageArguments *c_arg = (DownscaleImageArguments *)GetThreadArgBody(arg);
 	Image *dst = c_arg->dst;
 	Rectangle *dstRect = c_arg->dstRect;
 	const Image *src = c_arg->src;
@@ -375,9 +377,9 @@ void *DownscaleImageThreadRoutine(void *arg)
 			PutPixelUnsafe(dst, i, j, ApplyFilterOnSinglePixel(&tmpImage,
 				0, verticalGaussianFilter->cy, verticalGaussianFilter));
 		}
-		internalThreadArg->progress = 100 * (i - dstRect->x1) / dstRectHeight;
+		threadArgHeader->progress = 100 * (i - dstRect->x1) / dstRectHeight;
 	}
-	internalThreadArg->progress = 100;
+	threadArgHeader->progress = 100;
 
 	FreeImage(tmpImage);
 
@@ -388,7 +390,7 @@ void *DownscaleImageThreadRoutine(void *arg)
 	return ((*cancel) ? PTHREAD_CANCELED : NULL);
 }
 
-inline Action *LaunchDownscaleImage(Image *dst, const Image *src)
+Action *LaunchDownscaleImage(Image *dst, const Image *src, Threads *threads)
 {
 	if (src->width == 0 || src->height == 0 || dst->width == 0 || dst->height == 0) {
 		return DoNothingAction();
@@ -407,21 +409,21 @@ inline Action *LaunchDownscaleImage(Image *dst, const Image *src)
 	CreateVerticalGaussianFilter2(&verticalGaussianFilter, invScaleY);
 
 	uint_fast32_t nbPixels = src->width*src->height;
-	uint_fast32_t realNbThreads = (nbThreads > nbPixels) ? nbPixels : nbThreads;
+	uint_fast32_t nbThreadsNeeded = (threads->N > nbPixels) ? nbPixels : threads->N;
 
 	Rectangle *rectangle;
-	rectangle = (Rectangle *)safeMalloc("rectangles", realNbThreads * sizeof(Rectangle));
+	rectangle = (Rectangle *)safeMalloc("rectangles", nbThreadsNeeded * sizeof(Rectangle));
 	InitRectangle(&rectangle[0], 0, 0, dst->width-1, dst->height-1);
-	if (CutRectangleInN(rectangle[0], realNbThreads, rectangle)) {
+	if (CutRectangleInN(rectangle[0], nbThreadsNeeded, rectangle)) {
 		fractal2D_error("Could not cut rectangle ((%"PRIuFAST32",%"PRIuFAST32"),\
 (%"PRIuFAST32",%"PRIuFAST32") in %"PRIuFAST32" parts.\n", rectangle[0].x1, rectangle[0].y1,
-				rectangle[0].x2, rectangle[0].y2, realNbThreads);
+				rectangle[0].x2, rectangle[0].y2, nbThreadsNeeded);
 	}
 
 	DownscaleImageArguments *arg;
-	arg = (DownscaleImageArguments *)safeMalloc("arguments", realNbThreads *
+	arg = (DownscaleImageArguments *)safeMalloc("arguments", nbThreadsNeeded *
 							sizeof(DownscaleImageArguments));
-	for (uint_fast32_t i = 0; i < realNbThreads; ++i) {
+	for (uint_fast32_t i = 0; i < nbThreadsNeeded; ++i) {
 		arg[i].dst = dst;
 		arg[i].dstRect = (Rectangle *)safeMalloc("dstRect", sizeof(Rectangle));
 		*(arg[i].dstRect) = CopyRectangle(&rectangle[i]);
@@ -435,7 +437,7 @@ inline Action *LaunchDownscaleImage(Image *dst, const Image *src)
 									sizeof(Filter));
 		*(arg[i].verticalGaussianFilter) = CopyFilter(&verticalGaussianFilter);
 	}
-	Action *res = LaunchThreads("Downscaling image", realNbThreads, arg,
+	Action *res = LaunchAction("Downscaling image", threads, nbThreadsNeeded, arg,
 					sizeof(DownscaleImageArguments), DownscaleImageThreadRoutine,
 					FreeDownscaleImageArguments);
 
@@ -447,13 +449,12 @@ inline Action *LaunchDownscaleImage(Image *dst, const Image *src)
 	return res;
 }
 
-void DownscaleImage(Image *dst, const Image *src)
+void DownscaleImage(Image *dst, const Image *src, Threads *threads)
 {
-	Action *action = LaunchDownscaleImage(dst, src);
-	int unused = WaitForFinished(action);
+	Action *action = LaunchDownscaleImage(dst, src, threads);
+	int unused = GetActionResult(action);
 	(void)unused;
-	FreeAction(*action);
-	free(action);
+	FreeAction(action);
 }
 
 void FreeImage(Image image)

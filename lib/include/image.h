@@ -38,7 +38,7 @@ extern "C" {
 #include <stdint.h>
 
 /**
- * \struct s_Image
+ * \struct Image
  * \brief A simple image.
  *
  * RGB8 images pixels are stored using uint32_t (the
@@ -48,7 +48,11 @@ extern "C" {
  *
  * A 2D array of colors representing an image.
  */
-typedef struct s_Image {
+/**
+ * \typedef Image
+ * \brief Convenient typedef for struct Image.
+ */
+typedef struct Image {
 	uint8_t *data;
  /*!< Imaga data : 32-bits aligned.*/
 	int data_is_external;
@@ -110,6 +114,7 @@ Image CopyImage(const Image *image);
  * For RGB16 images : the returned bytes array is the sequence r1h r1l g1h g1l
  * b1h b1l r2h r2b g2h g2l b2h b2l (h for high (MSB), and l for low (LSB)).
  * without padding (not 32-bits aligned). 
+ * Return NULL if image is empty (width and/or height = 0).
  *
  * Thus the array size (in bytes) is width*height*3*bytesPerComponent.
  * Convenient to write directly a binary PPM file for example.
@@ -124,7 +129,7 @@ uint8_t *ImageToBytesArray(const Image *image);
  * \brief Get some pixel of image.
  *
  * Get pixel (x,y) of image.
- * Warning : this function is NOT safe, it doesn't check that (x,y)
+ * Warning : the function does not check that (x,y)
  * is actually a point inside image.
  *
  * \param image Image to get pixel from.
@@ -139,8 +144,8 @@ Color iGetPixelUnsafe(const Image *image, uint_fast32_t x, uint_fast32_t y);
  * \brief Get some pixel of image.
  *
  * Get pixel (x,y) of image.
- * This function IS safe (pixels outside of the image will be
- * duplicates of the pixels at the sides of it).
+ * (x,y) can be a point outside image : pixels outside image
+ * are duplicates of the pixels at the sides of it.
  *
  * \param image Image to get pixel from.
  * \param x X pixel coordinate.
@@ -154,10 +159,10 @@ Color iGetPixel(const Image *image, int_fast64_t x, int_fast64_t y);
  * \brief Put pixel at some particular position in image.
  *
  * Put pixel at position (x,y) of image.
- * Warning : this function is NOT safe, it doesn't check that (x,y)
+ * Warning : the function  does not check that (x,y)
  * is actually a point inside image.
- * Also make sure that color format is the same as image format :
- * it is NOT checked by the function.
+ * Color format must the same as image format
+ * (undefined behaviour otherwise).
  *
  * \param image Image to put pixel to.
  * \param x X pixel coordinate.
@@ -167,68 +172,82 @@ Color iGetPixel(const Image *image, int_fast64_t x, int_fast64_t y);
 void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color color);
 
 /**
- * \fn void ApplyGaussianBlur(Image *dst, const Image *src, FLOAT radius)
+ * \fn void ApplyGaussianBlur(Image *dst, const Image *src, FLOAT radius, Threads *threads)
  * \brief Apply gaussian blur on image.
  *
  * This function does no work in place.
- * Applied successively a horizontal and vertical gaussian filter
+ * Applies successively a horizontal and vertical gaussian filter
  * to avoid quadratic computation cost.
  *
  * \param dst Pointer to already created destination image.
  * \param src Pointer to source image (to apply blur on).
  * \param radius Gaussian blur radius.
+ * \param threads Threads to be used for action.
  */
-void ApplyGaussianBlur(Image *dst, const Image *src, FLOAT radius);
+void ApplyGaussianBlur(Image *dst, const Image *src, FLOAT radius, Threads *threads);
 
 /**
- * \fn Action *LaunchApplyHorizontalGaussianBlur(Image *dst, const Image *src, FLOAT radius)
- * \brief Launch apply horizontal gaussian blur action, but does not wait for termination.
+ * \fn Action *LaunchApplyHorizontalGaussianBlur(Image *dst, const Image *src, FLOAT radius, Threads *threads)
+ * \brief Launch apply horizontal gaussian blur action (non-blocking).
  *
- * Action returned can be used to wait for termination or cancel gaussian blur applying.
+ * Launch action and return immediately.
+ * Action structure can be used to query progress, send
+ * cancellation request, etc.
  *
  * \param dst Pointer to already created destination image.
  * \param src Pointer to source image (to apply blur on).
  * \param radius Gaussian blur radius.
+ * \param threads Threads to be used for action.
  * \return Corresponding newly-allocated action.
  */
-Action *LaunchApplyHorizontalGaussianBlur(Image *dst, const Image *src, FLOAT radius);
+Action *LaunchApplyHorizontalGaussianBlur(Image *dst, const Image *src, FLOAT radius, 
+						Threads *threads);
 
 /**
- * \fn Action *LaunchApplyVerticalGaussianBlur(Image *dst, const Image *src, FLOAT radius)
- * \brief Launch apply vertical gaussian blur action, but does not wait for termination.
+ * \fn Action *LaunchApplyVerticalGaussianBlur(Image *dst, const Image *src, FLOAT radius, Threads *threads)
+ * \brief Launch apply vertical gaussian blur action (non-blocking).
  *
- * Action returned can be used to wait for termination or cancel gaussian blur applying.
+ * Launch action and return immediately.
+ * Action structure can be used to query progress, send
+ * cancellation request, etc.
  *
  * \param dst Pointer to already created destination image.
  * \param src Pointer to source image (to apply blur on).
  * \param radius Gaussian blur radius.
+ * \param threads Threads to be used for action.
  * \return Corresponding newly-allocated action.
  */
-Action *LaunchApplyVerticalGaussianBlur(Image *dst, const Image *src, FLOAT radius);
+Action *LaunchApplyVerticalGaussianBlur(Image *dst, const Image *src, FLOAT radius,
+					Threads *threads);
 
 /**
- * \fn void DownscaleImage(Image *dst, const Image *src)
+ * \fn void DownscaleImage(Image *dst, const Image *src, Threads *threads)
  * \brief Downscale image.
  *
  * Destination image must already have been created, and its size
- * (both with and height) must be greater than that of the source.
+ * (both with and height) must be greater than that of the source
+ * (exit with error otherwise).
  *
  * \param dst Pointer to already created destination image.
  * \param src Pointer to source image (to be downscaled).
+ * \param threads Threads to be used for action.
  */
-void DownscaleImage(Image *dst, const Image *src);
+void DownscaleImage(Image *dst, const Image *src, Threads *threads);
 
 /**
- * \fn Action *LaunchDownscaleImage(Image *dst, const Image *src)
- * \brief Launch image downscaling, but does not wait for termination.
+ * \fn Action *LaunchDownscaleImage(Image *dst, const Image *src, Threads *threads)
+ * \brief Launch image downscaling (non-blocking).
  *
- * Action returned can be used to wait for termination or cancel image downscaling.
+ * Launch action and return immediately.
+ * Action structure can be used to query progress, send
+ * cancellation request, etc.
  *
  * \param dst Pointer to already created destination image.
  * \param src Pointer to source image (to be downscaled).
+ * \param threads Threads to be used for action.
  * \return Corresponding (newly-allocated) action.
  */
-Action *LaunchDownscaleImage(Image *dst, const Image *src);
+Action *LaunchDownscaleImage(Image *dst, const Image *src, Threads *threads);
 
 /**
  * \fn void FreeImage(Image image)

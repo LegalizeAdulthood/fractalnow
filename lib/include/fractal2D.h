@@ -32,6 +32,10 @@ extern "C" {
 #endif
 
 #ifndef VERSION_NUMBER
+/**
+ * \def VERSION_NUMBER
+ * \brief Fractal2D version number.
+ */
 #define VERSION_NUMBER ?.?.?
 #endif
 

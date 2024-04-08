@@ -57,6 +57,8 @@ class CommandLineArguments {
 	uint_fast32_t maxAntiAliasingSize;
 	//! Anti-aliasing size iteration.
 	uint_fast32_t antiAliasingSizeIteration;
+	//! Force number of threads used for drawing fractals.
+	int nbThreads;
 };
 
 #endif

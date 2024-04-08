@@ -43,10 +43,10 @@ fractal2D [-q|-v] [-d] [-j <NbThreads>] -c <FractalFile> -r \
 #endif
 "-j <NbThreads> : Specify the number of threads to compute image \
 (%"PRIuFAST32" by default).\n  \
--c <FractalFile> : Specify the fractal config file, used for \
-computing fractal. See fractal file syntax below.\n  \
+-f <FractalFile> : Specify the fractal file, used for \
+computing fractal. See documentation for details on syntax.\n  \
 -r <RenderingFile> : Specify the rendering file, used for \
-rendering fractal. See rendering file syntax below.\n  \
+rendering fractal. See documentation for details on syntax.\n  \
 -o <Output> : Specify the output image file (raw PPM).\n  \
 -x <Width> : Specify output image width. \n  \
 -y <Height> : Specify output image height. \n  \

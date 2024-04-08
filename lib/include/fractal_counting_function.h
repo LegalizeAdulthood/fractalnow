@@ -33,7 +33,7 @@ extern "C" {
 
 #include "floating_point.h"
 
-struct s_Fractal;
+struct Fractal;
 
 /**
  * \enum e_CountingFunction
@@ -46,7 +46,10 @@ struct s_Fractal;
  * iteration count.
  * Some are not even about counting but estimating distance to
  * fractal space...
- * 
+ */
+/**
+ * \typedef CountingFunction
+ * \brief Convenient typedef for enum CountingFunction.
  */
 typedef enum e_CountingFunction {
 	CF_DISCRETE = 0,
@@ -61,25 +64,25 @@ typedef enum e_CountingFunction {
  * \var nbCountingFunctions
  * \brief Number of counting functions.
  */
-extern uint_fast32_t nbCountingFunctions;
+extern const uint_fast32_t nbCountingFunctions;
 
 /**
- * \var CountingFunctionStr
+ * \var countingFunctionStr
  * \brief Strings of counting functions.
  */
-extern const char *CountingFunctionStr[];
+extern const char *countingFunctionStr[];
 
 /**
- * \var CountingFunctionDescStr
+ * \var countingFunctionDescStr
  * \brief More descriptive strings for counting functions.
  */
-extern const char *CountingFunctionDescStr[];
+extern const char *countingFunctionDescStr[];
 
 /**
  * \typedef CountingFunctionPtr
  * \brief Counting function type.
  */
-typedef FLOAT (*CountingFunctionPtr)(const struct s_Fractal *fractal, uint_fast32_t N, FLOAT rN);
+typedef FLOAT (*CountingFunctionPtr)(const struct Fractal *fractal, uint_fast32_t N, FLOAT rN);
 
 /**
  * \fn int GetCountingFunction(CountingFunction *countingFunction, const char *str)
@@ -90,7 +93,6 @@ typedef FLOAT (*CountingFunctionPtr)(const struct s_Fractal *fractal, uint_fast3
  * - "discrete" for discrete iteration count
  * - "continuous" for continuous iteration count
  * - "smooth" for smooth iteration count
- * Exit with error in case of failure.
  *
  * \param countingFunction Counting function destination.
  * \param str String specifying counting function.

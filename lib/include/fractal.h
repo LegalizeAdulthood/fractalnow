@@ -54,6 +54,10 @@ extern "C" {
 #include <complex.h>
 #include <stdint.h>
 
+#ifndef complex
+#define complex _Complex
+#endif
+
 /**
  * \def DEFAULT_QUAD_INTERPOLATION_SIZE
  * \brief Default maximum size of quadrilaterals for interpolation.
@@ -78,17 +82,18 @@ extern "C" {
  */
 #define DEFAULT_ADAPTIVE_AAM_THRESHOLD (FLOAT)(5.05E-2)
 
-struct s_Fractal;
-typedef struct s_Fractal Fractal;
-
 /**
- * \struct s_Fractal
+ * \struct Fractal
  * \brief A subset of some fractal set.
  *
  * Describes a subset of some fractal set, plus some parameters
  * used for computation.
  */
-struct s_Fractal {
+/**
+ * \typedef Fractal
+ * \brief Convenient typedef for struct Fractal.
+ */
+typedef struct Fractal {
 	FractalFormula fractalFormula;
  /*!< Fractal type.*/
 	FLOAT p;
@@ -129,7 +134,7 @@ struct s_Fractal {
  /*!< Escape radius raised to the power of p.*/
 	FLOAT logEscapeRadius;
  /*!< Logarithm of escape radius.*/
-};
+} Fractal;
 
 /**
  * \fn void InitFractal(Fractal *fractal, FractalFormula fractalFormula, FLOAT p, FLOAT complex c, FLOAT x1, FLOAT y1, FLOAT x2, FLOAT y2, FLOAT escapeRadius, uint_fast32_t maxIter)
@@ -189,6 +194,23 @@ Fractal CopyFractal(const Fractal *fractal);
 int ReadFractalFile(Fractal *fractal, const char *fileName);
 
 /**
+ * \fn int ReadFractalFileBody(Fractal *fractal, const char *fileName, FILE *file, const char *format)
+ * \brief Create fractal from fractal file body.
+ *
+ * The body of a fractal file is everything that comes after
+ * the format version.
+ * fileName is used only for error messages.
+ * This function should only be used internally by the library.
+ *
+ * \param fractal Pointer to the fractal structure to create.
+ * \param fileName Fractal file name.
+ * \param file Pointer to opened file, positioned at the beginning of the body.
+ * \param format Fractal file format.
+ * \return 0 in case of success, 1 in case of failure.
+ */
+int ReadFractalFileBody(Fractal *fractal, const char *fileName, FILE *file, const char *format);
+
+/**
  * \fn Color ComputeFractalColor(const Fractal *fractal, const RenderingParameters *render, FLOAT complex z);
  * \brief Compute some particular point of fractal.
  *
@@ -203,7 +225,7 @@ int ReadFractalFile(Fractal *fractal, const char *fileName);
 Color ComputeFractalColor(const Fractal *fractal, const RenderingParameters *render, FLOAT complex z);
 
 /**
- * \fn void DrawFractalFast(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold)
+ * \fn void DrawFractalFast(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold, Threads *threads)
  * \brief Draw fractal in a fast, approximate way.
  *
  * Image width and height must be >= 2 (does nothing otherwise).
@@ -216,37 +238,41 @@ Color ComputeFractalColor(const Fractal *fractal, const RenderingParameters *ren
  * interpolated.
  * Default values of quadInterpolationSize and interpolationThreshold
  * are good for no visible loss of quality.
- * This function is parallelized : number of threads is given
- * by nbThreads variable. \see threads.h
  *
  * \param image Image in which to draw fractal subset.
  * \param fractal Fractal subset to compute.
  * \param render Rendering parameters.
  * \param quadInterpolationSize Maximum quad size for interpolation.
  * \param interpolationThreshold Dissimilarity threshold for interpolation.
+ * \param threads Threads to be used for action.
  */
 void DrawFractalFast(Image *image, const Fractal *fractal, const RenderingParameters *render,
-			uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold);
+			uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold,
+			Threads *threads);
 
 /**
- * \fn Action *LaunchDrawFractalFast(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold)
- * \brief Launch fractal drawing but does not wait for termination.
+ * \fn Action *LaunchDrawFractalFast(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold, Threads *threads)
+ * \brief Launch fractal drawing action (non-blocking).
  *
+ * Launch action and return immediately.
+ * Action structure can be used to query progress, send
+ * cancellation request, etc.
  * Image width and height must be >= 2 (does nothing otherwise).
- * Action returned can be used to wait for termination or cancel drawing.
  *
  * \param image Image in which to draw fractal subset.
  * \param fractal Fractal subset to compute.
  * \param render Rendering parameters.
  * \param quadInterpolationSize Maximum quad size for interpolation.
  * \param interpolationThreshold Dissimilarity threshold for interpolation.
+ * \param threads Threads to be used for action.
  * \return Corresponding newly-allocated action.
  */
 Action *LaunchDrawFractalFast(Image *image, const Fractal *fractal, const RenderingParameters *render,
-			uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold);
+				uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold,
+				Threads *threads);
 
 /**
- * \fn void DrawFractal(Image *image, const Fractal *fractal, const RenderingParameters *render)
+ * \fn void DrawFractal(Image *image, const Fractal *fractal, const RenderingParameters *render, Threads *threads)
  * \brief Draw fractal in a (slow) non-approximate way.
  *
  * Image width and height must be >= 2 (does nothing otherwise).
@@ -257,11 +283,13 @@ Action *LaunchDrawFractalFast(Image *image, const Fractal *fractal, const Render
  * \param image Image in which to draw fractal subset.
  * \param fractal Fractal subset to compute.
  * \param render Rendering parameters.
+ * \param threads Threads to be used for action.
  */
-void DrawFractal(Image *image, const Fractal *fractal, const RenderingParameters *render);
+void DrawFractal(Image *image, const Fractal *fractal, const RenderingParameters *render,
+			Threads *threads);
 
 /**
- * \fn void AntiAliaseFractal(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t antiAliasingSize, FLOAT threshold)
+ * \fn void AntiAliaseFractal(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t antiAliasingSize, FLOAT threshold, Threads *threads)
  * \brief AntiAliase fractal image.
  *
  * Image width and height must be >= 2 (does nothing otherwise).
@@ -284,27 +312,32 @@ void DrawFractal(Image *image, const Fractal *fractal, const RenderingParameters
  * \param render Rendering parameters.
  * \param antiAliasingSize Anti-aliasing size.
  * \param threshold Dissimilarity threshold to determine pixels to recompute.
+ * \param threads Threads to be used for action.
  */
 void AntiAliaseFractal(Image *image, const Fractal *fractal, const RenderingParameters *render,
-			uint_fast32_t antiAliasingSize, FLOAT threshold);
+			uint_fast32_t antiAliasingSize, FLOAT threshold, Threads *threads);
 
 /**
- * \fn Action LaunchAntiAliaseFractal(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t antiAliasingSize, FLOAT threshold)
- * \brief Launch fractal image anti-aliasing, but does not wait for termination.
+ * \fn Action *LaunchAntiAliaseFractal(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t antiAliasingSize, FLOAT threshold, Threads *threads)
+ * \brief Launch fractal image anti-aliasing (non-blocking).
  *
+ * Launch action and return immediately.
+ * Action structure can be used to query progress, send
+ * cancellation request, etc.
+ * Image width and height must be >= 2 (does nothing otherwise).
  * Image width and height must be >= 2 (does nothing otherwise).
  * Anti-aliasing size must be >= 2 to have an effect (does nothing otherwise).
- * Action returned can be used to wait for termination or cancel anti-aliasing.
  *
  * \param image Fractal image (already drawn) to anti-aliase.
  * \param fractal Fractal subset to compute.
  * \param render Rendering parameters.
  * \param antiAliasingSize Anti-aliasing size.
  * \param threshold Dissimilarity threshold to determine pixels to recompute.
+ * \param threads Threads to be used for action.
  * \return Corresponding newly-allocated action.
  */
 Action *LaunchAntiAliaseFractal(Image *image, const Fractal *fractal, const RenderingParameters *render,
-			uint_fast32_t antiAliasingSize, FLOAT threshold);
+				uint_fast32_t antiAliasingSize, FLOAT threshold, Threads *threads);
 
 #ifdef __cplusplus
 }

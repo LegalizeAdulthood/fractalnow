@@ -56,12 +56,13 @@ void ParseCommandLineArguments(CommandLineArguments *dst, int argc, char *argv[]
 	dst->antiAliasingMethod = AAM_NONE;
 	dst->antiAliasingSize = -1;
 	dst->adaptiveAAMThreshold = -1;
+	dst->nbThreads = -1;
 
 	int widthSpecified = 0, heightSpecified = 0;
 	dst->width = 0;
 	dst->height = 0;
 	int o;
-	while ((o = getopt(argc, argv, "hqvda:c:i:j:o:p:r:s:t:x:y:")) != -1) {
+	while ((o = getopt(argc, argv, "hqvda:f:i:j:o:p:r:s:t:x:y:")) != -1) {
 		switch (o) {
 		case 'h':
 			help = 1;
@@ -89,7 +90,7 @@ debug mode.\n");
 		case 'a':
 			dst->antiAliasingMethod = GetAAM(optarg);
 			break;
-		case 'c':
+		case 'f':
 			dst->fractalFileName = optarg;
 			break;
 		case 'r':
@@ -106,13 +107,11 @@ debug mode.\n");
 			}
 			break;
 		case 'j':
-			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
+			if (sscanf(optarg, "%d", &dst->nbThreads) < 1) {
 				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
 			}
-			if (tmp <= 0) {
+			if (dst->nbThreads <= 0) {
 				invalid_use_error("Number of threads must be positive.\n");
-			} else {
-				nbThreads = (uint_fast32_t)tmp;
 			}
 			break;
 		case 'o':

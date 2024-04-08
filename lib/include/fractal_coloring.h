@@ -50,6 +50,10 @@ extern "C" {
  * \see fractal_addend_function.h
  * \see fractal_counting_function.h
  */
+/**
+ * \typedef ColoringMethod
+ * \brief Convenient typedef for enum ColoringMethod.
+ */
 typedef enum e_ColoringMethod {
 	CM_SIMPLE = 0,
  /*<! Simple coloring method.*/
@@ -61,19 +65,19 @@ typedef enum e_ColoringMethod {
  * \var nbColoringMethods
  * \brief Number of coloring methods.
  */
-extern uint_fast32_t nbColoringMethods;
+extern const uint_fast32_t nbColoringMethods;
 
 /**
- * \var ColoringMethodStr
+ * \var coloringMethodStr
  * \brief Strings of coloring method enum values.
  */
-extern const char *ColoringMethodStr[];
+extern const char *coloringMethodStr[];
 
 /**
- * \var ColoringMethodDescStr
+ * \var coloringMethodDescStr
  * \brief More descriptive strings for coloring methods.
  */
-extern const char *ColoringMethodDescStr[];
+extern const char *coloringMethodDescStr[];
 
 /**
  * \fn int GetColoringMethod(ColoringMethod *coloringMethod, const char *str)
@@ -105,6 +109,10 @@ int GetColoringMethod(ColoringMethod *coloringMethod, const char *str);
  * \see fractal_addend_function.h
  * \see fractal_counting_function.h
  */
+/**
+ * \typedef InterpolationMethod
+ * \brief Convenient typedef for enum InterpolationMethod.
+ */
 typedef enum e_InterpolationMethod {
 	IM_NONE = 0,
  /*<! No interpolation (only one average sum).*/
@@ -118,19 +126,19 @@ typedef enum e_InterpolationMethod {
  * \var nbInterpolationMethods
  * \brief Number of interpolation methods.
  */
-extern uint_fast32_t nbInterpolationMethods;
+extern const uint_fast32_t nbInterpolationMethods;
 
 /**
- * \var InterpolationMethodStr
+ * \var interpolationMethodStr
  * \brief Strings of interpolation method enum values.
  */
-extern const char *InterpolationMethodStr[];
+extern const char *interpolationMethodStr[];
 
 /**
- * \var InterpolationMethodDescStr
+ * \var interpolationMethodDescStr
  * \brief More descriptive strings for interpolation methods.
  */
-extern const char *InterpolationMethodDescStr[];
+extern const char *interpolationMethodDescStr[];
 
 /**
  * \fn int GetInterpolationMethod(InterpolationMethod *interpolationMethod, const char *str)
@@ -140,7 +148,6 @@ extern const char *InterpolationMethodDescStr[];
  * - "none" for no interpolation (only one average sum)
  * - "linear" for linear interpolation (two average sums)
  * - "spline" for spline interpolation (five average sums)
- * Exit with error in case of failure.
  *
  * \param interpolationMethod Interpolation method destination.
  * \param str String specifying interpolation function.

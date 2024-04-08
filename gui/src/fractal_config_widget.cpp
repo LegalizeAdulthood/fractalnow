@@ -30,7 +30,7 @@ FractalConfigWidget::FractalConfigWidget(Fractal &fractal) : QWidget()
 {
 	fractalFormulaComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbFractalFormulas; ++i) {
-		fractalFormulaComboBox->addItem(FractalFormulaDescStr[i]);
+		fractalFormulaComboBox->addItem(fractalFormulaDescStr[i]);
 	}
 
 	pParamSpinBox = new QDoubleSpinBox;
@@ -79,6 +79,7 @@ FractalConfigWidget::FractalConfigWidget(Fractal &fractal) : QWidget()
 	formLayout->addRow(tr("c (Im):"), cParamImSpinBox);
 	formLayout->addRow(tr("Center X:"), centerXSpinBox);
 	formLayout->addRow(tr("Center Y:"), centerYSpinBox);
+	formLayout->addRow(tr("Span X:"), spanXSpinBox);
 	formLayout->addRow(tr("Bailout radius:"), bailoutRadiusSpinBox);
 	formLayout->addRow(tr("Max iterations:"), maxIterationsSpinBox);
 	this->setLayout(formLayout);
@@ -121,13 +122,16 @@ void FractalConfigWidget::updateBoxesValues(Fractal &fractal)
 	spanXSpinBox->setValue(fractal.spanX);
 	bailoutRadiusSpinBox->setValue(fractal.escapeRadius);
 	maxIterationsSpinBox->setValue(fractal.maxIter);
+	updateSpaceBoxesSingleSteps();
+	updateCParamReSingleStep();
+	updateCParamImSingleStep();
 	blockBoxesSignals(false);
 }
 
 void FractalConfigWidget::updateSpaceBoxesSingleSteps()
 {
 	double spanX = spanXSpinBox->value();
-	if (spanX == 0) {
+	if (spanX <= 0) {
 		centerXSpinBox->setSingleStep(MIN_SINGLE_STEP);
 		centerYSpinBox->setSingleStep(MIN_SINGLE_STEP);
 		spanXSpinBox->setSingleStep(MIN_SINGLE_STEP);
@@ -141,7 +145,7 @@ void FractalConfigWidget::updateSpaceBoxesSingleSteps()
 void FractalConfigWidget::updateCParamReSingleStep()
 {
 	double cParamRe = cParamReSpinBox->value();
-	if (cParamRe == 0) {
+	if (cParamRe <= 0) {
 		cParamReSpinBox->setSingleStep(MIN_SINGLE_STEP);
 	} else {
 		cParamReSpinBox->setSingleStep(cParamRe / 5);
@@ -151,7 +155,7 @@ void FractalConfigWidget::updateCParamReSingleStep()
 void FractalConfigWidget::updateCParamImSingleStep()
 {
 	double cParamIm = cParamImSpinBox->value();
-	if (cParamIm == 0) {
+	if (cParamIm <= 0) {
 		cParamImSpinBox->setSingleStep(MIN_SINGLE_STEP);
 	} else {
 		cParamImSpinBox->setSingleStep(cParamIm / 5);

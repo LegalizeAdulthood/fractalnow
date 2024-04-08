@@ -1,14 +1,15 @@
 SRCDIR    = src
 INCLUDEDIR= include
 OBJDIR    = objs
+BINDIR    = bin
 ARCHIVE   = libfractal2D.a
+TARGET    = ${BINDIR}/${ARCHIVE}
 DEPENDENCY_FILE=${OBJDIR}/makefile.dep
-VERSION_NUMBER = 0.7.2
+VERSION_NUMBER = 0.7.3
 
 UNAME := $(shell uname)
 
 CC        = gcc
-LD        = gcc
 AR        = ar
 
 ARFLAGS = -r -c -s
@@ -22,13 +23,11 @@ CFLAGS   += -DVERSION_NUMBER=${VERSION_NUMBER}
 endif
 
 ifdef DEBUG
-	CFLAGS += -Werror -O0 -g -DDEBUG
+	CFLAGS += -O0 -g -DDEBUG
 else
 	CFLAGS += -O2 -ffast-math
 endif
 CFLAGS    += -I${INCLUDEDIR}
-
-LDFLAGS   = -lm -lpthread
 
 OBJECTS = \
 	$(OBJDIR)/fractal_addend_function.o \
@@ -53,26 +52,29 @@ OBJECTS = \
 
 quiet-command = $(if $(VERB),$1,$(if $(2),@echo $2 && $1, @$1))
 
-all : $(OBJDIR) ${DEPENDENCY_FILE} $(ARCHIVE)
+all : $(OBJDIR) $(BINDIR) ${DEPENDENCY_FILE} $(TARGET)
 	
 ${DEPENDENCY_FILE}: $(OBJDIR) ${SRCDIR}/*.c ${INCLUDEDIR}/*.h
 	$(call quiet-command,for i in ${SRCDIR}/*.c; do ${CC} ${CFLAGS} -MM "$${i}"; done | sed "s/\(^.*:\)/${OBJDIR}\/\1/" > $@,"  BUILDING DEPENDENCY DATABASE");
 -include ${DEPENDENCY_FILE}
 
-$(ARCHIVE): $(OBJECTS)
+$(TARGET): $(OBJECTS)
 	$(call quiet-command, $(AR) $(ARFLAGS) $@ $^, "  AR     $@")
 
 $(OBJDIR):
 	$(call quiet-command, mkdir -p $(OBJDIR),)
 
+$(BINDIR):
+	$(call quiet-command, mkdir -p $(BINDIR),)
+
 $(OBJDIR)/%.o:${SRCDIR}/%.c
-	${CC} ${CPPFLAGS} ${CFLAGS} -c $< -o $@
+	${CC} ${CFLAGS} -c $< -o $@
 
 clean:
 	$(call quiet-command, rm -f ${DEPENDENCY_FILE}, "  CLEAN    (DEPENDENCY DATABASE)")
 	$(call quiet-command, rm -f $(OBJECTS) , "  CLEAN    (OBJECTS)")
 
 distclean: clean
-	$(call quiet-command, rm -f $(ARCHIVE) *~, "  CLEAN    (ARCHIVE)")
-	$(call quiet-command, rm -fr $(OBJDIR), "  CLEAN    (OBJDIR)")
+	$(call quiet-command, rm -rf $(OBJDIR), "  CLEAN    (OBJDIR)")
+	$(call quiet-command, rm -rf $(BINDIR), "  CLEAN    (BINDIR)")
 

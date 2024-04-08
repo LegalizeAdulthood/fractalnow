@@ -31,19 +31,18 @@ void Help::Print()
 2D fractals.\n\
 Usage : qfractal2D [-h] \n  \
 or \n\
-qfractal2D [-q|-v] [-d] [-j <NbThreads>] [-c <FractalFile>] [-r \
+qfractal2D [-v] [-d] [-j <NbThreads>] [-c <FractalFile>] [-r \
 <RenderingFile>] [-x <Width> | -y <Height>] [-m <MinAAMSize> \
 -M <MaxAAMSize>] \n\n  \
 -h : Prints this help.\n  \
--q : Quiet mode.\n  \
 -v : Verbose mode.\n  \
 -d : Debug mode.\n  \
 -j <NbThreads> : Specify the number of threads to compute image \
 (%"PRIuFAST32" by default).\n  \
--c <FractalFile> : Specify the fractal config file, used for \
-computing fractal. See fractal file syntax below.\n  \
+-f <FractalFile> : Specify the fractal config file, used for \
+computing fractal. See documentation for details on syntax.\n  \
 -r <RenderingFile> : Specify the rendering file, used for \
-rendering fractal. See rendering file syntax below.\n  \
+rendering fractal. See documentation for details on syntax.\n  \
 -x <Width> : Specify output image width (%"PRIuFAST32" by \
 default, or set to keep fractal space ratio if height is \
 specified). \n  \

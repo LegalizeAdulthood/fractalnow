@@ -19,11 +19,13 @@
  */
  
 #include "fractal_explorer.h"
+
 #include <QApplication>
 #include <QMenu>
-#include <QtConcurrentRun>
 #include <QPainter>
 #include <QStyle>
+#include <QtConcurrentRun>
+#include <QTime>
 #include <QTimer>
 #include <QVector2D>
 
@@ -32,6 +34,7 @@ FractalExplorer::FractalExplorer(const Fractal &fractal, const RenderingParamete
 					uint_fast32_t minAntiAliasingSize,
 					uint_fast32_t maxAntiAliasingSize,
 					uint_fast32_t antiAliasingSizeIteration,
+					uint_fast32_t nbThreads,
 					QWidget *parent, Qt::WindowFlags f) : QLabel(parent, f)
 {
 	setCursor(QCursor(Qt::OpenHandCursor));
@@ -60,7 +63,8 @@ FractalExplorer::FractalExplorer(const Fractal &fractal, const RenderingParamete
 	restoreInitialStateAction->setShortcut(QKeySequence::MoveToStartOfDocument);
 	restoreInitialStateAction->setIcon(QApplication::style()->standardIcon(
 						QStyle::SP_DirHomeIcon));
-	connect(restoreInitialStateAction, SIGNAL(triggered()), this, SLOT(restoreInitialState()));
+	connect(restoreInitialStateAction, SIGNAL(triggered()), this,
+		SLOT(restoreInitialState()));
 
 	stopDrawingAction = new QAction(tr("&Stop drawing"), this);
 	stopDrawingAction->setShortcut(Qt::Key_S);
@@ -100,41 +104,25 @@ FractalExplorer::FractalExplorer(const Fractal &fractal, const RenderingParamete
 	moveDownAction->setShortcut(Qt::Key_Down);
 	connect(moveDownAction, SIGNAL(triggered()), this, SLOT(moveDownFractal()));
 
-	/* Connect fractal drawing & antialiasing watchers to slots. */
-	connect(&fractalDrawingWatcher, SIGNAL(resultReadyAt(int)), this, SLOT(onFractalDrawingFinished()), Qt::DirectConnection);
-	connect(&fractalAntialiasingWatcher, SIGNAL(resultReadyAt(int)), this, SLOT(onFractalAntiAliasingFinished()), Qt::DirectConnection);
-
-	connect(this, SIGNAL(wakeUpSignal()), this, SLOT(wakeUpIfAsleep()), Qt::QueuedConnection);
+	threads = CreateThreads(nbThreads);
+	action = DoNothingAction();
 
 	/* Create timer to repaint fractalImageLabel regularly. */
 	timer = new QTimer(this);
 	connect(timer, SIGNAL(timeout()), this, SLOT(update()));
+	connect(timer, SIGNAL(timeout()), this, SLOT(onTimeout()));
 	timer->start(50);
-
-	action = DoNothingAction();
 }
 
 FractalExplorer::~FractalExplorer()
 {
 	cancelActionIfNotFinished();
-	FreeAction(*action);
-	free(action);
+	FreeAction(action);
+	DestroyThreads(threads);
 	FreeRenderingParameters(render);
 	FreeRenderingParameters(initialRender);
 	FreeImage(fractalImage);
 	delete fractalQImage;
-}
-
-int FractalExplorer::stopDrawing()
-{
-	return cancelActionIfNotFinished();
-}
-
-void FractalExplorer::refresh()
-{
-	int unused = stopDrawing();
-	(void)unused;
-	emit wakeUpSignal();
 }
 
 void FractalExplorer::adjustSpan()
@@ -165,7 +153,8 @@ void FractalExplorer::restoreInitialState()
 	adjustSpan();
 
 	emit fractalChanged(fractal);
-	emit wakeUpSignal();
+	emit renderingParametersChanged(render);
+	refresh();
 }
 
 Fractal &FractalExplorer::getFractal()
@@ -207,8 +196,10 @@ void FractalExplorer::resizeImage(uint_fast32_t width, uint_fast32_t height)
 	QPainter painter(newQImage);
 	painter.setRenderHint(QPainter::SmoothPixmapTransform);
 
-	QRectF srcRect(std::max(0.,-dx/2), std::max(0.,-dy/2), fractalImage.width+std::min(0.,dx), fractalImage.height+std::min(0.,dy));
-	QRectF dstRect(std::max(0.,dx/2), std::max(0.,dy/2), fractalImage.width-std::max(0.,-dx), fractalImage.height-std::max(0.,-dy));
+	QRectF srcRect(std::max(0.,-dx/2), std::max(0.,-dy/2), fractalImage.width+std::min(0.,dx),
+			fractalImage.height+std::min(0.,dy));
+	QRectF dstRect(std::max(0.,dx/2), std::max(0.,dy/2), fractalImage.width-std::max(0.,-dx),
+			fractalImage.height-std::max(0.,-dy));
 	painter.drawImage(dstRect, *fractalQImage, srcRect);
 
 	CreateImage2(&newImage, newQImage->bits(), width, height, 1);
@@ -222,7 +213,7 @@ void FractalExplorer::resizeImage(uint_fast32_t width, uint_fast32_t height)
 	updateGeometry();
 
 	emit fractalChanged(fractal);
-	emit wakeUpSignal();
+	refresh();
 }
 
 void FractalExplorer::resizeEvent(QResizeEvent * event)
@@ -275,72 +266,63 @@ void FractalExplorer::launchFractalDrawing()
 	/* Free previous action. Safe even for first launching
 	 * because action has been initialized to doNothingAction().
 	 */
-	FreeAction(*action);
-	free(action);
-	action = LaunchDrawFractalFast(&fractalImage, &fractal, &render, DEFAULT_QUAD_INTERPOLATION_SIZE,
-				DEFAULT_COLOR_DISSIMILARITY_THRESHOLD);
-
-	future = QtConcurrent::run(WaitForFinished, action);
-	fractalDrawingWatcher.setFuture(future);
+	FreeAction(action);
+	redrawFractal = false;
+	lastActionType = A_FractalDrawing;
+	action = LaunchDrawFractalFast(&fractalImage, &fractal, &render,
+				DEFAULT_QUAD_INTERPOLATION_SIZE,
+				DEFAULT_COLOR_DISSIMILARITY_THRESHOLD, threads);
 }
 
 /* Assumes that action is finished.*/
 void FractalExplorer::launchFractalAntiAliasing()
 {
-	FreeAction(*action);
-	free(action);
-	action = LaunchAntiAliaseFractal(&fractalImage, &fractal, &render, currentAntiAliasingSize, DEFAULT_ADAPTIVE_AAM_THRESHOLD);
-
-	future = QtConcurrent::run(WaitForFinished, action);
-	fractalAntialiasingWatcher.setFuture(future);
+	FreeAction(action);
+	lastActionType = A_FractalAntiAliasing;
+	action = LaunchAntiAliaseFractal(&fractalImage, &fractal, &render,
+			currentAntiAliasingSize, DEFAULT_ADAPTIVE_AAM_THRESHOLD, threads);
 }
 
 int FractalExplorer::cancelActionIfNotFinished()
 {
-	int finished = future.isFinished();
+	int finished = ActionIsFinished(action);
 	if (!finished) {
 		CancelAction(action); 
-		future.waitForFinished();
+		int unused = GetActionResult(action);
+		(void)unused;
 	}
 	return finished;
 }
 
-void FractalExplorer::wakeUpIfAsleep()
+void FractalExplorer::onTimeout()
 {
-	if (future.isFinished()) {
+	if (redrawFractal) {
+		cancelActionIfNotFinished();
 		launchFractalDrawing();
 	} else {
-		cancelActionIfNotFinished();
-		emit wakeUpIfAsleep();
-	}
-}
-
-void FractalExplorer::onFractalDrawingFinished()
-{
-	/* We need to be sure here that this slot is called
-	 * right after future is finished !
-	 * That is why we use a queued signal for wake up :
-	 * we don't want the wake up slot to be executed before
-	 * this.
-	 */
-	if (future.result() == 0) {
-		currentAntiAliasingSize = minAntiAliasingSize;
-		launchFractalAntiAliasing();
-	}
-}
-
-void FractalExplorer::onFractalAntiAliasingFinished()
-{
-	/* Same comment as onFractalDrawingFinished. */
-	if (future.result() == 0) {
-		if (currentAntiAliasingSize < maxAntiAliasingSize) {
-			currentAntiAliasingSize += antiAliasingSizeIteration;
-			if (currentAntiAliasingSize > maxAntiAliasingSize) {
-				currentAntiAliasingSize = maxAntiAliasingSize;
+		if (ActionIsFinished(action) && GetActionResult(action) == 0) {
+			if (lastActionType == A_FractalDrawing) {
+				currentAntiAliasingSize = minAntiAliasingSize;
+				launchFractalAntiAliasing();
+			} else if (currentAntiAliasingSize < maxAntiAliasingSize) {
+				currentAntiAliasingSize += antiAliasingSizeIteration;
+				if (currentAntiAliasingSize > maxAntiAliasingSize) {
+					currentAntiAliasingSize = maxAntiAliasingSize;
+				}
+				launchFractalAntiAliasing();
 			}
-			launchFractalAntiAliasing();
 		}
 	}
+}
+
+int FractalExplorer::stopDrawing()
+{
+	return cancelActionIfNotFinished();
+}
+
+void FractalExplorer::refresh()
+{
+	redrawFractal = true;
 }
 
 void FractalExplorer::moveFractal(double dx, double dy, bool emitFractalChanged)
@@ -357,8 +339,10 @@ void FractalExplorer::moveFractal(double dx, double dy, bool emitFractalChanged)
 		painter.setRenderHint(QPainter::SmoothPixmapTransform);
 		double ddx = fractalQImage->width() * dx / fractal.spanX;
 		double ddy = fractalQImage->height() * dy / fractal.spanY;
-		QRectF srcRect = QRectF(std::max((double)0, ddx), std::max((double)0, ddy), fractalImage.width - fabs(ddx), fractalImage.height - fabs(ddy));
-		QRectF dstRect = QRectF(std::max((double)0, -ddx), std::max((double)0, -ddy), fractalImage.width - fabs(ddx), fractalImage.height - fabs(ddy));
+		QRectF srcRect = QRectF(std::max((double)0, ddx), std::max((double)0, ddy),
+				fractalImage.width-fabs(ddx), fractalImage.height-fabs(ddy));
+		QRectF dstRect = QRectF(std::max((double)0, -ddx), std::max((double)0, -ddy),
+				fractalImage.width-fabs(ddx), fractalImage.height-fabs(ddy));
 		painter.drawImage(dstRect, copiedImage, srcRect);
 	}
 
@@ -368,7 +352,7 @@ void FractalExplorer::moveFractal(double dx, double dy, bool emitFractalChanged)
 	if (emitFractalChanged) {
 		emit fractalChanged(fractal);
 	}
-	emit wakeUpSignal();
+	refresh();
 }
 
 void FractalExplorer::moveLeftFractal()
@@ -423,7 +407,8 @@ void FractalExplorer::moveDownFractal()
 	moveFractal(0, dy, true);
 }
 
-void FractalExplorer::zoomInFractal(double newSpanX, double zoomCenterX, double zoomCenterY, bool emitFractalChanged)
+void FractalExplorer::zoomInFractal(double newSpanX, double zoomCenterX, double zoomCenterY,
+					bool emitFractalChanged)
 {
 	cancelActionIfNotFinished();
 
@@ -433,16 +418,20 @@ void FractalExplorer::zoomInFractal(double newSpanX, double zoomCenterX, double 
 		fractal.spanY = 0;
 	} else {
 		double newSpanY = newSpanX * fractalImage.height / fractalImage.width;
-		double newCenterX = zoomCenterX + newSpanX * (fractal.centerX - zoomCenterX) / fractal.spanX;
-		double newCenterY = zoomCenterY + newSpanY * (fractal.centerY - zoomCenterY) / fractal.spanY;
+		double newCenterX = zoomCenterX + newSpanX * (fractal.centerX - zoomCenterX)
+					/ fractal.spanX;
+		double newCenterY = zoomCenterY + newSpanY * (fractal.centerY - zoomCenterY)
+					/ fractal.spanY;
 
 		QImage copiedImage(fractalQImage->copy());
 		fractalQImage->fill(0);
 		QPainter painter(fractalQImage);
 		painter.setRenderHint(QPainter::SmoothPixmapTransform);
 		QRect dstRect(fractalQImage->rect());
-		QRectF srcRect(0, 0, dstRect.width() * newSpanX / fractal.spanX, dstRect.height() * newSpanX / fractal.spanX); 
-		srcRect.moveCenter(QPointF((fractalQImage->width())*(newCenterX-fractal.x1)/fractal.spanX,(fractalQImage->height())*(newCenterY-fractal.y1)/fractal.spanY));
+		QRectF srcRect(0, 0, dstRect.width() * newSpanX / fractal.spanX,
+					dstRect.height() * newSpanX / fractal.spanX); 
+		srcRect.moveCenter(QPointF((fractalQImage->width())*(newCenterX-fractal.x1)/fractal.spanX,
+					(fractalQImage->height())*(newCenterY-fractal.y1)/fractal.spanY));
 		painter.drawImage(dstRect, copiedImage, srcRect);
 
 		fractal.centerX= newCenterX;
@@ -454,10 +443,11 @@ void FractalExplorer::zoomInFractal(double newSpanX, double zoomCenterX, double 
 	if (emitFractalChanged) {
 		emit fractalChanged(fractal);
 	}
-	emit wakeUpSignal();
+	refresh();
 }
 
-void FractalExplorer::zoomOutFractal(double newSpanX, double zoomCenterX, double zoomCenterY, bool emitFractalChanged)
+void FractalExplorer::zoomOutFractal(double newSpanX, double zoomCenterX, double zoomCenterY,
+					bool emitFractalChanged)
 {
 	cancelActionIfNotFinished();
 
@@ -472,8 +462,10 @@ void FractalExplorer::zoomOutFractal(double newSpanX, double zoomCenterX, double
 			newCenterX = zoomCenterX;
 			newCenterY = zoomCenterY;
 		} else {
-			newCenterX = zoomCenterX + newSpanX * (fractal.centerX - zoomCenterX) / fractal.spanX;
-			newCenterY = zoomCenterY + newSpanY * (fractal.centerY - zoomCenterY) / fractal.spanY;
+			newCenterX = zoomCenterX + newSpanX * (fractal.centerX - zoomCenterX)
+					/ fractal.spanX;
+			newCenterY = zoomCenterY + newSpanY * (fractal.centerY - zoomCenterY)
+					/ fractal.spanY;
 		}
 
 		QImage copiedImage(fractalQImage->copy());
@@ -481,8 +473,11 @@ void FractalExplorer::zoomOutFractal(double newSpanX, double zoomCenterX, double
 		QPainter painter(fractalQImage);
 		painter.setRenderHint(QPainter::SmoothPixmapTransform);
 		QRect srcRect(fractalQImage->rect());
-		QRectF dstRect(0, 0, srcRect.width() * fractal.spanX / newSpanX, srcRect.height() * fractal.spanX / newSpanX); 
-		dstRect.moveCenter(QPointF(srcRect.width()*(fractal.centerX-(newCenterX-newSpanX/2)) / newSpanX, srcRect.height()*(fractal.centerY-(newCenterY-newSpanY/2)) / newSpanY));
+		QRectF dstRect(0, 0, srcRect.width() * fractal.spanX / newSpanX, srcRect.height()
+					* fractal.spanX / newSpanX); 
+		dstRect.moveCenter(QPointF(srcRect.width()*(fractal.centerX-(newCenterX-newSpanX/2))
+					/ newSpanX, srcRect.height()
+					*(fractal.centerY-(newCenterY-newSpanY/2)) / newSpanY));
 
 		painter.drawImage(dstRect, copiedImage, srcRect);
 
@@ -496,7 +491,7 @@ void FractalExplorer::zoomOutFractal(double newSpanX, double zoomCenterX, double
 	if (emitFractalChanged) {
 		emit fractalChanged(fractal);
 	}
-	emit wakeUpSignal();
+	refresh();
 }
 
 void FractalExplorer::zoomInFractal()
@@ -526,8 +521,8 @@ void FractalExplorer::zoomOutFractal()
 void FractalExplorer::mousePressEvent(QMouseEvent *event)
 {
 	if (fractalMoved) {
-		emit wakeUpSignal();
 		emit fractalChanged(fractal);
+		refresh();
 	}
 	movingFractalDeferred = false;
 	movingFractalRealTime = false;
@@ -558,8 +553,8 @@ void FractalExplorer::mouseReleaseEvent(QMouseEvent *event)
 	case Qt::LeftButton:
 		if (movingFractalDeferred) {
 			if (fractalMoved) {
-				emit wakeUpSignal();
 				emit fractalChanged(fractal);
+				refresh();
 			}
 			movingFractalDeferred = false;
 			fractalMoved = false;
@@ -593,8 +588,10 @@ void FractalExplorer::mouseMoveEvent(QMouseEvent *event)
 		painter.setRenderHint(QPainter::SmoothPixmapTransform);
 		double ddx = vect.x();
 		double ddy = vect.y();
-		QRectF srcRect = QRectF(std::max((double)0, -ddx), std::max((double)0, -ddy), fractalImage.width - fabs(ddx), fractalImage.height - fabs(ddy));
-		QRectF dstRect = QRectF(std::max((double)0, ddx), std::max((double)0, ddy), fractalImage.width - fabs(ddx), fractalImage.height - fabs(ddy));
+		QRectF srcRect = QRectF(std::max((double)0, -ddx), std::max((double)0, -ddy),
+				fractalImage.width - fabs(ddx), fractalImage.height - fabs(ddy));
+		QRectF dstRect = QRectF(std::max((double)0, ddx), std::max((double)0, ddy),
+				fractalImage.width - fabs(ddx), fractalImage.height - fabs(ddy));
 		painter.drawImage(dstRect, imageCopyOnPress, srcRect);
 
 		fractal.centerX = fractalCenterXOnPress-dx;
@@ -613,12 +610,17 @@ void FractalExplorer::mouseMoveEvent(QMouseEvent *event)
 	}
 }
 
+static inline double signl(double x)
+{
+	return (x > 0) ? 1 : -1;
+}
+
 void FractalExplorer::wheelEvent(QWheelEvent *event)
 {
 	if (movingFractalDeferred) {
 		if (fractalMoved) {
-			emit wakeUpSignal();
 			emit fractalChanged(fractal);
+			refresh();
 		}
 		movingFractalDeferred = false;
 		fractalMoved = false;
@@ -633,15 +635,17 @@ void FractalExplorer::wheelEvent(QWheelEvent *event)
 		if (fractal.spanX == 0) {
 			newSpanX = MIN_SINGLE_STEP;
 		} else {
-			newSpanX = fractal.spanX * (1 - numSteps*0.3);
+			newSpanX = fractal.spanX * powl(1 - signl(numSteps)*0.3, fabsl(numSteps));
 		}
 		double zoomCenterX, zoomCenterY;
 		if (fractal.spanX == 0 || fractal.spanY == 0) {
 			zoomCenterX = fractal.centerX;
 			zoomCenterY = fractal.centerY;
 		} else {
-			zoomCenterX = (event->x() + 0.5) * fractal.spanX / fractalImage.width + fractal.x1;
-			zoomCenterY = (event->y() + 0.5) * fractal.spanY / fractalImage.height + fractal.y1;
+			zoomCenterX = (event->x() + 0.5) * fractal.spanX
+					/ fractalImage.width + fractal.x1;
+			zoomCenterY = (event->y() + 0.5) * fractal.spanY
+					/ fractalImage.height + fractal.y1;
 		}
 		if (numSteps > 0) {
 			zoomInFractal(newSpanX, zoomCenterX, zoomCenterY, true);
@@ -659,7 +663,7 @@ void FractalExplorer::setFractalFormula(int index)
 	fractal.fractalFormula = (FractalFormula)index;
 	reInitFractal();
 
-	emit wakeUpSignal();
+	refresh();
 }
 
 void FractalExplorer::setPParam(double value)
@@ -669,7 +673,7 @@ void FractalExplorer::setPParam(double value)
 	fractal.p = value;
 	reInitFractal();
 
-	emit wakeUpSignal();
+	refresh();
 }
 
 void FractalExplorer::setCParamRe(double value)
@@ -679,7 +683,7 @@ void FractalExplorer::setCParamRe(double value)
 	fractal.c = value + I*cimagF(fractal.c);
 	reInitFractal();
 
-	emit wakeUpSignal();
+	refresh();
 }
 
 void FractalExplorer::setCParamIm(double value)
@@ -689,7 +693,7 @@ void FractalExplorer::setCParamIm(double value)
 	fractal.c = crealF(fractal.c) + I*value;
 	reInitFractal();
 
-	emit wakeUpSignal();
+	refresh();
 }
 
 void FractalExplorer::setCenterX(double value)
@@ -722,7 +726,7 @@ void FractalExplorer::setBailoutRadius(double value)
 	fractal.escapeRadius = value;
 	reInitFractal();
 
-	emit wakeUpSignal();
+	refresh();
 }
 
 void FractalExplorer::setMaxIterations(int value)
@@ -732,7 +736,7 @@ void FractalExplorer::setMaxIterations(int value)
 	fractal.maxIter = value;
 	reInitFractal();
 
-	emit wakeUpSignal();
+	refresh();
 }
 
 void FractalExplorer::setAddendFunction(int index)
@@ -742,7 +746,7 @@ void FractalExplorer::setAddendFunction(int index)
 	render.addendFunction = (AddendFunction)index;
 	reInitRenderingParameters();
 
-	emit wakeUpSignal();
+	refresh();
 }
 
 void FractalExplorer::setStripeDensity(int value)
@@ -752,7 +756,7 @@ void FractalExplorer::setStripeDensity(int value)
 	render.stripeDensity = value;
 	reInitRenderingParameters();
 
-	emit wakeUpSignal();
+	refresh();
 }
 
 void FractalExplorer::setColoringMethod(int index)
@@ -762,7 +766,7 @@ void FractalExplorer::setColoringMethod(int index)
 	render.coloringMethod = (ColoringMethod)index;
 	reInitRenderingParameters();
 
-	emit wakeUpSignal();
+	refresh();
 }
 
 void FractalExplorer::setCountingFunction(int index)
@@ -772,7 +776,7 @@ void FractalExplorer::setCountingFunction(int index)
 	render.countingFunction = (CountingFunction)index;
 	reInitRenderingParameters();
 
-	emit wakeUpSignal();
+	refresh();
 }
 
 void FractalExplorer::setInterpolationMethod(int index)
@@ -782,7 +786,7 @@ void FractalExplorer::setInterpolationMethod(int index)
 	render.interpolationMethod = (InterpolationMethod)index;
 	reInitRenderingParameters();
 
-	emit wakeUpSignal();
+	refresh();
 }
 
 void FractalExplorer::setTransferFunction(int index)
@@ -792,7 +796,7 @@ void FractalExplorer::setTransferFunction(int index)
 	render.transferFunction = (TransferFunction)index;
 	reInitRenderingParameters();
 
-	emit wakeUpSignal();
+	refresh();
 }
 
 void FractalExplorer::setColorScaling(double value)
@@ -802,7 +806,7 @@ void FractalExplorer::setColorScaling(double value)
 	render.multiplier = value;
 	reInitRenderingParameters();
 
-	emit wakeUpSignal();
+	refresh();
 }
 
 void FractalExplorer::setColorOffset(double value)
@@ -812,17 +816,100 @@ void FractalExplorer::setColorOffset(double value)
 	render.offset = value;
 	reInitRenderingParameters();
 
-	emit wakeUpSignal();
+	refresh();
 }
 
 void FractalExplorer::setSpaceColor(QColor color)
 {
 	cancelActionIfNotFinished();
 
-	render.spaceColor = ColorFromRGB(1, (uint16_t)color.red(), (uint16_t)color.green(), (uint16_t)color.blue());
+	render.spaceColor = ColorFromRGB(1, (uint16_t)color.red(),
+				(uint16_t)color.green(), (uint16_t)color.blue());
 	reInitRenderingParameters();
 
-	emit wakeUpSignal();
+	refresh();
+}
+
+void FractalExplorer::setGradient(const Gradient &gradient)
+{
+	cancelActionIfNotFinished();
+
+	Gradient newGradient = Gradient8(&gradient);
+	Gradient oldGradient = render.gradient;
+	render.gradient = newGradient;
+	FreeGradient(oldGradient);
+	reInitRenderingParameters();
+
+	refresh();
+}
+
+inline static bool pos_less_than(const QGradientStop &s1, const QGradientStop &s2)
+{
+    return s1.first < s2.first;
+}
+
+void FractalExplorer::setGradient(const QGradientStops &gradientStops)
+{
+	if (gradientStops.size() < 2) {
+		/* Emit signal to be sure that fractal explorer's gradient
+		 * matches rendering widget's gradient box.
+		 */
+		emit renderingParametersChanged(render);
+		return;
+	}
+	cancelActionIfNotFinished();
+
+	/* First, sort gradient stops.*/
+	QGradientStops sortedGradientStops(gradientStops);
+	qSort(sortedGradientStops.begin(), sortedGradientStops.end(), pos_less_than);
+
+	/* Now create well formed gradient stops, i.e. first gradient
+	 * stop position must be 0, last must be 1, and positions
+	 * must be strictly increasing ("duplicates" are skipped).
+	 */
+	bool wellFormed = 1;
+	QGradientStops wellFormedGradientStops;
+	/* First position must be 0.*/
+	if (sortedGradientStops[0].first != 0) {
+		wellFormed = 0;
+	}
+	wellFormedGradientStops << QPair<qreal,QColor>(0, sortedGradientStops[0].second);
+	for (int i = 1; i < sortedGradientStops.size(); ++i) {
+		/* Positions should be strictly increasing.*/
+		if (sortedGradientStops[i].first <= wellFormedGradientStops[i-1].first) {
+			wellFormed = 0;
+			continue;
+		}
+		wellFormedGradientStops << sortedGradientStops[i];
+	}
+	/* Last position must be 1.*/
+	if (wellFormedGradientStops.last().first != 1) {
+		wellFormedGradientStops.last() = QPair<qreal,QColor>(1,
+						wellFormedGradientStops.last().second);
+		wellFormed = 0;
+	}
+
+	/* Now gradient fractal2D gradient from well formed gradient.*/
+	FLOAT positionStop[wellFormedGradientStops.size()];
+	Color colorStop[wellFormedGradientStops.size()];
+	QGradientStop currentStop;
+	for (int i = 0; i < wellFormedGradientStops.size(); ++i) {
+		currentStop = wellFormedGradientStops[i];
+		positionStop[i] = currentStop.first;
+		colorStop[i] = ColorFromUint32(currentStop.second.rgb());
+	}
+
+	/* Replace old gradient.*/
+	Gradient oldGradient = render.gradient;
+	GenerateGradient(&render.gradient, wellFormedGradientStops.size(), positionStop,
+				colorStop, DEFAULT_GRADIENT_SIZE);
+	FreeGradient(oldGradient);
+	reInitRenderingParameters();
+
+	refresh();
+	if (!wellFormed) {
+		emit renderingParametersChanged(render);
+	}
 }
 
 void FractalExplorer::contextMenuEvent(QContextMenuEvent *event)

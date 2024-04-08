@@ -32,11 +32,20 @@ extern "C" {
 #endif
 
 #include "floating_point.h"
+#include <complex.h>
 #include <stdint.h>
+
+#ifndef complex
+#define complex _Complex
+#endif
 
 /**
  * \enum e_FractalFormula
  * \brief Fractal formula.
+ */
+/**
+ * \typedef FractalFormula
+ * \brief Convenient typedef for enum FractalFormula.
  */
 typedef enum e_FractalFormula {
 	FRAC_MANDELBROT = 0,
@@ -55,19 +64,19 @@ typedef enum e_FractalFormula {
  * \var nbFractalFormulas
  * \brief Number of fractal formulas.
  */
-extern uint_fast32_t nbFractalFormulas;
+extern const uint_fast32_t nbFractalFormulas;
 
 /**
- * \var FractalFormulaStr
+ * \var fractalFormulaStr
  * \brief Strings of fractal formulas.
  */
-extern const char *FractalFormulaStr[];
+extern const char *fractalFormulaStr[];
 
 /**
- * \var FractalFormulaDescStr
+ * \var fractalFormulaDescStr
  * \brief More descriptive strings for fractal formulas.
  */
-extern const char *FractalFormulaDescStr[];
+extern const char *fractalFormulaDescStr[];
 
 /**
  * \fn int GetFractalFormula(FractalFormula *fractalFormula, const char *str)
@@ -80,8 +89,6 @@ extern const char *FractalFormulaDescStr[];
  * - "julia" for FRAC_JULIA
  * - "juliap" for FRAC_JULIAP
  * - "rudy" for FRAC_RUDY
- * 
- * Exit with error in case of failure (unknown fractal type).
  *
  * \param fractalFormula Fractal formula destination.
  * \param str String specifying fractal formula.

@@ -40,6 +40,10 @@ extern "C" {
  *
  * Transfer function are used to map fractal values to colors correctly.
  */
+/**
+ * \typedef TransferFunction
+ * \brief Convenient typedef for enum TransferFunction.
+ */
 typedef enum e_TransferFunction {
 	TF_LOG = 0,
  /*<! Logarithm. */
@@ -61,19 +65,19 @@ typedef enum e_TransferFunction {
  * \var nbTransferFunctions
  * \brief Number of transfer functions.
  */
-extern uint_fast32_t nbTransferFunctions;
+extern const uint_fast32_t nbTransferFunctions;
 
 /**
- * \var TransferFunctionStr
+ * \var transferFunctionStr
  * \brief Strings of transfer functions.
  */
-extern const char *TransferFunctionStr[];
+extern const char *transferFunctionStr[];
 
 /**
- * \var TransferFunctionDescStr
+ * \var transferFunctionDescStr
  * \brief More descriptive strings for fractal addend functions.
  */
-extern const char *TransferFunctionDescStr[];
+extern const char *transferFunctionDescStr[];
 
 /**
  * \typedef TransferFunctionPtr
@@ -94,7 +98,6 @@ typedef FLOAT (*TransferFunctionPtr)(FLOAT x);
  * - "square" for square
  * - "cube" for cube
  * - "exp" for exponential
- * Exit with error in case of failure.
  *
  * \param transferFunction Transfer function destination.
  * \param str String specifying transfer function.

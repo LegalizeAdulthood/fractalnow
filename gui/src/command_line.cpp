@@ -41,7 +41,7 @@ int FileExists(const char *fileName)
 
 CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 {
-	fractal2D_traceLevel = T_NORMAL;
+	fractal2D_traceLevel = T_QUIET;
 	fractal2D_debug = 0;
 	int help = 0;
 
@@ -51,25 +51,17 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 	int minAntiAliasingSizeSpecified = 0;
 	int maxAntiAliasingSizeSpecified = 0;
 	int antiAliasingSizeIterationSpecified = 0;
+	nbThreads = -1;
 
 	width = 0;
 	height = 0;
 	int o;
-	while ((o = getopt(argc, argv, "hqvda:c:i:j:m:M:r:x:y:")) != -1) {
+	while ((o = getopt(argc, argv, "hvda:f:i:j:m:nM:r:x:y:")) != -1) {
 		switch (o) {
 		case 'h':
 			help = 1;
 			break;
-		case 'q':
-			if (fractal2D_traceLevel == T_VERBOSE) {
-				invalid_use_error("-q and -v are excluse.\n");
-			}
-			fractal2D_traceLevel = T_QUIET;
-			break;
 		case 'v':
-			if (fractal2D_traceLevel == T_QUIET) {
-				invalid_use_error("-q and -v are excluse.\n");
-			}
 			fractal2D_traceLevel = T_VERBOSE;
 			break;
 		case 'd':
@@ -80,21 +72,19 @@ debug mode.\n", QApplication::applicationName().toStdString().c_str());
 			fractal2D_debug = 1;
 #endif
 			break;
-		case 'c':
+		case 'f':
 			fractalFileName = optarg;
 			break;
 		case 'r':
 			renderingFileName = optarg;
 			break;
 		case 'j':
-			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
+			if (sscanf(optarg, "%d", &nbThreads) < 1) {
 				invalid_use_error("Command-line argument \'%s\' is not a number.\n    ", optarg);
 			}
 
-			if (tmp <= 0) {
+			if (nbThreads <= 0) {
 				invalid_use_error("Number of threads must be positive.\n");
-			} else {
-				nbThreads = (uint_fast32_t)tmp;
 			}
 			break;
 		case 'm':

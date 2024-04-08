@@ -23,6 +23,7 @@
 #include "fractal_addend_function.h"
 #include "fractal_formula.h"
 #include "macro_build_fractals.h"
+#include <signal.h>
 
 /* Build Fractal loop functions. */
 static inline FLOAT cnorm2F(FLOAT complex z) {

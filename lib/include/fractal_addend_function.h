@@ -32,7 +32,12 @@ extern "C" {
 #endif
 
 #include "floating_point.h"
+#include <complex.h>
 #include <stdint.h>
+
+#ifndef complex
+#define complex _Complex
+#endif
 
 /**
  * \enum e_AddendFunction
@@ -55,6 +60,10 @@ extern "C" {
  * Remark 2 : some sums might not be computable if the number of
  * iterations (in orbit) is too small (N must be >= size).
  */
+/**
+ * \typedef AddendFunction
+ * \brief Convenient typedef for enum AddendFunction.
+ */
 typedef enum e_AddendFunction {
 	AF_TRIANGLEINEQUALITY = 0,
 	AF_CURVATURE,
@@ -65,19 +74,19 @@ typedef enum e_AddendFunction {
  * \var nbAddendFunctions
  * \brief Number of addend functions.
  */
-extern uint_fast32_t nbAddendFunctions;
+extern const uint_fast32_t nbAddendFunctions;
 
 /**
- * \var AddendFunctionStr
+ * \var addendFunctionStr
  * \brief Strings of addend function enum values.
  */
-extern const char *AddendFunctionStr[];
+extern const char *addendFunctionStr[];
 
 /**
- * \var AddendFunctionDescStr
+ * \var addendFunctionDescStr
  * \brief More descriptive strings for addend functions.
  */
-extern const char *AddendFunctionDescStr[];
+extern const char *addendFunctionDescStr[];
 
 /**
  * \fn int GetAddendFunction(AddendFunction *addendFunction, const char *str)
@@ -86,7 +95,6 @@ extern const char *AddendFunctionDescStr[];
  * Function is case insensitive.
  * Possible strings are :
  * - "triangleinequality" for triangle inequality
- * Exit with error in case of failure.
  *
  * \param addendFunction AddendFunction destination.
  * \param str String specifying addend function.

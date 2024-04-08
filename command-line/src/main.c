@@ -52,32 +52,38 @@ int main(int argc, char *argv[]) {
 		height = roundF(spanY * width / spanX);
 	}
 
+	Threads *threads = CreateThreads((arg.nbThreads <= 0) ? DEFAULT_NB_THREADS : (uint_fast32_t)arg.nbThreads);
+
 	Image fractalImg, tmpImg;
 	CreateImage(&fractalImg, width, height, render.bytesPerComponent);
 
 	switch (arg.antiAliasingMethod) {
 	case AAM_NONE:
-		DrawFractalFast(&fractalImg, &fractal, &render, arg.quadInterpolationSize, arg.colorDissimilarityThreshold);
+		DrawFractalFast(&fractalImg, &fractal, &render, arg.quadInterpolationSize, arg.colorDissimilarityThreshold,
+				threads);
 		break;
 	case AAM_GAUSSIANBLUR:
 		CreateImage(&tmpImg, width, height, render.bytesPerComponent);
 		
-		DrawFractalFast(&tmpImg, &fractal, &render, arg.quadInterpolationSize, arg.colorDissimilarityThreshold);
-		ApplyGaussianBlur(&fractalImg, &tmpImg, arg.antiAliasingSize);
+		DrawFractalFast(&tmpImg, &fractal, &render, arg.quadInterpolationSize, arg.colorDissimilarityThreshold,
+				threads);
+		ApplyGaussianBlur(&fractalImg, &tmpImg, arg.antiAliasingSize, threads);
 
 		FreeImage(tmpImg);
 		break;
 	case AAM_OVERSAMPLING:
 		CreateImage(&tmpImg, width*arg.antiAliasingSize, height*arg.antiAliasingSize, render.bytesPerComponent);
 
-		DrawFractalFast(&tmpImg, &fractal, &render, arg.quadInterpolationSize, arg.colorDissimilarityThreshold);
-		DownscaleImage(&fractalImg, &tmpImg);
+		DrawFractalFast(&tmpImg, &fractal, &render, arg.quadInterpolationSize, arg.colorDissimilarityThreshold,
+				threads);
+		DownscaleImage(&fractalImg, &tmpImg, threads);
 
 		FreeImage(tmpImg);
 		break;
 	case AAM_ADAPTIVE:
-		DrawFractalFast(&fractalImg, &fractal, &render, arg.quadInterpolationSize, arg.colorDissimilarityThreshold);
-		AntiAliaseFractal(&fractalImg, &fractal, &render, arg.antiAliasingSize, arg.adaptiveAAMThreshold);
+		DrawFractalFast(&fractalImg, &fractal, &render, arg.quadInterpolationSize, arg.colorDissimilarityThreshold,
+				threads);
+		AntiAliaseFractal(&fractalImg, &fractal, &render, arg.antiAliasingSize, arg.adaptiveAAMThreshold, threads);
 		break;
 	default:
 		fractal2D_error("Unknown anti-aliasing method.\n");
@@ -88,6 +94,7 @@ int main(int argc, char *argv[]) {
 
 	FreeRenderingParameters(render);
 	FreeImage(fractalImg);
+	DestroyThreads(threads);
 
 	fractal2D_message(stdout, T_NORMAL, "All done.\n");
 

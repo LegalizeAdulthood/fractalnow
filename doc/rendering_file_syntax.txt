@@ -6,7 +6,7 @@ SPACE_COLOR
 COUNTING_ALGORITHM
 COLORING_METHOD [ADDEND_FUNCTION [STRIPE_DENSITY] INTERPOLATION_METHOD]
 COLOR_SCALING COLOR_OFFSET NB_TRANSITIONS
-Color1 ... ColorN
+Pos1 Color1 ... PosN ColorN
 
 RENDERING_FILE_FORMAT should be R072, which is the format described in this document.
 Other format values (of older versions) may still be supported though.
@@ -55,7 +55,10 @@ COLOR_OFFSET specifies a (floating point) addend to be applied after multiplican
 
 NB_TRANSITIONS is an integer specifying the number of color transitions between two colors in gradient. This parameter may disappear in future versions. The bigger the number of transitions the smoother the gradient will be.
 
+POSi : position of COLORi in gradient (between 0 and 1). First position must be 0, and last position must be 1. Positions
+must be strictly increasing.
 COLORi : colors composing gradient.
+Gradient must be made of at least 2 colors.
 
 Colors must be specified as hexadecimal numbers. Red, green, and blue are respectively the 1st, 2nd and 3rd component.
 Some RGB8 color examples :

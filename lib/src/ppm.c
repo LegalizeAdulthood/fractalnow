@@ -22,12 +22,14 @@
 #include "error.h"
 #include <inttypes.h>
 
-void aux_ExportPPM8(const char *fileName, const Image *image) {
+int aux_ExportPPM8(const char *fileName, const Image *image)
+{
 	FILE *file;
+	int res = 0;
 
-	file = fopen(fileName,"w");
+	file = fopen(fileName,"wb");
 	if (!file) {
-		fractal2D_open_error(fileName);
+		fractal2D_open_werror(fileName);
 	}
 
 	fprintf(file,"P6\n%"PRIuFAST32" %"PRIuFAST32"\n%"PRIu8"\n",
@@ -39,17 +41,23 @@ void aux_ExportPPM8(const char *fileName, const Image *image) {
 		free(bytes);
 	}
 
-	if (fclose(file)) {
-		fractal2D_close_error(fileName);
+	end:
+	if (file && fclose(file)) {
+		fractal2D_close_errmsg(fileName);
+		res = 1;
 	}
+
+	return res;
 }
 
-void aux_ExportPPM16(const char *fileName, const Image *image) {
+int aux_ExportPPM16(const char *fileName, const Image *image)
+{
 	FILE *file;
+	int res = 0;
 
-	file = fopen(fileName,"w");
+	file = fopen(fileName,"wb");
 	if (!file) {
-		fractal2D_open_error(fileName);
+		fractal2D_open_werror(fileName);
 	}
 
 	fprintf(file,"P6\n%"PRIuFAST32" %"PRIuFAST32"\n%"PRIu16"\n",
@@ -61,22 +69,28 @@ void aux_ExportPPM16(const char *fileName, const Image *image) {
 		free(bytes);
 	}
 
-	if (fclose(file)) {
-		fractal2D_close_error(fileName);
+	end:
+	if (file && fclose(file)) {
+		fractal2D_close_errmsg(fileName);
+		res = 1;
 	}
+
+	return res;
 
 }
 
-void ExportPPM(const char *fileName, const Image *image)
+int ExportPPM(const char *fileName, const Image *image)
 {
+	int res = 0;
+
 	fractal2D_message(stdout, T_NORMAL, "Exporting PPM \'%s\'...\n", fileName);
 
 	switch (image->bytesPerComponent) {
 	case 1:
-		aux_ExportPPM8(fileName, image);
+		res = aux_ExportPPM8(fileName, image);
 		break;
 	case 2:
-		aux_ExportPPM16(fileName, image);
+		res = aux_ExportPPM16(fileName, image);
 		break;
 	default:
 		fractal2D_error("Invalid image bytes per component.\n");
@@ -84,5 +98,7 @@ void ExportPPM(const char *fileName, const Image *image)
 	}
 
 	fractal2D_message(stdout, T_NORMAL, "Exporting PPM \'%s\' : DONE.\n", fileName);
+
+	return res;
 }
 

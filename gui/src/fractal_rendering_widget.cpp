@@ -32,19 +32,19 @@ FractalRenderingWidget::FractalRenderingWidget(RenderingParameters &render) : QW
 {
 	countingFunctionComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbCountingFunctions; ++i) {
-		countingFunctionComboBox->addItem(CountingFunctionDescStr[i]);
+		countingFunctionComboBox->addItem(countingFunctionDescStr[i]);
 	}
 	countingFunctionComboBox->setCurrentIndex((int)render.countingFunction);
 
 	coloringMethodComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbColoringMethods; ++i) {
-		coloringMethodComboBox->addItem(ColoringMethodDescStr[i]);
+		coloringMethodComboBox->addItem(coloringMethodDescStr[i]);
 	}
 	coloringMethodComboBox->setCurrentIndex((int)render.coloringMethod);
 
 	addendFunctionComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbAddendFunctions; ++i) {
-		addendFunctionComboBox->addItem(AddendFunctionDescStr[i]);
+		addendFunctionComboBox->addItem(addendFunctionDescStr[i]);
 	}
 	addendFunctionComboBox->setCurrentIndex((int)render.addendFunction);
 
@@ -55,13 +55,13 @@ FractalRenderingWidget::FractalRenderingWidget(RenderingParameters &render) : QW
 
 	interpolationMethodComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbInterpolationMethods; ++i) {
-		interpolationMethodComboBox->addItem(InterpolationMethodDescStr[i]);
+		interpolationMethodComboBox->addItem(interpolationMethodDescStr[i]);
 	}
 	interpolationMethodComboBox->setCurrentIndex((int)render.interpolationMethod);
 
 	transferFunctionComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbTransferFunctions; ++i) {
-		transferFunctionComboBox->addItem(TransferFunctionDescStr[i]);
+		transferFunctionComboBox->addItem(transferFunctionDescStr[i]);
 	}
 	transferFunctionComboBox->setCurrentIndex((int)render.transferFunction);
 
@@ -82,6 +82,8 @@ FractalRenderingWidget::FractalRenderingWidget(RenderingParameters &render) : QW
 	colorOffsetSpinBox->setValue(render.offset);
 	colorOffsetSpinBox->setAccelerated(true);
 
+	gradientBox = new GradientBox(render.gradient);
+
 	QFormLayout *formLayout = new QFormLayout;
 	formLayout->addRow(tr("Counting function:"), countingFunctionComboBox);
 	formLayout->addRow(tr("Coloring method:"), coloringMethodComboBox);
@@ -92,7 +94,13 @@ FractalRenderingWidget::FractalRenderingWidget(RenderingParameters &render) : QW
 	formLayout->addRow(tr("Color scaling:"), colorScalingSpinBox);
 	formLayout->addRow(tr("Color offset:"), colorOffsetSpinBox);
 	formLayout->addRow(tr("Space color:"), spaceColorButton);
-	this->setLayout(formLayout);
+
+	QVBoxLayout *vBoxLayout = new QVBoxLayout;
+	vBoxLayout->addLayout(formLayout);
+	vBoxLayout->addWidget(new QLabel(tr("Gradient:")));
+	vBoxLayout->addWidget(gradientBox);
+	vBoxLayout->addStretch(1);
+	this->setLayout(vBoxLayout);
 
 	updateBoxesEnabledValue();
 	updateColorScalingSingleStep();
@@ -102,6 +110,37 @@ FractalRenderingWidget::FractalRenderingWidget(RenderingParameters &render) : QW
 	connect(addendFunctionComboBox, SIGNAL(currentIndexChanged(int)),
 		this, SLOT(updateBoxesEnabledValue()));
 	connect(colorScalingSpinBox, SIGNAL(valueChanged(double)), this, SLOT(updateColorScalingSingleStep()));
+}
+
+void FractalRenderingWidget::blockBoxesSignals(bool block)
+{
+	countingFunctionComboBox->blockSignals(block);
+	coloringMethodComboBox->blockSignals(block);
+	addendFunctionComboBox->blockSignals(block);
+	stripeDensitySpinBox->blockSignals(block);
+	interpolationMethodComboBox->blockSignals(block);
+	transferFunctionComboBox->blockSignals(block);
+	colorScalingSpinBox->blockSignals(block);
+	colorOffsetSpinBox->blockSignals(block);
+	spaceColorButton->blockSignals(block);
+	gradientBox->blockSignals(block);
+}
+
+void FractalRenderingWidget::updateBoxesValues(RenderingParameters &render)
+{
+	blockBoxesSignals(true);
+	countingFunctionComboBox->setCurrentIndex((int)render.countingFunction);
+	coloringMethodComboBox->setCurrentIndex((int)render.coloringMethod);
+	addendFunctionComboBox->setCurrentIndex((int)render.addendFunction);
+	stripeDensitySpinBox->setValue(render.stripeDensity);
+	interpolationMethodComboBox->setCurrentIndex((int)render.interpolationMethod);
+	transferFunctionComboBox->setCurrentIndex((int)render.transferFunction);
+	colorScalingSpinBox->setValue(render.multiplier);
+	colorOffsetSpinBox->setValue(render.offset);
+	spaceColorButton->setCurrentColor(QColor(render.spaceColor.r,
+					render.spaceColor.g, render.spaceColor.b));
+	gradientBox->setGradient(render.gradient);
+	blockBoxesSignals(false);
 }
 
 void FractalRenderingWidget::updateBoxesEnabledValue()

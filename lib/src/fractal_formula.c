@@ -23,23 +23,23 @@
 #include "misc.h"
 #include <string.h>
 
-const char *FractalFormulaStr[] = {
-	(char *)"mandelbrot",
-	(char *)"mandelbrotp",
-	(char *)"julia",
-	(char *)"juliap",
-	(char *)"rudy"
+const char *fractalFormulaStr[] = {
+	(const char *)"mandelbrot",
+	(const char *)"mandelbrotp",
+	(const char *)"julia",
+	(const char *)"juliap",
+	(const char *)"rudy"
 };
 
-const char *FractalFormulaDescStr[] = {
-	(char *)"Mandelbrot (z^2+c)",
-	(char *)"Mandelbrot P (z^p+c))",
-	(char *)"Julia (z^2+c)",
-	(char *)"Julia P (z^p+c)",
-	(char *)"Rudy (z^p + c*z + d)"
+const char *fractalFormulaDescStr[] = {
+	(const char *)"Mandelbrot (z^2+c)",
+	(const char *)"Mandelbrot P (z^p+c))",
+	(const char *)"Julia (z^2+c)",
+	(const char *)"Julia P (z^p+c)",
+	(const char *)"Rudy (z^p + c*z + d)"
 };
 
-uint_fast32_t nbFractalFormulas = sizeof(FractalFormulaStr) / sizeof(char *);
+const uint_fast32_t nbFractalFormulas = sizeof(fractalFormulaStr) / sizeof(const char *);
 
 int GetFractalFormula(FractalFormula *fractalFormula, const char *str)
 {
@@ -56,7 +56,7 @@ int GetFractalFormula(FractalFormula *fractalFormula, const char *str)
 
 	uint_fast32_t i;
 	for (i = 0; i < nbFractalFormulas; ++i) {
-		if (strcmp(FFStr, FractalFormulaStr[i]) == 0) {
+		if (strcmp(FFStr, fractalFormulaStr[i]) == 0) {
 			*fractalFormula = (FractalFormula)i;
 			break;
 		}

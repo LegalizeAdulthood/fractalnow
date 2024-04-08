@@ -50,7 +50,7 @@ AntiAliasingMethod GetAAM(const char *str)
 	char AAMStr[256];
 	strcpy(AAMStr, str);
 	toLowerCase(AAMStr);
-	AntiAliasingMethod res;
+	AntiAliasingMethod res = (AntiAliasingMethod)0;
 
 	uint_fast32_t i;
 	for (i = 0; i < nbAntiAliasingMethods; ++i) {

@@ -34,10 +34,14 @@ extern "C" {
 #include <stdint.h>
 
 /**
- * \struct s_Rectangle
+ * \struct Rectangle
  * \brief Basic rectangle type.
  */
-typedef struct s_Rectangle {
+/**
+ * \typedef Rectangle
+ * \brief Convenient typedef for struct Rectangle.
+ */
+typedef struct Rectangle {
 	uint_fast32_t x1;
  /*!< X coordinate of the rectangle's top left corner.*/
 	uint_fast32_t y1;
@@ -51,6 +55,9 @@ typedef struct s_Rectangle {
 /**
  * \fn void InitRectangle(Rectangle *rectangle, uint_fast32_t x1, uint_fast32_t y1, uint_fast32_t x2, uint_fast32_t y2)
  * \brief Initialize rectangle.
+ *
+ * x1 must be less than x2 and y1 must be less than y2
+ * (undefined behaviour otherwise).
  *
  * \param rectangle Pointer to rectangle structure to initialize.
  * \param x1 X coordinate of the rectangle's top left corner.

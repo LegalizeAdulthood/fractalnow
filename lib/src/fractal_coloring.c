@@ -23,17 +23,17 @@
 #include "misc.h"
 #include <string.h>
 
-const char *ColoringMethodStr[] = {
+const char *coloringMethodStr[] = {
 	(char *)"simple",
 	(char *)"average"
 };
 
-const char *ColoringMethodDescStr[] = {
+const char *coloringMethodDescStr[] = {
 	(char *)"Simple",
 	(char *)"Average"
 };
 
-uint_fast32_t nbColoringMethods = sizeof(ColoringMethodStr) / sizeof(char *);
+const uint_fast32_t nbColoringMethods = sizeof(coloringMethodStr) / sizeof(char *);
 
 int GetColoringMethod(ColoringMethod *coloringMethod, const char *str)
 {
@@ -49,7 +49,7 @@ int GetColoringMethod(ColoringMethod *coloringMethod, const char *str)
 
 	uint_fast32_t i;
 	for (i = 0; i < nbColoringMethods; ++i) {
-		if (strcmp(CMStr, ColoringMethodStr[i]) == 0) {
+		if (strcmp(CMStr, coloringMethodStr[i]) == 0) {
 			*coloringMethod = (ColoringMethod)i;
 			break;
 		}
@@ -62,19 +62,19 @@ int GetColoringMethod(ColoringMethod *coloringMethod, const char *str)
 	return res;
 }
 
-const char *InterpolationMethodStr[] = {
-	(char *)"none",
-	(char *)"linear",
-	(char *)"spline"
+const char *interpolationMethodStr[] = {
+	(const char *)"none",
+	(const char *)"linear",
+	(const char *)"spline"
 };
 
-const char *InterpolationMethodDescStr[] = {
-	(char *)"None",
-	(char *)"Linear",
-	(char *)"Spline"
+const char *interpolationMethodDescStr[] = {
+	(const char *)"None",
+	(const char *)"Linear",
+	(const char *)"Spline"
 };
 
-uint_fast32_t nbInterpolationMethods = sizeof(InterpolationMethodStr) / sizeof(char *);
+const uint_fast32_t nbInterpolationMethods = sizeof(interpolationMethodStr) / sizeof(const char *);
 
 int GetInterpolationMethod(InterpolationMethod *interpolationMethod, const char *str)
 {
@@ -90,7 +90,7 @@ int GetInterpolationMethod(InterpolationMethod *interpolationMethod, const char 
 
 	uint_fast32_t i;
 	for (i = 0; i < nbInterpolationMethods; ++i) {
-		if (strcmp(IMStr, InterpolationMethodStr[i]) == 0) {
+		if (strcmp(IMStr, interpolationMethodStr[i]) == 0) {
 			*interpolationMethod = (InterpolationMethod)i;
 			break;
 		}

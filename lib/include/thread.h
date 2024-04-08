@@ -41,16 +41,7 @@ extern "C" {
  * \def DEFAULT_NB_THREADS
  * \brief Default number of threads.
  */
-#define DEFAULT_NB_THREADS (uint_fast32_t)(16)
-
-/**
- * \var nbThreads.
- * \brief Number of threads to be used by parallelized functions.
- *
- * Unless changed explicitly, this variable will be equal to
- * DEFAULT_NB_THREADS.
- */
-extern uint_fast32_t nbThreads;
+#define DEFAULT_NB_THREADS (uint_fast32_t)(4)
 
 // thread related
 #define THREAD_CREATE_ERROR "Thread create error"
@@ -68,21 +59,70 @@ extern uint_fast32_t nbThreads;
 
 #define safePThreadCreate(thread,attributes,startRoutine,argument) {if((errno=pthread_create(thread,attributes,startRoutine,argument))!=0){perror(THREAD_CREATE_ERROR);exit(EXIT_FAILURE);}}
 #define safePThreadJoin(thread,status); {if((errno=pthread_join(thread,status))!=0){perror(THREAD_JOIN_ERROR);exit(EXIT_FAILURE);}}
-#define safePThreadMutexInit(mutex,attributes) {if((errno=pthread_mutex_init(mutex,attributes))!=0){perror(THREAD_MUTEX_INIT_ERROR);pthread_exit(THREAD_ENDED_WITH_ERROR);}}
-#define safePThreadMutexLock(mutex) {if((errno=pthread_mutex_lock(mutex))!=0){perror(THREAD_MUTEX_LOCK_ERROR);pthread_exit(THREAD_ENDED_WITH_ERROR);}}
-#define safePThreadMutexUnlock(mutex) {if((errno=pthread_mutex_unlock(mutex))!=0){perror(THREAD_MUTEX_UNLOCK_ERROR);pthread_exit(THREAD_ENDED_WITH_ERROR);}}
+#define safePThreadMutexInit(mutex,attributes) {if((errno=pthread_mutex_init(mutex,attributes))!=0){perror(THREAD_MUTEX_INIT_ERROR);exit(EXIT_FAILURE);}}
+#define safePThreadMutexLock(mutex) {if((errno=pthread_mutex_lock(mutex))!=0){perror(THREAD_MUTEX_LOCK_ERROR);exit(EXIT_FAILURE);}}
+#define safePThreadMutexUnlock(mutex) {if((errno=pthread_mutex_unlock(mutex))!=0){perror(THREAD_MUTEX_UNLOCK_ERROR);exit(EXIT_FAILURE);}}
 #define safePThreadMutexDestroy(mutex) {if((errno=pthread_mutex_destroy(mutex))!=0){perror(THREAD_MUTEX_DESTROY_ERROR);exit(EXIT_FAILURE);}}
 #define safePThreadCondInit(cond,attributes) {if((errno=pthread_cond_init(cond,attributes))!=0){perror(THREAD_COND_INIT_ERROR);exit(EXIT_FAILURE);}}
 #define safePThreadCancel(thread) {if((errno=pthread_cancel(thread))!=0){perror(THREAD_CANCEL_ERROR);exit(EXIT_FAILURE);}}
-#define safePThreadCondWait(cond,mutex) {if((errno=pthread_cond_wait(cond,mutex))!=0){perror(THREAD_COND_WAIT_ERROR);pthread_exit(THREAD_ENDED_WITH_ERROR);}}
-#define safePThreadCondSignal(cond) {if((errno=pthread_cond_signal(cond))!=0){perror(THREAD_COND_SIGNAL_ERROR);pthread_exit(THREAD_ENDED_WITH_ERROR);}}
-#define safePThreadCondBroadcast(cond) {if((errno=pthread_cond_broadcast(cond))!=0){perror(THREAD_COND_BROADCAST_ERROR);pthread_exit(THREAD_ENDED_WITH_ERROR);}}
-#define safePThreadCondDestroy(cond) {if((errno=pthread_cond_destroy(cond))!=0){perror(THREAD_COND_DESTROY_ERROR);pthread_exit(THREAD_ENDED_WITH_ERROR);}}
+#define safePThreadCondWait(cond,mutex) {if((errno=pthread_cond_wait(cond,mutex))!=0){perror(THREAD_COND_WAIT_ERROR);exit(EXIT_FAILURE);}}
+#define safePThreadCondSignal(cond) {if((errno=pthread_cond_signal(cond))!=0){perror(THREAD_COND_SIGNAL_ERROR);exit(EXIT_FAILURE);}}
+#define safePThreadCondBroadcast(cond) {if((errno=pthread_cond_broadcast(cond))!=0){perror(THREAD_COND_BROADCAST_ERROR);exit(EXIT_FAILURE);}}
+#define safePThreadCondDestroy(cond) {if((errno=pthread_cond_destroy(cond))!=0){perror(THREAD_COND_DESTROY_ERROR);exit(EXIT_FAILURE);}}
 
-struct s_InternalThreadArg;
+struct StartThreadArg;
 
 /**
- * \struct s_Action
+ * \struct Threads
+ * \brief Threads structure.
+ *
+ * Threads should be created on program startup, and destroyed
+ * at exit.
+ * Once created, threads can be used to launch actions, such
+ * as drawing fractals, applying filters on images, etc..
+ */
+/**
+ * \typedef Threads
+ * \brief Convenient typedef for struct Threads.
+ */
+typedef struct Threads {
+	uint_fast32_t N;
+ /*!< N Number of threads in this structure.*/
+	uint_fast32_t nbWaiting;
+ /*!< Number of threads waiting to take an action (i.e. ready).*/
+	pthread_mutex_t startThreadCondMutex;
+ /*!< Mutex for starting threads condition.*/
+	pthread_cond_t startThreadCond;
+ /*!< Starting thread condition.*/
+	pthread_mutex_t allThreadsWaitingCondMutex;
+ /*!< Mutex for allThreadsWaiting condition.*/
+	pthread_cond_t allThreadsWaitingCond; 
+ /*!< Condition signaled when all threads are ready.*/
+ 	pthread_t *thread;
+ /*!< Pthreads array.*/
+	struct StartThreadArg *startThreadArg;
+ /*!< Start thread argument.*/
+	void **lastResult;
+ /*!< Last result for each thread.*/
+} Threads;
+
+/**
+ * \struct ThreadArgHeader
+ * \brief Thread argument header.
+ */
+/**
+ * \typedef ThreadArgHeader
+ * \brief Convenient typedef for struct ThreadArgHeader.
+ */
+typedef struct ThreadArgHeader {
+	sig_atomic_t *cancel;
+ /*!< Used by thread to receive cancellation request.*/
+	sig_atomic_t progress;
+ /*!< Should be maintained up-to-date by thread to give an hint on its progress (value between 0 and 100).*/
+} ThreadArgHeader;
+
+/**
+ * \struct Action
  * \brief Action created when launching simultaneous threads.
  *
  * There are two choices when launching threads :
@@ -92,36 +132,34 @@ struct s_InternalThreadArg;
  *   action structure
  * Through the action structure, it is possible to cancel
  * the threads (cancel action) or to wait for them to 
- * finish (wait for action to finish).
- *
- * Note that when an action is returned by the LaunchThreads function,
- * sooner or later the function WaitForFinished
- * (or CancelAndWaitForFinished) must be called (on this
- * action structure) in order to free resources.
- * Before returning, WaitForFinished  frees each argument it has
- * copied using the specified freeArg routine.
+ * finish (get action result).
  *
  * Examples of use :
  * 1) Launch threads and wait for them to finish :
- * res = LaunchThreadsAndWaitForFinished(N, args, s_elem, routine);
+ * res = LaunchActionBlocking(message, threads, nbThreadsNeeded,
+		args, s_elem, routine, freeArgs);
  *
  * 2) Launch threads, cancel action after some time, wait for it to
  *    finish.
- * action = LaunchThreads(N, args, s_elem, routine); // launch threads
+ * action = LaunchAction(message, threads, nbThreadsNeeded, args,
+		s_elem, routine, freeArgs); // launch threads
  * sleep(2);
  * CancelAction(action); // cancel action (send a request, actually)
- * res = WaitForFinished(action); // wait for it to finish
+ * res = GetActionResult(action); // wait for it to finish
  *
- * It is up to the thread routine to take into account cancelling
+ * It is up to the thread routine to take into account cancellation
  * request and finish early.
  * The request is sent through the argument passed to the routine :
- * the first sizeof(InternalThreadArg *) bytes store a pointer to
- * a structure which contains data for cancelation request & progress.
+ * the first sizeof(ThreadArgHeader) bytes store a pointer to
+ * a structure which contains data for cancellation request & progress.
  * The remaining part of the argument is the 'real' argument (of size
- * s_elem) that was passed to LaunchThreads.
- *   
+ * s_elem) that was passed to LaunchAction.
  */
-typedef struct s_Action {
+/**
+ * \typedef Action
+ * \brief Convenient typedef for struct Action.
+ */
+typedef struct Action {
 	int is_do_nothing;
  /*!< 1 if action is to do nothing (convenient).*/
 	int done;
@@ -129,13 +167,13 @@ typedef struct s_Action {
 	int return_value;
  /*!< Action return value (0 if finished normally, 1 if canceled).*/
 	sig_atomic_t cancel;
- /*!< uint8_t used for cancelation request.*/
- 	uint_fast32_t N;
- /*!< Number of threads.*/
- 	pthread_t *thread;
- /*!< Threads array.*/
-	struct s_InternalThreadArg *internalArgs;
+ /*!< uint8_t used for cancellation request.*/
+	struct ThreadArgHeader **threadArgsHeaders;
  /*!< Internal part of thread arguments (cancel and progress handling).*/
+	struct Threads *threads;
+ /*!< Pointer to threads to use for action.*/
+	uint_fast32_t nbThreadsNeeded;
+ /*!< Number of threads actually needed for action.*/
  	void *args;
  /*!< Array of args passed to thread routine.*/
 	size_t s_elem;
@@ -143,19 +181,29 @@ typedef struct s_Action {
 	void (*freeArg)(void *);
  /*!< Routine to free each arg.*/
 	char *message;
- /*!< Action message to print at launch and when it finished.*/
+ /*!< Action message to print at launch and when it finishes.*/
 } Action;
 
 /**
- * \struct s_InternalThreadArg
- * \brief Internal part of thread argument.
+ * \fn Threads *CreateThreads(uint_fast32_t N)
+ * \brief Create threads.
+ *
+ * \param N Number of threads to be created.
+ * \return Newly-allocated threads structure.
  */
-typedef struct s_InternalThreadArg {
-	sig_atomic_t *cancel;
- /*!< Used by thread to receive cancelation request.*/
-	sig_atomic_t progress;
- /*!< Should be maintained up-to-date by thread to give an hint on its progress (value between 0 and 100).*/
-} InternalThreadArg;
+Threads *CreateThreads(uint_fast32_t N);
+
+/**
+ * \fn void DestroyThreads(Threads *threads)
+ * \brief Destroy threads.
+ *
+ * Threads should not be busy.
+ * Function is blocking, i.e. will wait for threads to
+ * finish before destroying them.
+ *
+ * \param threads Threads structure to destroy and free.
+ */
+void DestroyThreads(Threads *threads);
 
 /**
  * \fn Action *DoNothingAction()
@@ -168,84 +216,83 @@ typedef struct s_InternalThreadArg {
 Action *DoNothingAction();
 
 /**
- * \fn Action *LaunchThreads(const char *message, uint_fast32_t N, const void *args, size_t s_elem, void *(*routine)(void *), void (*freeArg)(void *))
- * \brief Create several threads..
+ * \fn Action *LaunchAction(const char *message, Threads *threads, uint_fast32_t nbThreadsNeeded, const void *args, size_t s_elem, void *(*routine)(void *), void (*freeArg)(void *))
+ * \brief Launch action (non-blocking).
  *
  * args is copied.
  * Note that arguments passed to the thread routine are not
  * exactly those passed to the function :
- * A pointer to a InternalThreadArg is added at the beginning of the
- * argument, which should be used to handle cancelation requests and
+ * A ThreadArgHeader structure is added at the beginning of the
+ * argument, which should be used to handle cancellation requests and
  * action progress.
  * The remaining bytes are the 'real' argument.
  * Free argument routine will be called for each argument when action
- * finished to free its data (can be NULL if arguments contain
- * no dynamically allocated data).
+ * is freed (can be NULL if arguments contain no dynamically
+ * allocated data).
  *
  * \param message Action message to print at launch and when action finishes.
- * \param N Number of threads to create.
+ * \param threads Threads that will be used to execute action.
+ * \param nbThreadsNeeded Number of threads needed to launch action (must be <= number of threads).
  * \param args Pointer to array of arguments for threads routines.
  * \param s_elem Size of one argument (in bytes).
  * \param routine Threads routine.
  * \param freeArg Routine to free each argument.
  * \return Corresponding newly-allocated action.
  */
-Action *LaunchThreads(const char *message, uint_fast32_t N, const void *args, size_t s_elem,
-			void *(*routine)(void *), void (*freeArg)(void *));
+Action *LaunchAction(const char *message, Threads *threads, uint_fast32_t nbThreadsNeeded,
+			const void *args, size_t s_elem, void *(*routine)(void *),
+			void (*freeArg)(void *));
 
 /**
- * \fn int WaitForFinished(Action *action)
- * \brief Wait for action to finish (normally of after cancelation).
+ * \fn int LaunchActionBlocking(const char *message, Threads *threads, uint_fast32_t nbThreadsNeeded, const void *args, size_t s_elem, void *(*routine)(void *), void (*freeArg)(void *))
+ * \brief Launch action and wait for it to finish (blocking).
+ *
+ * \see LaunchAction
+ *
+ * \param message Action message to print at launch and when action finishes.
+ * \param threads Threads that will be used to execute action.
+ * \param nbThreadsNeeded Number of threads needed to launch action (must be <= number of threads).
+ * \param args Pointer to array of arguments for threads routines.
+ * \param s_elem Size of one argument (in bytes).
+ * \param routine Threads routine.
+ * \param freeArg Routine to free each argument.
+ * \return Action return value (0 if finished normally, 1 if cancelled);
+ */
+int LaunchActionBlocking(const char *message, Threads *threads, uint_fast32_t nbThreadsNeeded,
+				const void *args, size_t s_elem, void *(*routine)(void *),
+				void (*freeArg)(void *));
+
+/**
+ * \fn int ActionIsFinished(Action *action)
+ * \brief Test if action is finished.
+ *
+ * \param action Action to be tested.
+ * \return 1 if action is finished, 0 otherwise.
+ */
+int ActionIsFinished(Action *action);
+
+/**
+ * \fn int GetActionResult(Action *action)
+ * \brief Get action result (blocking, till action is finished).
  *
  * Calls free arguments routine on each argument to free resources.
  * Does nothing if WaitForFinished was already
  * called for this action (i.e. if threads were already joined).
  *
  * \param action Action to finish.
- * \return 0 if action finished normally, 1 if it was canceled.
+ * \return 0 if action finished normally, 1 if it was cancelled.
  */
-int WaitForFinished(Action *action);
-
-/**
- * \fn int LaunchThreadsAndWaitForFinished(const char *message, uint_fast32_t N, const void *args, size_t s_elem, void *(*routine)(void *), void (*freeArg)(void *))
- * \brief Create several threads and wait for them to end.
- *
- * args array is copied. If it was dynamically allocated by
- * caller, do not forget to free it (it can be freed directly
- * after launching threads, since it is copied).
- * Note that arguments passed to the thread routine are not
- * exactly those passed to the function :
- * A pointer to a InternalThreadArg is added at the beginning
- * of the argument, which should be used to handle cancel
- * requests and action progress.
- * The sig_atomic_t pointed by it is changed to 1 if a cancel
- * request was made.
- * The remaining bytes are the 'real' argument.
- * Free argument routine will be called for each argument when
- * action finishes.
- *
- * \param message Message to be printed at launch and when action finishes.
- * \param N Number of threads to create.
- * \param args Pointer to array of arguments for thread routines.
- * \param s_elem Size of one argument (in bytes).
- * \param routine Threads routine.
- * \param freeArg Routine to free each argument.
- * \return 0 if action finished normally, 1 if it was canceled.
- */
-int LaunchThreadsAndWaitForFinished(const char *message, uint_fast32_t N, const void *args, size_t s_elem,
-					void *(*routine)(void *), void (*freeArg)(void *));
+int GetActionResult(Action *action);
 
 /**
  * \fn void CancelAction(Action *action)
- * \brief Send cancelation request to action.
+ * \brief Send cancellation request to action.
  *
  * It is up to the thread routine to take the request into
  * account. \see thread.h
- * Does nothing if threads have already finished
- * (whether WaitForFinished has already been
- * called or not).
+ * Does nothing if action has already finished.
  *
- * \param action Action to send cancelation request to.
+ * \param action Action to send cancellation request to.
  */
 void CancelAction(Action *action);
 
@@ -261,42 +308,32 @@ void CancelAction(Action *action);
 FLOAT GetActionProgress(const Action *action);
 
 /**
- * \fn int CancelActionAndWaitForFinished(Action *action)
- * \brief Send cancelation request to action and wait for it to finish.
- *
- * \param action Action to be canceled.
- * \return 0 if action finished normally, 1 if it was canceled.
- */
-int CancelActionAndWaitForFinished(Action *action);
-
-/**
- * \fn void FreeAction(Action action)
+ * \fn void FreeAction(Action *action)
  * \brief Free action data.
  *
- * Action MUST have already finished (i.e. WaitForFinished must 
- * already have been called) : exit with error otherwise.
+ * Action MUST have already finished : exit with error otherwise.
  *
  * \param action Action to be freed.
  */
-void FreeAction(Action action);
+void FreeAction(Action *action);
 
 /**
- * \fn InternalThreadArg *getInternalThreadArg(const void *arg)
- * \brief Get internal part of thread argument.
+ * \fn ThreadArgHeader *GetThreadArgHeader(const void *arg)
+ * \brief Get header part of thread argument.
  *
  * \param arg Argument passed to thread routine.
- * \return Internal part of thread argument.
+ * \return Header part of thread argument.
  */
-InternalThreadArg *getInternalThreadArg(const void *arg);
+ThreadArgHeader *GetThreadArgHeader(const void *arg);
 
 /**
- * \fn void *getUserThreadArg(const void *arg)
- * \brief Get user-part of thread argument.
+ * \fn void *GetThreadArgBody(const void *arg)
+ * \brief Get body (user) part of thread argument.
  *
  * \param arg Argument passed to thread routine.
- * \return User-part of thread argument (i.e. pointer to argument passed by user when launching threads).
+ * \return Body part of thread argument (i.e. pointer to argument passed by user when launching action).
  */
-void *getUserThreadArg(const void *arg);
+void *GetThreadArgBody(const void *arg);
 
 #ifdef __cplusplus
 }

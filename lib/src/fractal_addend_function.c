@@ -23,19 +23,19 @@
 #include "misc.h"
 #include <string.h>
 
-const char *AddendFunctionStr[] = {
-	(char *)"triangleinequality",
-	(char *)"curvature",
-	(char *)"stripe"
+const char *addendFunctionStr[] = {
+	(const char *)"triangleinequality",
+	(const char *)"curvature",
+	(const char *)"stripe"
 };
 
-const char *AddendFunctionDescStr[] = {
-	(char *)"Triangle inequality",
-	(char *)"Curvature",
-	(char *)"Stripe"
+const char *addendFunctionDescStr[] = {
+	(const char *)"Triangle inequality",
+	(const char *)"Curvature",
+	(const char *)"Stripe"
 };
 
-uint_fast32_t nbAddendFunctions = sizeof(AddendFunctionStr) / sizeof(char *);
+const uint_fast32_t nbAddendFunctions = sizeof(addendFunctionStr) / sizeof(const char *);
 
 int GetAddendFunction(AddendFunction *addendFunction, const char *str)
 {
@@ -51,7 +51,7 @@ int GetAddendFunction(AddendFunction *addendFunction, const char *str)
 
 	uint_fast32_t i;
 	for (i = 0; i < nbAddendFunctions; ++i) {
-		if (strcmp(AFStr, AddendFunctionStr[i]) == 0) {
+		if (strcmp(AFStr, addendFunctionStr[i]) == 0) {
 			*addendFunction = (AddendFunction)i;
 			break;
 		}
