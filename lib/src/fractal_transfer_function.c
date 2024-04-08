@@ -25,6 +25,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+FLOAT logp1F(FLOAT x)
+{
+	return logF(1+x);
+}
+
 FLOAT zeroF(FLOAT x)
 {
 	(void)x;
@@ -52,10 +57,27 @@ FLOAT cubeF(FLOAT x)
 	return x*x*x;
 }
 
-FLOAT logp1F(FLOAT x)
-{
-	return logF(1+x);
-}
+const TransferFunction TransferFunctionsArray[] = {
+	zeroF,
+	logp1F,
+	cubertF,
+	SQRTF,
+	identityF,
+	squareF,
+	cubeF,
+	EXPF
+};
+
+const char *TransferFunctionStr[] = {
+	"zero",
+	"log",
+	"cuberoot",
+	"squareroot",
+	"identity",
+	"square",
+	"cube",
+	"exp"
+};
 
 TransferFunction GetTransferFunction(const char *str)
 {
@@ -68,24 +90,19 @@ TransferFunction GetTransferFunction(const char *str)
 	char TFStr[256];
 	strcpy(TFStr, str);
 	toLowerCase(TFStr);
+	TransferFunction res;
 
-	if (strcmp(TFStr, "zero") == 0) {
-		return zeroF;
-	} else if (strcmp(TFStr, "log") == 0) {
-		return logp1F;
-	} else if (strcmp(TFStr, "cuberoot") == 0) {
-		return cubertF;
-	} else if (strcmp(TFStr, "squareroot") == 0) {
-		return SQRTF;
-	} else if (strcmp(TFStr, "identity") == 0) {
-		return identityF;
-	} else if (strcmp(TFStr, "square") == 0) {
-		return squareF;
-	} else if (strcmp(TFStr, "cube") == 0) {
-		return cubeF;
-	} else if (strcmp(TFStr, "exp") == 0) {
-		return EXPF;
-	} else {
+	uint_fast32_t i;
+	uint_fast32_t nb_elem = sizeof(TransferFunctionStr) / sizeof(char *);
+	for (i = 0; i < nb_elem; ++i) {
+		if (strcmp(TFStr, TransferFunctionStr[i]) == 0) {
+			res = TransferFunctionsArray[i];
+			break;
+		}
+	}
+	if (i == nb_elem) {
 		error("Unknown transfer function \'%s\'.\n", str);
 	}
+
+	return res;
 }

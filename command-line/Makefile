@@ -10,10 +10,11 @@ UNAME := $(shell uname)
 CC            = gcc
 LD            = gcc
 
-FLOAT_PRECISION = 1
 CFLAGS        = -std=c99 -pedantic -Wall -Wextra
+ifdef FLOAT_PRECISION
 CFLAGS       += -DFLOAT_PRECISION=$(FLOAT_PRECISION)
-#DEBUG     = true
+endif
+
 ifdef DEBUG
 	CFLAGS += -Werror -O0
 else

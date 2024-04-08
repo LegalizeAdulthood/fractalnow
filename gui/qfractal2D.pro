@@ -7,7 +7,11 @@ DEPENDPATH += . include src
 INCLUDEPATH += . include $$FRACTALLIBPATH/include
 CONFIG += staticlib
 LIBS += -L$$FRACTALLIBPATH -lfractal2D
-QMAKE_CXXFLAGS += -D__STDC_FORMAT_MACROS
+DEFINES += __STDC_FORMAT_MACROS
+!isEmpty(FLOAT_PRECISION) {
+DEFINES += FLOAT_PRECISION=$$FLOAT_PRECISION
+}
+#QMAKE_CXXFLAGS += -D__STDC_FORMAT_MACROS -DFLOAT_PRECISION=FLOAT_PRECISION
 
 # Input
 HEADERS += include/help.h include/command_line.h include/image_label.h include/main.h include/main_window.h

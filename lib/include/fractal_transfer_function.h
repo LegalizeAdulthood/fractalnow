@@ -43,6 +43,18 @@ extern "C" {
 typedef FLOAT (*TransferFunction)(FLOAT x);
 
 /**
+ * \var TransferFunctionsArray
+ * \brief Array of implemented counting functions.
+ */
+extern const TransferFunction TransferFunctionsArray[];
+
+/**
+ * \var TransferFunctionStr
+ * \brief Strings of transfer functions.
+ */
+extern const char *TransferFunctionStr[];
+
+/**
  * \fn TransferFunction GetTransferFunction(const char *str)
  * \brief Get transfer function from string.
  *

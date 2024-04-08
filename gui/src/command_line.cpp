@@ -1,5 +1,5 @@
 /*
- *  command_line.cpp -- part of qfractal2D
+ *  command_line.cpp -- part of fractal2D
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *

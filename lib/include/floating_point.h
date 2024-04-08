@@ -42,7 +42,7 @@ extern "C" {
  * \see FLOAT for more details.
  */
 #ifndef FLOAT_PRECISION
-	#define FLOAT_PRECISION 1
+#define FLOAT_PRECISION 1
 #endif
 
 /**
@@ -72,6 +72,26 @@ extern "C" {
 	#define LOGF logf
 	#define SQRTF sqrtf
 	#define EXPF expf
+#elif FLOAT_PRECISION == 1
+	#define FLOAT double
+	#define PRIFLOAT ".*lG"
+	#define SCNFLOAT "lf"
+	#define FLOAT_DIG DBL_DIG
+	#define fabsF(x) fabs(x)
+	#define cabsF(z) cabs(z)
+	#define crealF(z) creal(z)
+	#define cimagF(z) cimag(z)
+	#define cpowF(z,y) cpow(z,y)
+	#define roundF(x) round(x)
+	#define floorF(x) floor(x)
+	#define powF(x,y) pow(x,y)
+	#define fmaxF(x,y) fmax(x,y)
+	#define modfF(x,y) modf(x,y)
+	#define logF(x) log(x)
+	#define sqrtF(x) sqrt(x)
+	#define LOGF log
+	#define SQRTF sqrt
+	#define EXPF exp
 #elif FLOAT_PRECISION == 2
 	#define FLOAT long double
 	#define PRIFLOAT ".*LG"
@@ -93,25 +113,7 @@ extern "C" {
 	#define SQRTF sqrtl
 	#define EXPF expl
 #else
-	#define FLOAT double
-	#define PRIFLOAT ".*lG"
-	#define SCNFLOAT "lf"
-	#define FLOAT_DIG DBL_DIG
-	#define fabsF(x) fabs(x)
-	#define cabsF(z) cabs(z)
-	#define crealF(z) creal(z)
-	#define cimagF(z) cimag(z)
-	#define cpowF(z,y) cpow(z,y)
-	#define roundF(x) round(x)
-	#define floorF(x) floor(x)
-	#define powF(x,y) pow(x,y)
-	#define fmaxF(x,y) fmax(x,y)
-	#define modfF(x,y) modf(x,y)
-	#define logF(x) log(x)
-	#define sqrtF(x) sqrt(x)
-	#define LOGF log
-	#define SQRTF sqrt
-	#define EXPF exp
+#error "FLOAT_PRECISION should be either 0 (float), 1 (double) or 2 (long double)."
 #endif
 
 #ifdef __cplusplus

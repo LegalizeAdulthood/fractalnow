@@ -23,6 +23,11 @@
 #include "misc.h"
 #include <string.h>
 
+const char *ColoringMethodStr[] = {
+	(char *)("simple"),
+	(char *)("average")
+};
+
 ColoringMethod GetColoringMethod(const char *str)
 {
 	int len = strlen(str);
@@ -35,11 +40,15 @@ ColoringMethod GetColoringMethod(const char *str)
 	toLowerCase(CMStr);
 	ColoringMethod res;
 
-	if (strcmp(CMStr, "simple") == 0) {
-		res = CM_SIMPLE;
-	} else if (strcmp(CMStr, "average") == 0) {
-		res = CM_AVERAGE;
-	} else {
+	uint_fast32_t i;
+	uint_fast32_t nb_elem = sizeof(ColoringMethodStr) / sizeof(char *);
+	for (i = 0; i < nb_elem; ++i) {
+		if (strcmp(CMStr, ColoringMethodStr[i]) == 0) {
+			res = (ColoringMethod)i;
+			break;
+		}
+	}
+	if (i == nb_elem) {
 		error("Unknown coloring method \'%s\'.\n", str);
 	}
 

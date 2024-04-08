@@ -23,8 +23,8 @@
 #include "misc.h"
 #include <string.h>
 
-char *AddendFunctionStr[] = {
-	(char *)("TRIANGLEINEQUALITY")
+const char *AddendFunctionStr[] = {
+	(char *)("triangleinequality")
 };
 
 AddendFunction GetAddendFunction(const char *str)
@@ -39,9 +39,15 @@ AddendFunction GetAddendFunction(const char *str)
 	toLowerCase(AFStr);
 	AddendFunction res;
 
-	if (strcmp(AFStr, "triangleinequality") == 0) {
-		res = AF_TRIANGLEINEQUALITY;
-	} else {
+	uint_fast32_t i;
+	uint_fast32_t nb_elem = sizeof(AddendFunctionStr) / sizeof(char *);
+	for (i = 0; i < nb_elem; ++i) {
+		if (strcmp(AFStr, AddendFunctionStr[i]) == 0) {
+			res = (AddendFunction)i;
+			break;
+		}
+	}
+	if (i == nb_elem) {
 		error("Unknown addend function \'%s\'.\n", str);
 	}
 

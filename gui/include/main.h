@@ -1,5 +1,5 @@
 /*
- *  main.h -- part of qfractal2D
+ *  main.h -- part of fractal2D
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *

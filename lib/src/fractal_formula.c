@@ -1,5 +1,5 @@
 /*
- *  help.h -- part of fractal2D
+ *  fractal_formula.c -- part of fractal2D
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -18,26 +18,45 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
  
-#ifndef __HELP_H__
-#define __HELP_H__
+#include "fractal_formula.h"
+#include "error.h"
+#include "misc.h"
+#include <string.h>
 
-#include <cstdio>
-
- //! To print help on the command line.
-class Help
-{
-	public:
-	 //! Print program help.
-	static void Print();
+const char *FractalFormulaStr[] = {
+	"mandelbrot",
+	"mandelbrotp",
+	"julia",
+	"juliap",
+	"rudy"
 };
 
-#define invalid_use_error(...) \
-        if (debug) { \
-            printf("[%s: %s, l.%d] ", __FILE__, __func__, __LINE__); \
-        } \
-        printf("Invalid use : "); \
-	printf(__VA_ARGS__); \
-	Help::Print(); \
-        exit(EXIT_FAILURE)
+FractalFormula GetFractalFormula(const char *str)
+{
+	size_t len = strlen(str);
 
-#endif
+	if (len > 255) {
+		error("Unknown fractal formula \'%s\'.\n", str);
+	}
+
+	FractalFormula res;
+	char FFStr[256];
+	strcpy(FFStr, str);
+	toLowerCase(FFStr);
+
+	uint_fast32_t i;
+	uint_fast32_t nb_elem = sizeof(FractalFormulaStr) / sizeof(char *);
+	for (i = 0; i < nb_elem; ++i) {
+		if (strcmp(FFStr, FractalFormulaStr[i]) == 0) {
+			res = (FractalFormula)i;
+			break;
+		}
+	}
+
+	if (i == nb_elem) {
+		error("Unknown fractal formula \'%s\'.\n", str);
+	}
+
+	return res;
+}
+

@@ -58,6 +58,12 @@ typedef enum e_ColoringMethod {
 } ColoringMethod;
 
 /**
+ * \var ColoringMethodStr
+ * \brief Strings of coloring method enum values.
+ */
+extern const char *ColoringMethodStr[];
+
+/**
  * \fn ColoringMethod GetColoringMethod(const char *str)
  *
  * Function is case insensitive.

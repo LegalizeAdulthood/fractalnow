@@ -94,36 +94,6 @@ void InitFractal2(Fractal *fractal, FractalFormula fractalFormula, FLOAT p, FLOA
 	aux_InitFractal(fractal, fractalFormula, p, c, escapeRadius, maxIter);
 }
 
-FractalFormula GetFractalFormula(const char *str)
-{
-	size_t len = strlen(str);
-
-	if (len > 255) {
-		error("Unknown fractal type \'%s\'.\n", str);
-	}
-
-	FractalFormula res;
-	char FTStr[256];
-	strcpy(FTStr, str);
-	toLowerCase(FTStr);
-
-	if (strcmp(FTStr, "mandelbrot") == 0) {
-		res = FRAC_MANDELBROT;
-	} else if (strcmp(FTStr, "mandelbrotp") == 0) {
-		res = FRAC_MANDELBROTP;
-	} else if (strcmp(FTStr, "julia") == 0) {
-		res = FRAC_JULIA;
-	} else if (strcmp(FTStr, "juliap") == 0) {
-		res = FRAC_JULIAP;
-	} else if (strcmp(FTStr, "rudy") == 0) {
-		res = FRAC_RUDY;
-	} else {
-		error("Unknown fractal type \'%s\'.\n", str);
-	}
-
-	return res;
-}
-
 void ReadFractalFile(Fractal *fractal, const char *fileName)
 {
 	info(T_NORMAL, "Reading fractal file...\n");

@@ -10,11 +10,13 @@ CC        = gcc
 LD        = gcc
 AR        = ar
 
-FLOAT_PRECISION = 1
 ARFLAGS = -r -c -s
+
 CFLAGS    = -std=c99 -pedantic -Wall -Wextra
+ifdef FLOAT_PRECISION
 CFLAGS   += -DFLOAT_PRECISION=$(FLOAT_PRECISION)
-#DEBUG     = true
+endif
+
 ifdef DEBUG
 	CFLAGS += -Werror -O0
 else
@@ -28,6 +30,7 @@ OBJECTS = \
 	$(OBJDIR)/fractal_addend_function.o \
 	$(OBJDIR)/fractal_coloring.o \
 	$(OBJDIR)/fractal_counting_function.o \
+	$(OBJDIR)/fractal_formula.o \
 	$(OBJDIR)/error.o \
 	$(OBJDIR)/fractal_loop.o \
 	$(OBJDIR)/fractal_rendering_parameters.o \

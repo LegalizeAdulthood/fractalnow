@@ -1,5 +1,5 @@
 /*
- *  help.cpp -- part of qfractal2D
+ *  help.cpp -- part of fractal2D
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *

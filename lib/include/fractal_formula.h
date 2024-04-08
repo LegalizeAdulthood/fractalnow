@@ -31,6 +31,9 @@
 extern "C" {
 #endif
 
+#include "floating_point.h"
+#include <stdint.h>
+
 /**
  * \enum e_FractalFormula
  * \brief Fractal formula.
@@ -47,6 +50,12 @@ typedef enum e_FractalFormula {
 	FRAC_RUDY
  /*!< Rudy fractal (with custom p parameter).*/
 } FractalFormula;
+
+/**
+ * \var FractalFormulaStr
+ * \brief Strings of fractal formulas.
+ */
+extern const char *FractalFormulaStr[];
 
 /**
  * \fn FractalFormula GetFractalFormula(const char *str)

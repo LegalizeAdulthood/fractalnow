@@ -61,9 +61,9 @@ typedef enum e_AddendFunction {
 
 /**
  * \var AddendFunctionStr
- * \brief Strings for addend function enum values.
+ * \brief Strings of addend function enum values.
  */
-extern char *AddendFunctionStr[];
+extern const char *AddendFunctionStr[];
 
 /**
  * \fn AddendFunction GetAddendFunction(const char *str)

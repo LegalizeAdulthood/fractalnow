@@ -25,7 +25,7 @@
 #include <string.h>
 
 /* Assumes rN < escapeRadius */
-FLOAT discreteIterationCount(Fractal *fractal, uint_fast32_t N, FLOAT rN)
+FLOAT DiscreteIterationCount(Fractal *fractal, uint_fast32_t N, FLOAT rN)
 {
 	(void)rN;
 	(void)fractal;
@@ -34,16 +34,28 @@ FLOAT discreteIterationCount(Fractal *fractal, uint_fast32_t N, FLOAT rN)
 }
 
 /* Assumes rN < escapeRadius */
-FLOAT continuousIterationCount(Fractal *fractal, uint_fast32_t N, FLOAT rN)
+FLOAT ContinuousIterationCount(Fractal *fractal, uint_fast32_t N, FLOAT rN)
 {
 	return N+(fractal->escapeRadiusP-rN)/(fractal->escapeRadiusP-fractal->escapeRadius);
 }
 
 /* Assumes rN < escapeRadius */
-FLOAT smoothIterationCount(Fractal *fractal, uint_fast32_t N, FLOAT rN)
+FLOAT SmoothIterationCount(Fractal *fractal, uint_fast32_t N, FLOAT rN)
 {
 	return N+1+logF(fractal->logEscapeRadius/logF(rN))/fractal->logP;
 }
+
+const CountingFunction CountingFunctionsArray[] = {
+	DiscreteIterationCount,
+	ContinuousIterationCount,
+	SmoothIterationCount
+};
+
+const char *CountingFunctionStr[] = {
+	"discrete",
+	"continuous",
+	"smooth"
+};
 
 CountingFunction GetCountingFunction(const char *str)
 {
@@ -52,17 +64,23 @@ CountingFunction GetCountingFunction(const char *str)
 		error("Unknown counting function \'%s\'.\n", str);
 	}
 
-	char ICStr[256];
-	strcpy(ICStr, str);
-	toLowerCase(ICStr);
+	char CFStr[256];
+	strcpy(CFStr, str);
+	toLowerCase(CFStr);
+	CountingFunction res;
 
-	if (strcmp(ICStr, "discrete") == 0) {
-		return discreteIterationCount;
-	} else if (strcmp(ICStr, "continuous") == 0) {
-		return continuousIterationCount;
-	} else if (strcmp(ICStr, "smooth") == 0) {
-		return smoothIterationCount;
-	} else {
+	uint_fast32_t i;
+	uint_fast32_t nb_elem = sizeof(CountingFunctionStr) / sizeof(char *);
+	for (i = 0; i < nb_elem; ++i) {
+		if (strcmp(CFStr, CountingFunctionStr[i]) == 0) {
+			res = CountingFunctionsArray[i];
+			break;
+		}
+	}
+	if (i == nb_elem) {
 		error("Unknown counting function \'%s\'.\n", str);
 	}
+
+	return res;
 }
+

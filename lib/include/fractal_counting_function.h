@@ -51,6 +51,18 @@ struct s_Fractal;
 typedef FLOAT (*CountingFunction)(struct s_Fractal *fractal, uint_fast32_t N, FLOAT rN);
 
 /**
+ * \var CountingFunctionsArray
+ * \brief Array of implemented counting functions.
+ */
+extern const CountingFunction CountingFunctionsArray[];
+
+/**
+ * \var CountingFunctionStr
+ * \brief Strings of counting functions.
+ */
+extern const char *CountingFunctionStr[];
+
+/**
  * \fn CountingFunction GetCountingFunction(const char *str)
  * \brief Get counting function from string.
  *
