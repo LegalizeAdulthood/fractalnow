@@ -1,0 +1,66 @@
+Rendering file syntax :
+
+BYTES_PER_COMPONENT
+SPACE_COLOR
+COUNTING_ALGORITHM
+COLORING_METHOD [ADDEND_FUNCTION INTERPOLATION_METHOD]
+COLOR_SCALING COLOR_OFFSET NB_TRANSITIONS
+Color1 ... ColorN
+
+BYTES_PER_COMPONENT specifies the number of bytes per component used for colors. It can be :
+ - 1 for RGB8 (8 bits per component)
+ - 2 for RGB16 (16 bits per component)
+
+SPACE_COLOR specifies the color of points inside fractal.
+
+COUNTING_ALGORITHM can be :
+ - DISCRETE for discrete iteration count (simply the number of iterations).
+ - CONTINUOUS for continuous iteration count
+ - SMOOTH for smooth iteration count
+
+COLORING_METHOD can be :
+ - SIMPLE : the value returned by the counting algorithm is directly used
+ - AVERAGE : average sum(s) is/are computed using the specified addend function and possibly the counting algorithm.
+
+ADDEND_FUNCTION and INTERPOLATION_METHOD are only needed for AVERAGE coloring method, and should *not* be specified for SIMPLE coloring method.
+
+ADDEND_FUNCION can be :
+ - TRIANGLEINEQUALITY, which uses the counting algorithm to compute the average sums
+
+INTERPOLATION_METHOD can be :
+ - NONE : only 1 average sum is computed and is directly used
+ - LINEAR : 2 average sums are computed and interpolated linearly to produce one value
+ - SPLINE : 4 average sums are computed and interpolated using polynomials to produce one value
+
+TRANSFER_FUNCTION specifies the transfer function to apply to the (nearly) final value, in order to map it better to the gradient. It can be :
+ - LOG for logarithm (base e)
+ - SQUAREROOT for square root
+ - CUBEROOT for cube root
+ - IDENTITY for identity function (value unchanged)
+ - SQUARE for square
+ - CUBE for cube
+ - EXP for exponential
+
+COLOR_SCALING specifies a (floating point) multiplicand to be applied after transfer function, again to fit better to the gradient.
+
+COLOR_OFFSET specifies a (floating point) addend to be applied after multiplicand, again, to fit better to the gradient.
+
+NB_TRANSITIONS is an integer specifying the number of color transitions between two colors in gradient. This parameter may disappear in future versions. The bigger the number of transitions the smoother the gradient will be.
+
+COLORi : colors composing gradient.
+
+Colors must be specified as hexadecimal numbers. Red, green, and blue are respectively the 1st, 2nd and 3rd component.
+Some RGB8 color examples :
+- 0x0 for black
+- 0xFF for blue
+- 0xFF00 for green
+- 0xFF0000 for red
+- 0xFFFFFF for white
+Some RGB16 color examples :
+- 0x0 for black
+- 0xFFFF for blue
+- 0xFFFF0000 for green
+- 0xFFFF00000000 for red
+- 0xFFFFFFFFFFFF for white
+
+In order for the gradient not to be discontinuous, the first and last color should be the same, for example 0x0 0xFFFFFF 0x0 for a black and white continuous gradient.
