@@ -615,8 +615,8 @@ void MainWindow::aboutQFractalNow()
 {
 	QString applicationName(QApplication::applicationName());
 	QString applicationVersion(QApplication::applicationVersion());
-	QString homepage = "<a href=\"http://sourceforge.net/projects/fractalnow/\">"
-				"sourceforge.net/projects/fractalnow</a>";
+	QString homepage = "<a href=\"http://fractalnow.source.net\">"
+				"fractalnow.sourceforge.net</a>";
 
 	QString title(tr("About %1 %2").arg(applicationName).arg(applicationVersion));
 	QString message;

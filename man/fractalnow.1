@@ -1,0 +1,113 @@
+.TH "FRACTALNOW" "1" "2012-07-11" "FractalNow" "Fractal generator"
+.SH NAME
+fractalnow \- Generate fractal images.
+.SH SYNOPSYS
+.B fractalnow
+[OPTIONS] \-c <Config> [\-x <Width>|\-y <Height>] \-o <Output>
+.
+.br
+.B fractalnow
+[OPTIONS] \-f <Fractal> \-r <Rendering> [\-x <Width>|\-y <Height>] \-o <Output>
+.SH DESCRIPTION
+FractalNow is a command line tool that generates pictures of fractals
+as Portable PixMap (PPM) files.
+.br
+It is multi-threaded and implements advanced algorithms and heuristics that
+make computation very fast compared to most existing free fractal generators.
+.br
+See QFractalNow, a graphical tool to explore fractals.
+.SH OPTIONS
+.TP
+.B \-h
+Print help.
+.
+.TP
+.B \-q
+Quiet mode, only errors are displayed.
+.
+.TP
+.B \-v
+Verbose mode.
+.
+.TP
+.B \-j <NbThreads>
+Specify number of threads (see help for default value).
+.
+.TP
+.B \-g <GradientFile>
+Specify gradient file, overriding gradient from configuration/
+rendering file.
+.
+.TP
+.B \-l <FloatType>
+Specify float type:
+.RS
+single     Single precision.
+.br
+double     Double precision.
+.br
+ldouble    Long double precision.
+.br
+mp         Multiple precision.
+.RE
+.
+.TP
+.B \-L <MPPrecision>
+Specify precision of Multiple Precision (MP) floats (see help for default value).
+.
+.TP
+.B \-a <AntiAliasingMethod> 
+Specify anti-aliasing method:
+.RS
+none          By default.
+.br
+blur          Gaussian blur.
+.br
+oversampling  Oversampling.
+.br
+adaptive      Smart oversampling.
+.RE
+.
+.TP
+.B \-s <AAMSize>
+Specify size for anti-aliasing:
+.RS
+Radius for blur (values in [2.5, 4] are generally good).
+.br
+Scale factor for oversampling ([3, 5] is good for a high quality image).
+.br
+Scale factor for adaptive (integers between 3-5 are good for a high quality image).
+.RE
+.
+.TP
+.B \-p <AAMThreshold>
+Threshold for adaptive anti-aliasing (see help for default value).
+.
+.TP
+.B \-i <QuadSize>
+Maximum size of quadrilaterals for linear interpolation.
+.RS
+Default is good for no visible loss of quality (see help for default value).
+.br
+1 means no interpolation (all pixels are computed).
+.RE
+.
+.TP
+.B \-t <Threshold>
+Dissimilarity threshold for quad interpolation.
+.RS
+Default is good for no visible loss of quality (see help for default value).
+.br
+A quadrilateral that shows too dissimilar values at its corners will be computed, 
+as opposed to interpolated.
+.RE
+.SH AUTHOR
+FractalNow was written by Marc Pegon <pe.marc@free.fr>.
+.SH COPYRIGHT
+FractalNow is licensed under the terms of the GNU Lesser General Public License,
+Version 3 or any later version published by the Free Software Foundation.
+.SH "SEE ALSO"
+QFractalNow manual page.
+.br
+Documentation files describing configuration, fractal, rendering and gradient
+files formats.

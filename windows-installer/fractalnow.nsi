@@ -39,7 +39,7 @@
 
 !define INSTALLER_NAME "${PROJECT_SIMPLE_NAME}-${VERSION}.exe"
 
-!define VERSION "0.8.0"
+!define VERSION "0.8.1"
 
 !include "languages\${PROJECT_SIMPLE_NAME}_en.nsh"
 
@@ -116,9 +116,9 @@ Section "${PROJECT_PRETTY_NAME}"
   WriteRegStr HKLM "${UNINST_KEY}" "UninstallString" '"$INSTDIR\uninstall.exe"'
   WriteRegStr HKLM "${UNINST_KEY}" "InstallLocation" "$INSTDIR"
   WriteRegStr HKLM "${UNINST_KEY}" "Publisher" "Marc Pegon"
-  WriteRegStr SHCTX "${UNINST_KEY}" "HelpLink" "http://sourceforge.net/projects/fractalnow/"
-  WriteRegStr SHCTX "${UNINST_KEY}" "URLInfoAbout" "http://sourceforge.net/projects/fractalnow/"
-  WriteRegStr SHCTX "${UNINST_KEY}" "URLUpdateInfo" "http://sourceforge.net/projects/fractalnow/"
+  WriteRegStr SHCTX "${UNINST_KEY}" "HelpLink" "http://fractalnow.sourceforge.net"
+  WriteRegStr SHCTX "${UNINST_KEY}" "URLInfoAbout" "http://fractalnow.sourceforge.net"
+  WriteRegStr SHCTX "${UNINST_KEY}" "URLUpdateInfo" "http://fractalnow.sourceforge.net"
   WriteRegDWORD HKLM "${UNINST_KEY}" "NoModify" 1
   WriteRegDWORD HKLM "${UNINST_KEY}" "NoRepair" 1
   WriteUninstaller "uninstall.exe"

@@ -76,6 +76,7 @@ FractalRenderingWidget::FractalRenderingWidget(const RenderingParameters &render
 	colorOffsetSpinBox = new QDoubleSpinBox;
 	colorOffsetSpinBox->setDecimals(6);
 	colorOffsetSpinBox->setRange(0, 1);
+	colorOffsetSpinBox->setWrapping(true);
 	colorOffsetSpinBox->setSingleStep(0.01);
 	colorOffsetSpinBox->setValue(render.offset);
 	colorOffsetSpinBox->setAccelerated(true);

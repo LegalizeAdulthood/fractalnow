@@ -1,7 +1,7 @@
 /*
  *  color.c -- part of FractalNow
  *
- *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
+ *  Copyright (c) 2011-2012 Marc Pegon <pe.marc@free.fr>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by

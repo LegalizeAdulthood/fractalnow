@@ -1,6 +1,6 @@
 #!/bin/bash
 
-version_number="0.8"
+version_number="0.8.1"
 
 win32=`uname -o | grep -i "msys\|cygwin\|mingw"`
 if test -n "${win32}"; then
@@ -123,28 +123,6 @@ else
 fi;
 
 if test -n "${win32}"; then
-	# Those DLLs are probably needed (not sure though, depending
-	# on mingw/cygwin install) -> Better let the user add needed
-	# DLLs manually.
-	#which_gcc=`which gcc 2>/dev/null`
-	#if test -n "${which_gcc}"; then
-	#	gnu_bin_dir=`dirname "${which_gcc}"`
-	#	libgcc=`ls "${gnu_bin_dir}" | grep 'libgcc.*\.dll'`
-	#	if test -f "${gnu_bin_dir}/${libgcc}"; then
-	#		libgcc_dll="${libgcc}"
-	#		echo "Found '${libgcc_dll}'."
-	#	fi
-	#	libpthread=`ls "${gnu_bin_dir}" | grep 'pthread.*\.dll'`
-	#	if test -f "${gnu_bin_dir}/${libpthread}"; then
-	#		libpthread_dll="${libpthread}"
-	#		echo "Found '${libpthread_dll}'."
-	#	fi
-	#	libstdcpp=`ls "${gnu_bin_dir}" | grep 'libstdc++.*\.dll'`
-	#	if test -f "${gnu_bin_dir}/${libstdcpp}"; then
-	#		libstdcpp_dll="${libstdcpp}"
-	#		echo "Found '${libstdcpp_dll}'."
-	#	fi
-	#fi;
 	which_qmake=`which qmake 2>/dev/null`
 	if test -n "${which_qmake}"; then
 		qt_bin_dir=`dirname "${which_qmake}"`
@@ -161,18 +139,21 @@ if test -n "${win32}"; then
 	fi
 fi
 
+#Used for common part of Makefiles
 config="VERSION_NUMBER = ${version_number}
 DEBUG = ${debug}
 SPINLOCK_DEFINE = ${spinlock_define}
 quiet-command = "'$(if $(VERB),$1,$(if $(2),@echo $2 && $1, @$1))
 '
 
+#Generate lib Makefile
 echo "Generating library Makefile..."
 echo "${config}
 TARGET_NAME = ${lib_bin}
 "> "${lib_dir}/Makefile"
 cat "${lib_dir}/Makefile.configure" >> "${lib_dir}/Makefile"
 
+#Generate command-line Makefile
 echo "Generating command-line Makefile..."
 echo "${config}
 TARGET_NAME = ${command_line_name}
@@ -180,6 +161,7 @@ FRACTAL2D_LIB = ${lib_name}
 " > "${command_line_dir}/Makefile"
 cat "${command_line_dir}/Makefile.configure" >> "${command_line_dir}/Makefile"
 
+#Generate gui qmake project file
 echo "Generating gui qmake project file..."
 echo "${config}
 TARGET_NAME = ${gui_name}
@@ -187,6 +169,7 @@ FRACTAL2D_LIB = ${lib_name}
 " > "${gui_dir}/${gui_pro_file}"
 cat "${gui_dir}/${gui_pro_file}.configure" >> "${gui_dir}/${gui_pro_file}"
 
+#Run qmake
 echo "Running qmake..."
 qmake -makefile "${gui_dir}/${gui_pro_file}" -o "${gui_dir}/Makefile" 2>/dev/null
 if test $? -ne 0; then
@@ -194,7 +177,9 @@ if test $? -ne 0; then
 	exit 1
 fi;
 
+#Generate main Makefile
 echo "Generating main Makefile..."
+#Set variables for installing/uninstalling
 echo "${config}
 PROJECT_NAME = ${project_name}
 LIB_DIR = ${lib_dir}
@@ -210,44 +195,19 @@ GUI_PRO_FILE = ${gui_pro_file}
 DOC_DIR = ${doc_dir}
 EXAMPLES_DIR = ${examples_dir}
 GENERATE_SAMPLES_SCRIPT = ${generate_samples_script}
-PREFIX = ${prefix}
-SPINLOCK_FLAG = ${no_spinlock}" > Makefile
+PREFIX = ${prefix}" > Makefile
 
+#Set specific variable for installing Qt DLLs on WIndows
 if test -n "${win32}"; then
 echo "
 GNU_BIN_DIR = ${gnu_bin_dir}
 QT_BIN_DIR = ${qt_bin_dir}
 QTCORE4_DLL = ${qtcore4_dll}
 QTGUI4_DLL = ${qtgui4_dll}" >> Makefile
-#LIBGCC_DLL = ${libgcc_dll}
-#LIBPTHREAD_DLL = ${libpthread_dll}
-#LIBSTDCPP_DLL = ${libstdcpp_dll}
 fi
 
-echo '
-DEL_FILE      = rm -f
-CHK_DIR_EXISTS= test -d
-MKDIR         = mkdir -p
-COPY          = cp -fp
-COPY_FILE     = $(COPY)
-COPY_DIR      = $(COPY) -r
-INSTALL_FILE  = install -m 644 -p
-INSTALL_PROGRAM = install -m 755 -p
-STRIP_BINARY  = strip --remove-section=.comment --remove-section=.note
-INSTALL_DIR   = $(COPY_DIR)
-DEL_FILE      = rm -f
-SYMLINK       = ln -f -s
-DEL_EMPTY_DIR = rmdir --ignore-fail-on-non-empty
-DEL_DIR       = rm -rf
-MOVE          = mv -f
-CHK_DIR_EXISTS= test -d
-MKDIR         = mkdir -p
-' >> Makefile
+#Define main commands to installing/uninstalling
 cat Makefile.configure >> Makefile
-echo '
-Makefile: configure Makefile.configure ${LIB_DIR}/Makefile.configure ${COMMAND_LINE_DIR}/Makefile.configure ${GUI_DIR}/${GUI_PRO_FILE}.configure
-	./config.status
-' >> Makefile
 
 if test -z "${win32}"; then
 	echo 'install: all
@@ -352,15 +312,6 @@ else
 	echo '	$(INSTALL_PROGRAM) "${GENERATE_SAMPLES_SCRIPT}" "${PREFIX}/${PROJECT_NAME}/"
 	$(INSTALL_DIR) "${DOC_DIR}" "${PREFIX}/${PROJECT_NAME}/"
 	$(INSTALL_DIR) "${EXAMPLES_DIR}" "${PREFIX}/${PROJECT_NAME}/"' >> Makefile
-#	if test -n "${libgcc_dll}"; then
-#		echo '	$(INSTALL_FILE) "${GNU_BIN_DIR}/${LIBGCC_DLL}" "${PREFIX}/${PROJECT_NAME}/"' >> Makefile
-#	fi
-#	if test -n "${libpthread_dll}"; then
-#		echo '	$(INSTALL_FILE) "${GNU_BIN_DIR}/${LIBPTHREAD_DLL}" "${PREFIX}/${PROJECT_NAME}/"' >> Makefile
-#	fi
-#	if test -n "${libpthread_dll}"; then
-#		echo '	$(INSTALL_FILE) "${GNU_BIN_DIR}/${LIBSTDCPP_DLL}" "${PREFIX}/${PROJECT_NAME}/"' >> Makefile
-#	fi
 	if test -n "${qtcore4_dll}"; then
 		echo '	$(INSTALL_FILE) "${QT_BIN_DIR}/${QTCORE4_DLL}" "${PREFIX}/${PROJECT_NAME}/"' >> Makefile
 	fi
@@ -369,6 +320,7 @@ else
 	fi
 	echo '	$(INSTALL_FILE) "ChangeLog" "${PREFIX}/${PROJECT_NAME}/"' >> Makefile
 	echo '	$(INSTALL_FILE) "README" "${PREFIX}/${PROJECT_NAME}/"' >> Makefile
+
 	echo '
 uninstall:
 	$(DEL_FILE) "${PREFIX}/${PROJECT_NAME}/${COMMAND_LINE_BINARY}"
@@ -376,15 +328,6 @@ uninstall:
 	$(DEL_FILE) "${PREFIX}/${PROJECT_NAME}/${GENERATE_SAMPLES_SCRIPT}"
 	$(DEL_DIR) "${PREFIX}/${PROJECT_NAME}/${DOC_DIR}"
 	$(DEL_DIR) "${PREFIX}/${PROJECT_NAME}/${EXAMPLES_DIR}"' >> Makefile
-#	if test -n "${libgcc_dll}"; then
-#		echo '	$(DEL_FILE) "${PREFIX}/${PROJECT_NAME}/${LIBGCC_DLL}"' >> Makefile
-#	fi
-#	if test -n "${libpthread_dll}"; then
-#		echo '	$(DEL_FILE) "${PREFIX}/${PROJECT_NAME}/${LIBPTHREAD_DLL}"' >> Makefile
-#	fi
-#	if test -n "${libstdcpp_dll}"; then
-#		echo '	$(DEL_FILE) "${PREFIX}/${PROJECT_NAME}/${LIBSTDCPP_DLL}"' >> Makefile
-#	fi
 	if test -n "${qtcore4_dll}"; then
 		echo '	$(DEL_FILE) "${PREFIX}/${PROJECT_NAME}/${QTCORE4_DLL}"' >> Makefile
 	fi
@@ -396,17 +339,6 @@ uninstall:
 	echo '	$(DEL_EMPTY_DIR) "${PREFIX}/${PROJECT_NAME}"' >> Makefile
 	echo '	$(DEL_EMPTY_DIR) "${PREFIX}"' >> Makefile
 fi
-echo '
-distclean: clean
-	make -C ${COMMAND_LINE_DIR} $@
-	make -C ${LIB_DIR} $@
-	make -C ${GUI_DIR} $@
-	$(DEL_FILE) "${LIB_DIR}/Makefile"
-	$(DEL_FILE) "${COMMAND_LINE_DIR}/Makefile"
-	$(DEL_FILE) "${GUI_DIR}/${GUI_NAME}.pro"
-	$(DEL_FILE) Makefile
-	$(DEL_FILE) config.status' >> Makefile
-
 
 echo "#!/bin/bash
 

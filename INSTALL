@@ -3,10 +3,11 @@ Installation
 
 Requirements:
  * Qt 4.7.0 or newer
+ * MPC 0.8 or newer 
+ * MPFR 3.0.0 or newer (consistent with MPC)
+ * GMP library (consistent with MPFR)
 
-Note that while Qt is needed for the graphical tool (QFractalNow), the
-command line tool (FractalNow) requires only a C library with pthread
-support (it is pure ISO C99).
+Note that Qt is only needed for the graphical tool, QFractalNow.
 
 Linux
 =====
@@ -30,18 +31,22 @@ Windows
 
 The easiest way to build FractalNow for Windows is to use MSYS and
 mingw.
-Under MSYS, make sure Qt libraries and programs are in your path as well
-as mingw binaries, and then type:
+Make sure MPC, MPFR, and GMP are correctly installed in your mingw
+directory (most mingw builds do not include them, so you will
+probably have to build them yourself).
+Make sure MSYS is configured correctly to find your mingw 
+installation (run /postinstall/pi.sh if it is not the case).
+Under MSYS, add Qt binary directory to your path, and then type:
 $ ./configure
 $ make
 $ make install
 This will install FractalNow in ./install_dir.
 
 The configure script will normally detect that you are running MSYS on
-Windows and install the needed Qt DLLs (if Qt was not compiled
-statically) as well.
-You may need to add some other DLLs manually (e.g. pthread library if
-dynamically linked).
+Windows and install (i.e. copy) the needed Qt DLLs (if Qt was not
+compiled statically) as well.
+You may have to add some other DLLs manually (e.g. pthread, gmp, 
+mpfr, and mpc libraries if not linked statically).
 
 See configure help for more options:
 $ ./configure -h

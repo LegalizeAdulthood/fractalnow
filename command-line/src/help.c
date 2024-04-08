@@ -26,46 +26,24 @@
 
 void DisplayHelp()
 {
-	printf("fractalnow v%s - Generate fractal images.\n\
-Usage : fractalnow [-h] \n\
-  or \n\
-fractalnow [-q|-v] [-d] [-j <NbThreads>] \n\
-          [-c <ConfigFile>|-f <FractalFile> -r \
-<RenderingFile>] [-g <GradientFile]\n\
-          -o <OutPut> [-x <Width>|-y <Height>]\n\
-	  -l <FloatType> [-L <MPFloatPrecision>]\n\
-	  [-a <AntiAliasingMethod> -s <AAMSize> [-p \
-<AdaptiveAAMThreshold>]] [-i <QuadSize>] [-t <Threshold>]\n\n\
-  -h                       Prints this help.\n\
-  -q                       Quiet mode.\n\
-  -v                       Verbose mode.\n"
+	printf("fractalnow v%s - Generate fractal pictures (raw \
+PPM format).\n\n\
+Usage : fractalnow -h\n\
+  or\n\
+fractalnow [OPTIONS] -c <Config> [-x <Width>|-y <Height>] -o \
+<Output>\n\
+  or\n\
+fractalnow [OPTIONS] -f <Fractal> -r <Rendering> [-x <Width>\
+|-y <Height>] -o <Output>\n\
+\n\
+OPTIONS:\n"
 #ifdef DEBUG
 "  -d                       Debug mode.\n"
 #endif
 "  -j <NbThreads>           Specify number of threads \
 (%"PRIuFAST32" by default).\n\
-  -c <ConfigFile>          Specify configuration file. See \
-documentation for details on configuration files.\n\
-  -f <FractalFile>         Specify fractal file. See \
-documentation for details on fractal files.\n\
-                           If a configuration file was already \
-specified,\n\
-                           fractal file will override \
-overlapping parameters.\n\
-  -r <RenderingFile>       Specify rendering file. See \
-documentation for details on rendering files.\n\
-                           If a configuration file was already \
-specified,\n\
-                           rendering file will override the \
-overlapping parameters.\n\
-  -g <GradientFile>        Specify gradient file. See \
-documentatin for details on gradient file.\n\
-                           If a configuration file and/or a \
-rendering file were already specified,\n\
-                           gradient file will override the \
-overlapping parameters.\n\
-  -o <Output>              Specify output image file (raw PPM).\
-\n\
+  -g <GradientFile>        Specify gradient file, overriding \
+gradient from configuration/rendering file.\n\
   -x <Width>               Specify output image width.\n\
   -y <Height>              Specify output image height.\n\
   -l <FloatType>           Specify float type:\n\
@@ -103,8 +81,8 @@ interpolation.\n\
                            %.*lf by default, which is \
 good for no visible loss of quality.\n\
                            A quadrilateral that shows too \
-dissimilar values at its corners will be computed, \n\
-                           as opposed to interpolated.\n",
+dissimilar values at its corners will be computed, \
+as opposed to interpolated.\n",
 	FractalNow_VersionNumber(),
 	DEFAULT_NB_THREADS,
 	(long int)DEFAULT_MPFR_PRECISION,

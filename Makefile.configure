@@ -1,3 +1,21 @@
+DEL_FILE      = rm -f
+CHK_DIR_EXISTS= test -d
+MKDIR         = mkdir -p
+COPY          = cp -fp
+COPY_FILE     = $(COPY)
+COPY_DIR      = $(COPY) -r
+INSTALL_FILE  = install -m 644 -p
+INSTALL_PROGRAM = install -m 755 -p
+STRIP_BINARY  = strip --remove-section=.comment --remove-section=.note
+INSTALL_DIR   = $(COPY_DIR)
+DEL_FILE      = rm -f
+SYMLINK       = ln -f -s
+DEL_EMPTY_DIR = rmdir --ignore-fail-on-non-empty
+DEL_DIR       = rm -rf
+MOVE          = mv -f
+CHK_DIR_EXISTS= test -d
+MKDIR         = mkdir -p
+
 all:
 	$(call quiet-command,make -C ${LIB_DIR},"")
 	$(call quiet-command,make -C ${COMMAND_LINE_DIR},"")
@@ -7,3 +25,16 @@ all:
 	$(call quiet-command,make -C ${LIB_DIR} $@,"")
 	$(call quiet-command,make -C ${COMMAND_LINE_DIR} $@,"")
 	$(call quiet-command,make -C ${GUI_DIR} $@,"")
+
+Makefile: configure Makefile.configure ${LIB_DIR}/Makefile.configure ${COMMAND_LINE_DIR}/Makefile.configure ${GUI_DIR}/${GUI_PRO_FILE}.configure
+	./config.status
+
+distclean: clean
+	make -C ${COMMAND_LINE_DIR} $@
+	make -C ${LIB_DIR} $@
+	make -C ${GUI_DIR} $@
+	$(DEL_FILE) "${LIB_DIR}/Makefile"
+	$(DEL_FILE) "${COMMAND_LINE_DIR}/Makefile"
+	$(DEL_FILE) "${GUI_DIR}/${GUI_NAME}.pro"
+	$(DEL_FILE) Makefile
+	$(DEL_FILE) config.status

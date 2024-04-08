@@ -6,9 +6,9 @@ Rendering file syntax:
 RENDERING_FILE_FORMAT
 BYTES_PER_COMPONENT
 SPACE_COLOR
-COUNTING_ALGORITHM
-COLORING_METHOD [ADDEND_FUNCTION [STRIPE_DENSITY] INTERPOLATION_METHOD]
 COLOR_SCALING COLOR_OFFSET NB_TRANSITIONS
+COLORING_METHOD
+[ITERATION_COUNT | [ADDEND_FUNCTION [STRIPE_DENSITY] INTERPOLATION_METHOD]]
 Pos1 Color1 ... PosN ColorN
 
 Text characters can be upper-case or lower-case.
@@ -23,16 +23,17 @@ BYTES_PER_COMPONENT specifies the number of bytes per component used for colors.
 
 SPACE_COLOR specifies the color of points inside fractal.
 
-COUNTING_ALGORITHM can be :
+COLORING_METHOD can be :
+ - ITERATIONCOUNT : the value returned by the iteration count is directly used
+ - AVERAGECOLORING : average sum(s) is/are computed using the specified addend function
+
+ITERATION_COUNT is only needed for ITERATIONCOUNT coloring method, and should *not* be specified for AVERAGECOLORING coloring method.
+Symmetrically, ADDEND_FUNCTION and INTERPOLATION_METHOD are only needed for AVERAGECOLORING coloring method, and should *not* be specified for ITERATIONCOUNT coloring method.
+
+ITERATION_COUNT can be :
  - DISCRETE for discrete iteration count (simply the number of iterations).
  - CONTINUOUS for continuous iteration count
  - SMOOTH for smooth iteration count
-
-COLORING_METHOD can be :
- - SIMPLE : the value returned by the counting algorithm is directly used
- - AVERAGE : average sum(s) is/are computed using the specified addend function and possibly the counting algorithm.
-
-ADDEND_FUNCTION and INTERPOLATION_METHOD are only needed for AVERAGE coloring method, and should *not* be specified for SIMPLE coloring method.
 
 ADDEND_FUNCION can be :
  - TRIANGLEINEQUALITY
@@ -43,8 +44,8 @@ STRIPE_DENSITY is a positive integer used only for STRIPE addend function. It sh
 
 INTERPOLATION_METHOD can be :
  - NONE : only 1 average sum is computed and is directly used
- - LINEAR : 2 average sums are computed and interpolated linearly using counting algorithm to produce one value
- - SPLINE : 4 average sums are computed and interpolated with polynomials using counting algorithm to produce one value
+ - LINEAR : 2 average sums are computed and interpolated linearly using smooth iteration count to produce one value
+ - SPLINE : 4 average sums are computed and interpolated with polynomials using smooth iteration count to produce one value
 
 TRANSFER_FUNCTION specifies the transfer function to apply to the (nearly) final value, in order to map it better to the gradient. It can be :
  - LOG for logarithm (base e)
@@ -57,7 +58,7 @@ TRANSFER_FUNCTION specifies the transfer function to apply to the (nearly) final
 
 COLOR_SCALING specifies a (floating point) multiplicand to be applied after transfer function, again to fit better to the gradient.
 
-COLOR_OFFSET specifies a (floating point) addend to be applied after multiplicand, again, to fit better to the gradient.
+COLOR_OFFSET specifies a (floating point) addend to be applied after multiplicand, again, to fit better to the gradient. It must be between 0 and 1.
 
 POSi : position of COLORi in gradient (between 0 and 1). First position must be 0, and last position must be 1. Positions must be strictly increasing.
 COLORi : colors composing gradient.
@@ -78,4 +79,9 @@ Some RGB16 color examples :
 - 0xFFFFFFFFFFFF for white
 
 In order for the gradient not to be discontinuous, the first and last color should be the same, for example 0x0 0xFFFFFF 0x0 for a black and white continuous gradient.
+
+Acceptable floating numbers are for example :
+2.567
+4.146E-5
+8.26e2
 

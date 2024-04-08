@@ -1,0 +1,139 @@
+.TH "QFRACTALNOW" "1" "2012-07-11" "QFractalNow" "Fractal explorer/generator"
+.SH NAME
+qfractalnow \- Explore fractals and generate fractal images.
+.SH SYNOPSYS
+.B qfractalnow
+[OPTIONS]
+.SH DESCRIPTION
+QFractalNow is a graphical tool, based on Qt library, that allows users to
+explore fractals intuitively and generate pictures.
+.br
+It is multi-threaded and implements advanced algorithms and heuristics that
+make computation very fast compared to most existing free fractal generators.
+.br
+See FractalNow, a command-line tool to generate fractal images.
+.SH OPTIONS
+.TP
+.B \-h
+Print help.
+.
+.TP
+.B \-q
+Quiet mode, only errors are displayed.
+.
+.TP
+.B \-v
+Verbose mode.
+.
+.TP
+.B \-j <NbThreads>
+Specify number of threads (see help for default value).
+.
+.TP
+.B \-c <ConfigFile>
+Specify configuration file, overriding default configuration.
+.
+.TP
+.B \-f <FractalFile>
+Specify fractal file, overriding parameters from default configuration
+or configuration file.
+.
+.TP
+.B \-r <RenderingFile>
+Specify rendering file, overriding parameters from default configuration
+or configuration file.
+.
+.TP
+.B \-g <GradientFile>
+Specify gradient file, overriding gradient from default configuration,
+configuration file, or rendering file.
+.
+.TP
+.B \-x <Width>
+Specify image width.
+.
+.TP
+.B \-y <Height>
+Specify image height.
+
+.
+.TP
+.B \-l <FloatType>
+Specify float type:
+.RS
+single     Single precision.
+.br
+double     Double precision.
+.br
+ldouble    Long double precision.
+.br
+mp         Multiple precision.
+.RE
+.
+.TP
+.B \-L <MPPrecision>
+Specify precision of Multiple Precision (MP) floats (see help for default value).
+.
+.TP
+.B \-a <AntiAliasingMethod> 
+Specify anti-aliasing method:
+.RS
+none          By default.
+.br
+blur          Gaussian blur.
+.br
+oversampling  Oversampling.
+.br
+adaptive      Smart oversampling.
+.RE
+.
+.TP
+.B \-m <MinAAMSize>
+Specify minimum size of adaptive anti-aliasing (see help for default value).
+.br
+Must be an integer strictly greater than 1.
+.
+.TP
+.B \-M <MaxAAMSize>
+Specify maximum size of adaptive anti-aliasing (see help for default value).
+.br
+Must be an integer strictly greater than 1 and MinAAMSize.
+.
+.TP
+.B \-n <AAMSizeIteration>
+Anti-aliasing size iteration.
+.br
+Anti-aliasing size will increase by steps of AAMSizeIteration from MinAAMSize to MaxAAMSize.
+.
+.TP
+.B \-p <AAMThreshold>
+Threshold for adaptive anti-aliasing (see help for default value).
+.
+.TP
+.B \-i <QuadSize>
+Maximum size of quadrilaterals for linear interpolation.
+.RS
+Default is good for no visible loss of quality (see help for default value).
+.br
+1 means no interpolation (all pixels are computed).
+.RE
+.
+.TP
+.B \-t <Threshold>
+Dissimilarity threshold for quad interpolation.
+.RS
+Default is good for no visible loss of quality (see help for default value).
+.br
+A quadrilateral that shows too dissimilar values at its corners will be computed, 
+as opposed to interpolated.
+.RE
+.SH AUTHOR
+QFractalNow was written by Marc Pegon <pe.marc@free.fr>.
+.SH COPYRIGHT
+QFractalNow is licensed under the terms of the GNU Lesser General Public License,
+Version 3 or any later version published by the Free Software Foundation.
+.SH "SEE ALSO"
+FractalNow manual page.
+.br
+Documentation files describing configuration, fractal, rendering and gradient
+files formats.

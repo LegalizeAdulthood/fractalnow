@@ -27,17 +27,9 @@
 void Help::Print()
 {
 	printf("qfractalnow v%s - Explore fractals and generate \
-fractal images.\n\
-Usage : qfractalnow [-h] \n\
-  or \n\
-qfractalnow [-q|-v] [-d] [-j <NbThreads>] \n\
-           [-c <ConfigFile>] [-f <FractalFile>] [-r \
-<RenderingFile>] [-g <GradientFile]\n\
-           [-x <Width>|-y <Height>]\n\
-	  -l <FloatType> [-L <MPFloatPrecision>]\n\
-           [-m <MinAAMSize> -M <MaxAAMSize>] [-p \
-<AdaptiveAAMThreshold>]\n\
-           [-i <QuadSize>] [-t <Threshold>]\n\n\
+fractal images.\n\n\
+Usage : qfractalnow [OPTIONS]\n\n\
+OPTIONS:\n\
   -h                       Prints this help.\n\
   -q                       Quiet mode.\n\
   -v                       Verbose mode.\n"
@@ -46,31 +38,18 @@ qfractalnow [-q|-v] [-d] [-j <NbThreads>] \n\
 #endif
 "  -j <NbThreads>           Specify number of threads \
 (%"PRIuFAST32" by default).\n\
-  -c <ConfigFile>          Specify configuration file. See \
-documentation for details on configuration files.\n\
-  -f <FractalFile>         Specify fractal file. See \
-documentation for details on fractal files.\n\
-                           If a configuration file was already \
-specified,\n\
-                           fractal file will override \
-overlapping parameters.\n\
-  -r <RenderingFile>       Specify rendering file. See \
-documentation for details on rendering files.\n\
-                           If a configuration file was already \
-specified,\n\
-                           rendering file will override the \
-overlapping parameters.\n\
-  -g <GradientFile>        Specify gradient file. See \
-documentatin for details on gradient file.\n\
-                           If a configuration file and/or a \
-rendering file were already specified,\n\
-                           gradient file will override the \
-overlapping parameters.\n\
-  -x <Width>               Specify image width (set to keep \
-fractal space ratio if height is specified).\n\
-  -y <Height>              Specify image height (by default \
-set to keep fractal space ratio).\n\
-  -l <FloatType>      Specify float precision:\n\
+  -c <ConfigFile>          Specify configuration file, \
+overriding default configuration.\n\
+  -f <FractalFile>         Specify fractal file, overriding \
+parameters from default configuration or configuration file.\n\
+  -r <RenderingFile>       Specify rendering file, overriding \
+parameters from default configuration or configuration file.\n\
+  -g <GradientFile>        Specify gradient file, overriding \
+gradient from default configuration, configuration file, or \
+rendering file.\n\
+  -x <Width>               Specify image width.\n\
+  -y <Height>              Specify image height.\n\
+  -l <FloatType>           Specify float precision:\n\
                                single        Single precision.\n\
                                double        Double precision.\n\
                                ldouble       Long double \
@@ -86,7 +65,7 @@ than 1.\n\
   -M <MaxAAMSize>          Specify maximum size of adaptive \
 anti-aliasing (%"PRIuFAST32" by default).\n\
                            Must be an integer strictly greater \
-than 1.\n\
+than 1 and MinAAMSize.\n\
   -n <AAMSizeIteration>    Anti-aliasing size iteration.\n\
                            Anti-aliasing size will increase by \
 steps of AAMSizeIteration from MinAAMSize to MaxAAMSize.\n\
@@ -103,8 +82,8 @@ interpolation.\n\
                            %.*lf by default, which is \
 good for no visible loss of quality.\n\
                            A quadrilateral that shows too \
-dissimilar values at its corners will be computed, \n\
-                           as opposed to interpolated.\n",
+dissimilar values at its corners will be computed, \
+as opposed to interpolated.\n",
 	FractalNow_VersionNumber(),
 	DEFAULT_NB_THREADS,
 	(long int)DEFAULT_MPFR_PRECISION,

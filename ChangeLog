@@ -1,3 +1,11 @@
+0.8.1  2012-07-11  Marc Pegon  <pe.marc@free.fr>
+
+    * Made gradient offset spin box circular.
+    * Improved icons.
+    * Updated file formats documentation.
+    * Minor bug fixes
+    * Source cleaning
+
 0.8.0  2012-05-13  Marc Pegon  <pe.marc@free.fr>
 
     * Added support for Multiple Precision floats using MPFR and MPC libraries.
