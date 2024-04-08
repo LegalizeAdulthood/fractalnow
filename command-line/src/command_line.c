@@ -56,13 +56,13 @@ void ParseCommandLineArguments(CommandLineArguments *dst, int argc, char *argv[]
 			break;
 		case 'q':
 			if (traceLevel == T_VERBOSE) {
-				invalid_use_error("-q and -v are excluse.\n");
+				invalid_use_error("-q and -v are mutually exclusive.\n");
 			}
 			traceLevel = T_QUIET;
 			break;
 		case 'v':
 			if (traceLevel == T_QUIET) {
-				invalid_use_error("-q and -v are excluse.\n");
+				invalid_use_error("-q and -v are mutually exclusive.\n");
 			}
 			traceLevel = T_VERBOSE;
 			break;
@@ -79,7 +79,9 @@ void ParseCommandLineArguments(CommandLineArguments *dst, int argc, char *argv[]
 			dst->renderingFileName = optarg;
 			break;
 		case 'i':
-			sscanf(optarg, "%"SCNd64, &tmp);
+			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
+			}
 			if (tmp <= 0) {
 				invalid_use_error("Quad interpolation size must be positive.\n");
 			} else {
@@ -87,7 +89,9 @@ void ParseCommandLineArguments(CommandLineArguments *dst, int argc, char *argv[]
 			}
 			break;
 		case 'j':
-			sscanf(optarg, "%"SCNd64, &tmp);
+			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
+			}
 			if (tmp <= 0) {
 				invalid_use_error("Number of threads must be positive.\n");
 			} else {
@@ -98,22 +102,30 @@ void ParseCommandLineArguments(CommandLineArguments *dst, int argc, char *argv[]
 			dst->dstFileName = optarg;
 			break;
 		case 'p':
-			sscanf(optarg, "%"SCNFLOAT, &dst->adaptiveAAMThreshold);
+			if (sscanf(optarg, "%"SCNFLOAT, &dst->adaptiveAAMThreshold) < 1) {
+				invalid_use_error("Command-line argument \'%s\' is not a floating-point number.\n", optarg);
+			}
 			if (dst->adaptiveAAMThreshold < 0.) {
 				invalid_use_error("Adaptive anti-aliasing threshold must be >= 0.\n");
 			} 
 			break;
 		case 's':
-			sscanf(optarg, "%"SCNFLOAT, &dst->antiAliasingSize);
+			if (sscanf(optarg, "%"SCNFLOAT, &dst->antiAliasingSize) < 1) {
+				invalid_use_error("Command-line argument \'%s\' is not a floating-point number.\n", optarg);
+			}
 			break;
 		case 't':
-			sscanf(optarg, "%"SCNFLOAT, &dst->colorDissimilarityThreshold);
+			if (sscanf(optarg, "%"SCNFLOAT, &dst->colorDissimilarityThreshold) < 1) {
+				invalid_use_error("Command-line argument \'%s\' is not a floating-point number.\n", optarg);
+			}
 			if (dst->colorDissimilarityThreshold < 0.) {
 				invalid_use_error("Quad dissimilarity threshold must be between >= 0.\n");
 			} 
 			break;
 		case 'x':
-			sscanf(optarg, "%"SCNd64, &tmp);
+			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
+			}
 			if (tmp < 2) {
 				invalid_use_error("Output image width must be >= 2.\n");
 			} else {
@@ -122,7 +134,9 @@ void ParseCommandLineArguments(CommandLineArguments *dst, int argc, char *argv[]
 			}
 			break;
 		case 'y':
-			sscanf(optarg, "%"SCNd64, &tmp);
+			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
+			}
 			if (tmp < 2) {
 				invalid_use_error("Output image height must be >= 2.\n");
 			} else {

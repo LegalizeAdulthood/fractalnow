@@ -86,7 +86,7 @@ void ReadRenderingFile(RenderingParameters *param, const char *fileName)
 	/* Just to be sure these are initialized, because they are always needed (and thus read). */
 	interpolationMethod = IM_NONE;
 	addendFunction = AF_TRIANGLEINEQUALITY;
-	stripeDensity = 0;
+	stripeDensity = 1;
 
 	if (coloringMethod == CM_AVERAGE) {
 		safeReadString(file, fileName, str);
@@ -136,7 +136,7 @@ void ReadRenderingFile(RenderingParameters *param, const char *fileName)
 	info(T_NORMAL, "Reading rendering file : DONE\n");
 }
 
-void FreeRenderingParameters(RenderingParameters *param)
+void FreeRenderingParameters(RenderingParameters param)
 {
-	FreeGradient(&param->gradient);
+	FreeGradient(param.gradient);
 }

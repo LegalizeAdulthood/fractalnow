@@ -73,7 +73,7 @@ FractalRenderingWidget::FractalRenderingWidget(RenderingParameters &render) : QW
 
 	QLabel *colorScalingLabel = new QLabel(QString("Color scaling:"));
 	colorScalingSpinBox = new QDoubleSpinBox;
-	colorScalingSpinBox->setDecimals(0);
+	colorScalingSpinBox->setDecimals(8);
 	colorScalingSpinBox->setRange(0, std::numeric_limits<double>::max());
 	colorScalingSpinBox->setValue(render.multiplier);
 	colorScalingSpinBox->setAccelerated(true);
@@ -113,4 +113,36 @@ FractalRenderingWidget::FractalRenderingWidget(RenderingParameters &render) : QW
 	gridLayout->setColumnStretch(1, 1);
 	gridLayout->setRowStretch(8, 1);
 	this->setLayout(gridLayout);
+
+	updateBoxesEnabledValue();
+
+	connect(coloringMethodComboBox, SIGNAL(currentIndexChanged(int)),
+		this, SLOT(updateBoxesEnabledValue()));
+	connect(addendFunctionComboBox, SIGNAL(currentIndexChanged(int)),
+		this, SLOT(updateBoxesEnabledValue()));
 }
+
+void FractalRenderingWidget::updateBoxesEnabledValue()
+{
+	ColoringMethod coloringMethod = (ColoringMethod)coloringMethodComboBox->currentIndex();
+	AddendFunction addendFunction = (AddendFunction)addendFunctionComboBox->currentIndex();
+
+	switch (coloringMethod) {
+	case CM_SIMPLE:
+		addendFunctionComboBox->setEnabled(false);
+		stripeDensitySpinBox->setEnabled(false);
+		interpolationMethodComboBox->setEnabled(false);
+		break;
+	case CM_AVERAGE:
+		addendFunctionComboBox->setEnabled(true);
+		stripeDensitySpinBox->setEnabled(addendFunction == AF_STRIPE);
+		interpolationMethodComboBox->setEnabled(true);
+		break;
+	default:
+		addendFunctionComboBox->setEnabled(true);
+		stripeDensitySpinBox->setEnabled(true);
+		interpolationMethodComboBox->setEnabled(true);
+		break;
+	}
+}
+

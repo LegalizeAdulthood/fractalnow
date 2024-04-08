@@ -113,28 +113,66 @@ FractalConfigWidget::FractalConfigWidget(Fractal &fractal) : QWidget()
 	gridLayout->setRowStretch(9, 1);
 	this->setLayout(gridLayout);
 
-	UpdateSpaceSingleSteps(fractal.spanX);
-	UpdateCParamReSingleStep(crealF(fractal.c));
-	UpdateCParamImSingleStep(cimagF(fractal.c));
+	updateSpaceSingleSteps(fractal.spanX);
+	updateCParamReSingleStep(crealF(fractal.c));
+	updateCParamImSingleStep(cimagF(fractal.c));
+	updateBoxesEnabledValue((int)fractal.fractalFormula);
 
-	connect(spanXSpinBox, SIGNAL(valueChanged(double)), this, SLOT(UpdateSpaceSingleSteps(double)));
-	connect(cParamReSpinBox, SIGNAL(valueChanged(double)), this, SLOT(UpdateCParamReSingleStep(double)));
-	connect(cParamImSpinBox, SIGNAL(valueChanged(double)), this, SLOT(UpdateCParamImSingleStep(double)));
+	connect(spanXSpinBox, SIGNAL(valueChanged(double)), this, SLOT(updateSpaceSingleSteps(double)));
+	connect(cParamReSpinBox, SIGNAL(valueChanged(double)), this, SLOT(updateCParamReSingleStep(double)));
+	connect(cParamImSpinBox, SIGNAL(valueChanged(double)), this, SLOT(updateCParamImSingleStep(double)));
+	connect(fractalFormulaComboBox, SIGNAL(currentIndexChanged(int)),
+		this, SLOT(updateBoxesEnabledValue(int)));
 }
 
-void FractalConfigWidget::UpdateSpaceSingleSteps(double spanX)
+void FractalConfigWidget::updateSpaceSingleSteps(double spanX)
 {
 	centerXSpinBox->setSingleStep(spanX / 10);
 	centerYSpinBox->setSingleStep(spanX / 10);
 	spanXSpinBox->setSingleStep(spanX / 10);
 }
 
-void FractalConfigWidget::UpdateCParamReSingleStep(double cParamRe)
+void FractalConfigWidget::updateCParamReSingleStep(double cParamRe)
 {
 	cParamReSpinBox->setSingleStep(cParamRe / 10);
 }
 
-void FractalConfigWidget::UpdateCParamImSingleStep(double cParamIm)
+void FractalConfigWidget::updateCParamImSingleStep(double cParamIm)
 {
 	cParamImSpinBox->setSingleStep(cParamIm / 10);
 }
+
+void FractalConfigWidget::updateBoxesEnabledValue(int fractalFormula)
+{
+	FractalFormula formula = (FractalFormula)fractalFormula;
+
+	switch (formula) {
+	case FRAC_MANDELBROT:
+		pParamSpinBox->setEnabled(false);
+		cParamReSpinBox->setEnabled(false);
+		cParamImSpinBox->setEnabled(false);
+		break;
+	case FRAC_MANDELBROTP:
+		pParamSpinBox->setEnabled(true);
+		cParamReSpinBox->setEnabled(false);
+		cParamImSpinBox->setEnabled(false);
+		break;
+	case FRAC_JULIA:
+		pParamSpinBox->setEnabled(false);
+		cParamReSpinBox->setEnabled(true);
+		cParamImSpinBox->setEnabled(true);
+		break;
+	case FRAC_JULIAP:
+	case FRAC_RUDY:
+		pParamSpinBox->setEnabled(true);
+		cParamReSpinBox->setEnabled(true);
+		cParamImSpinBox->setEnabled(true);
+		break;
+	default:
+		pParamSpinBox->setEnabled(true);
+		cParamReSpinBox->setEnabled(true);
+		cParamImSpinBox->setEnabled(true);
+		break;
+	}
+}
+

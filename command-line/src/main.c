@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
 		DrawFractalFast(&tmpImg, &fractal, &render, arg.quadInterpolationSize, arg.colorDissimilarityThreshold);
 		ApplyGaussianBlur(&fractalImg, &tmpImg, arg.antiAliasingSize);
 
-		FreeImage(&tmpImg);
+		FreeImage(tmpImg);
 		break;
 	case AAM_OVERSAMPLING:
 		CreateImage(&tmpImg, width*arg.antiAliasingSize, height*arg.antiAliasingSize, render.bytesPerComponent);
@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
 		DrawFractalFast(&tmpImg, &fractal, &render, arg.quadInterpolationSize, arg.colorDissimilarityThreshold);
 		DownscaleImage(&fractalImg, &tmpImg);
 
-		FreeImage(&tmpImg);
+		FreeImage(tmpImg);
 		break;
 	case AAM_ADAPTIVE:
 		DrawFractalFast(&fractalImg, &fractal, &render, arg.quadInterpolationSize, arg.colorDissimilarityThreshold);
@@ -83,8 +83,8 @@ int main(int argc, char *argv[]) {
 
 	ExportPPM(arg.dstFileName, &fractalImg);
 
-	FreeRenderingParameters(&render);
-	FreeImage(&fractalImg);
+	FreeRenderingParameters(render);
+	FreeImage(fractalImg);
 
 	info(T_NORMAL,"All done.\n");
 

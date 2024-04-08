@@ -1,4 +1,5 @@
 /*
+void FractalRenderingWidget::updateBoxesEnabledValue()
  *  fractal_rendering_widget.h -- part of fractal2D
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
@@ -48,6 +49,9 @@ class FractalRenderingWidget : public QWidget
 	QComboBox *transferFunctionComboBox;
 	QDoubleSpinBox *colorScalingSpinBox;
 	QDoubleSpinBox *colorOffsetSpinBox;
+
+	public slots:
+	void updateBoxesEnabledValue();
 };
 
 #endif

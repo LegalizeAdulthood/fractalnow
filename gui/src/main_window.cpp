@@ -44,12 +44,16 @@ MainWindow::MainWindow(int argc, char *argv[])
 
 	/* Read arguments on command-line. */
 	args = new CommandLineArguments(argc, argv);
-	if (!args->fractalFileName || !args->renderingFileName) {
-		/* Build default fractal and rendering parameters. */
-		
+	if (!args->fractalFileName) {
 		/* Build default fractal. */
 		InitFractal2(&fractal, FRAC_MANDELBROT, 2, 0, -0.7, 0, 3, 3, 1E3, 250);
+	} else {
+		/* Read fractal file to initialize fractal. */
+		ReadFractalFile(&fractal, args->fractalFileName);
+	}
 		
+	if (!args->renderingFileName) {
+		/* Build default rendering parameters. */
 		/* Generate gradient. */
 		uint32_t hex_color[5] = { 0xFF, 0xFFFFFF, 0xFFFF00, 0xFF0000, 0xFF };
 		Color color[5];
@@ -63,11 +67,10 @@ MainWindow::MainWindow(int argc, char *argv[])
 		std::string smoothName = "smooth";
 		/* Init rendering parameters. */
 		InitRenderingParameters(&render, 1, ColorFromUint32(0x0), CF_SMOOTH, CM_SIMPLE,
-					AF_TRIANGLEINEQUALITY, 0, IM_NONE, TF_IDENTITY,
+					AF_TRIANGLEINEQUALITY, 1, IM_LINEAR, TF_IDENTITY,
 					1E3, 0, gradient);
 	} else {
-		/* Read fractal & rendering files to initialize fractal & rendering parameters. */
-		ReadFractalFile(&fractal, args->fractalFileName);
+		/* Read rendering file to initialize rendering parameters. */
 		ReadRenderingFile(&render, args->renderingFileName);
 		if (render.bytesPerComponent != 1) {
 			error("Rendering files with more than 1 byte per component are not accepted.\n");
@@ -175,9 +178,10 @@ MainWindow::MainWindow(int argc, char *argv[])
 MainWindow::~MainWindow()
 {
 	delete args;
-	FreeRenderingParameters(&render);
-	FreeImage(&image);
-	FreeAction(action);
+	FreeRenderingParameters(render);
+	FreeImage(image);
+	FreeAction(*action);
+	free(action);
 }
 
 void MainWindow::closeEvent(QCloseEvent * event)
@@ -213,7 +217,8 @@ void MainWindow::launchFractalDrawing()
 	/* Free previous action. Safe even for first launching
 	 * because action has been initialized to doNothingAction().
 	 */
-	FreeAction(action);
+	FreeAction(*action);
+	free(action);
 	action = LaunchDrawFractalFast(&image, &fractal, &render, DEFAULT_QUAD_INTERPOLATION_SIZE,
 				DEFAULT_COLOR_DISSIMILARITY_THRESHOLD);
 
@@ -224,6 +229,8 @@ void MainWindow::launchFractalDrawing()
 void MainWindow::launchFractalAntiAliasing()
 {
 	redrawAfterCancelation = 0;
+	FreeAction(*action);
+	free(action);
 	action = LaunchAntiAliaseFractal(&image, &fractal, &render, currentAntiAliasingSize, DEFAULT_ADAPTIVE_AAM_THRESHOLD);
 
 	future = QtConcurrent::run(WaitForActionTermination, action);

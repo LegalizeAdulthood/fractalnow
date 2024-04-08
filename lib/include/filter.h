@@ -228,7 +228,7 @@ Color ApplyFilterOnSinglePixel(Image *src, uint_fast32_t x, uint_fast32_t y, Fil
 void ApplyFilter(Image *dst, Image *src, Filter *filter);
 
 /**
- * \fn Action LaunchApplyFilter(Image *dst, Image *src, Filter *filter)
+ * \fn Action *LaunchApplyFilter(Image *dst, Image *src, Filter *filter)
  * \brief Launch apply filter action, but does not wait for termination.
  *
  * Action returned can be used to wait for termination or cancel filter applying.
@@ -236,17 +236,17 @@ void ApplyFilter(Image *dst, Image *src, Filter *filter);
  * \param dst Destination image.
  * \param src Source image.
  * \param filter Filter to apply.
- * \return Corresponding action.
+ * \return Corresponding newly-allocated action.
  */
-Action LaunchApplyFilter(Image *dst, Image *src, Filter *filter);
+Action *LaunchApplyFilter(Image *dst, Image *src, Filter *filter);
 
 /**
- * \fn void FreeFilter(Filter *filter)
+ * \fn void FreeFilter(Filter filter)
  * \brief Free filter.
  *
  * \param filter Filter to be freed.
  */
-void FreeFilter(Filter *filter);
+void FreeFilter(Filter filter);
 
 #ifdef __cplusplus
 }

@@ -1,8 +1,12 @@
 LIB_DIR = lib
 COMMAND_LINE_DIR = command-line
 GUI_DIR = gui
+QMAKEFLAG = 
 ifdef FLOAT_PRECISION
-QMAKEFLAG = "FLOAT_PRECISION=$(FLOAT_PRECISION)"
+QMAKEFLAG += "FLOAT_PRECISION=$(FLOAT_PRECISION)"
+endif
+ifdef DEBUG
+QMAKEFLAG += "DEBUG=$(DEBUG)"
 endif
 
 quiet-command = $(if $(VERB),$1,$(if $(2),@echo $2 && $1, @$1))

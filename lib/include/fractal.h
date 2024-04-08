@@ -219,7 +219,7 @@ void DrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render
 			uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold);
 
 /**
- * \fn Action LaunchDrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render, uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold)
+ * \fn Action *LaunchDrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render, uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold)
  * \brief Launch fractal drawing but does not wait for termination.
  *
  * Image width and height must be >= 2 (does nothing otherwise).
@@ -230,9 +230,9 @@ void DrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render
  * \param render Rendering parameters.
  * \param quadInterpolationSize Maximum quad size for interpolation.
  * \param interpolationThreshold Dissimilarity threshold for interpolation.
- * \return Corresponding action.
+ * \return Corresponding newly-allocated action.
  */
-Action LaunchDrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render,
+Action *LaunchDrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render,
 			uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold);
 
 /**
@@ -291,9 +291,9 @@ void AntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *rend
  * \param render Rendering parameters.
  * \param antiAliasingSize Anti-aliasing size.
  * \param threshold Dissimilarity threshold to determine pixels to recompute.
- * \return Corresponding action.
+ * \return Corresponding newly-allocated action.
  */
-Action LaunchAntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *render,
+Action *LaunchAntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *render,
 			uint_fast32_t antiAliasingSize, FLOAT threshold);
 
 #ifdef __cplusplus

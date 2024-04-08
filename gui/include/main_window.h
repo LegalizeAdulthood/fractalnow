@@ -63,7 +63,7 @@ class MainWindow : public QMainWindow
 	Fractal fractal;
 	RenderingParameters render;
 	Image image;
-	Action action;
+	Action *action;
 	ImageLabel *imageLabel;
 	QImage *qimage;
 	QTimer *timer;

@@ -108,12 +108,12 @@ void InitRenderingParameters(RenderingParameters *param, uint_fast8_t bytesPerCo
 void ReadRenderingFile(RenderingParameters *param, const char *fileName);
 
 /**
- * \fn void FreeRenderingParameters(RenderingParameters *param)
+ * \fn void FreeRenderingParameters(RenderingParameters param)
  * \brief Free a RenderingParameters structure.
  *
- * \param param Pointer to the structure to free.
+ * \param param RenderingParameters structure to be freed.
  */
-void FreeRenderingParameters(RenderingParameters *param);
+void FreeRenderingParameters(RenderingParameters param);
 
 #ifdef __cplusplus
 }

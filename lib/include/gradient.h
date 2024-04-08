@@ -78,12 +78,12 @@ void GenerateGradient(Gradient *gradient, Color *color, uint_fast32_t size, uint
 Color GetGradientColor(Gradient *gradient, uint_fast64_t index);
 
 /**
- * \fn void FreeGradient(Gradient *gradient)
+ * \fn void FreeGradient(Gradient gradient)
  * \brief Free gradient.
  *
- * \param gradient Gradient to free.
+ * \param gradient Gradient to be freed.
  */
-void FreeGradient(Gradient *gradient);
+void FreeGradient(Gradient gradient);
 
 #ifdef __cplusplus
 }

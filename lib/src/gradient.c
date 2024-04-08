@@ -54,7 +54,7 @@ inline Color GetGradientColor(Gradient *gradient, uint_fast64_t index)
 	return gradient->data[index % gradient->size];
 }
 
-void FreeGradient(Gradient *gradient)
+void FreeGradient(Gradient gradient)
 {
-	free(gradient->data);
+	free(gradient.data);
 }

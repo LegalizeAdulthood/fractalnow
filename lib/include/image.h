@@ -92,6 +92,13 @@ void CreateImage(Image *image, uint_fast32_t width, uint_fast32_t height,
 void CreateImage2(Image *image, uint8_t *data, uint_fast32_t width, uint_fast32_t height,
 			uint_fast8_t bytesPerComponent);
 
+/**
+ * \fn Image *CopyImage(Image *image)
+ * \brief Copy image.
+ *
+ * \param image Pointer to image to be copied.
+ * \return Newly allocated copy of image.
+ */
 Image *CopyImage(Image *image);
 
 /**
@@ -174,7 +181,7 @@ void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color color)
 void ApplyGaussianBlur(Image *dst, Image *src, FLOAT radius);
 
 /**
- * \fn Action LaunchApplyGaussianBlur(Image *dst, Image *src, FLOAT radius)
+ * \fn Action *LaunchApplyGaussianBlur(Image *dst, Image *src, FLOAT radius)
  * \brief Launch apply gaussian blur action, but does not wait for termination.
  *
  * Action returned can be used to wait for termination or cancel gaussian blur applying.
@@ -184,9 +191,9 @@ void ApplyGaussianBlur(Image *dst, Image *src, FLOAT radius);
  * \param dst Pointer to already created destination image.
  * \param src Pointer to source image (to apply blur on).
  * \param radius Gaussian blur radius.
- * \return Corresponding action.
+ * \return Corresponding newly-allocated action.
  */
-Action LaunchApplyGaussianBlur(Image *dst, Image *src, FLOAT radius);
+Action *LaunchApplyGaussianBlur(Image *dst, Image *src, FLOAT radius);
 
 /**
  * \fn void DownscaleImage(Image *dst, Image *src)
@@ -202,24 +209,24 @@ Action LaunchApplyGaussianBlur(Image *dst, Image *src, FLOAT radius);
 void DownscaleImage(Image *dst, Image *src);
 
 /**
- * \fn Action LaunchDownscaleImage(Image *dst, Image *src)
+ * \fn Action *LaunchDownscaleImage(Image *dst, Image *src)
  * \brief Launch image downscaling, but does not wait for termination.
  *
  * Action returned can be used to wait for termination or cancel image downscaling.
  *
  * \param dst Pointer to already created destination image.
  * \param src Pointer to source image (to be downscaled).
- * \return Corresponding action.
+ * \return Corresponding (newly-allocated) action.
  */
-Action LaunchDownscaleImage(Image *dst, Image *src);
+Action *LaunchDownscaleImage(Image *dst, Image *src);
 
 /**
- * \fn void FreeImage(Image *image)
+ * \fn void FreeImage(Image image)
  * \brief Free image.
  *
- * \param image Pointer to image to free.
+ * \param image Image to free.
  */
-void FreeImage(Image *image);
+void FreeImage(Image image);
 
 #ifdef __cplusplus
 }

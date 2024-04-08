@@ -127,8 +127,8 @@ typedef struct s_Action {
  /*!< 1 if action has already terminated and threads have been joined.*/
 	int return_value;
  /*!< Action return value (0 if finished normally, 1 if canceled).*/
-	sig_atomic_t *cancel;
- /*!< Pointer to uint8_t used for cancelation request.*/
+	sig_atomic_t cancel;
+ /*!< uint8_t used for cancelation request.*/
  	uint_fast32_t N;
  /*!< Number of threads.*/
  	pthread_t *thread;
@@ -144,17 +144,17 @@ typedef struct s_Action {
 } Action;
 
 /**
- * \fn Action DoNothingAction()
- * \brief Returns an action that does nothing.
+ * \fn Action *DoNothingAction()
+ * \brief Returns a newly-allocated action that does nothing.
  *
- * Convenient for working on empty image.
+ * Convenient for working on empty image for example.
  *
  * \return Do-nothing action.
  */
-Action DoNothingAction();
+Action *DoNothingAction();
 
 /**
- * \fn Action LaunchThreads(const char *message, uint_fast32_t N, void *args, size_t s_elem, void *(*routine)(void *), void (*freeArg)(void *))
+ * \fn Action *LaunchThreads(const char *message, uint_fast32_t N, void *args, size_t s_elem, void *(*routine)(void *), void (*freeArg)(void *))
  * \brief Create several threads..
  *
  * args is copied.
@@ -166,7 +166,8 @@ Action DoNothingAction();
  * request was made.
  * The remaining bytes are the 'real' argument.
  * Free argument routine will be called for each argument on
- * termination.
+ * termination to free its data (can be NULL if arguments contain
+ * no dynamically allocated data).
  *
  * \param message Action message to print at launch and termination.
  * \param N Number of threads to create.
@@ -174,13 +175,13 @@ Action DoNothingAction();
  * \param s_elem Size of one argument (in bytes).
  * \param routine Threads routine.
  * \param freeArg Routine to free each argument.
- * \return Corresponding action.
+ * \return Corresponding newly-allocated action.
  */
-Action LaunchThreads(const char *message, uint_fast32_t N, void *args, size_t s_elem,
+Action *LaunchThreads(const char *message, uint_fast32_t N, void *args, size_t s_elem,
 			void *(*routine)(void *), void (*freeArg)(void *));
 
 /**
- * \fn int WaitForActionTermination(Action action)
+ * \fn int WaitForActionTermination(Action *action)
  * \brief Wait for action to terminate (normally of after cancelation).
  *
  * Does nothing if WaitForActionTermination was already
@@ -189,7 +190,7 @@ Action LaunchThreads(const char *message, uint_fast32_t N, void *args, size_t s_
  * \param action Action to wait for termination.
  * \return 0 if all threads terminated normally, 1 otherwise (at least one canceled).
  */
-int WaitForActionTermination(Action action);
+int WaitForActionTermination(Action *action);
 
 /**
  * \fn int LaunchThreadsAndWaitForTermination(const char *message, uint_fast32_t N, void *args, size_t s_elem, void *(*routine)(void *), void (*freeArg)(void *))
@@ -208,7 +209,8 @@ int WaitForActionTermination(Action action);
  * Free argument routine will be called for each argument on
  * termination.
  *
- * \param nbThreads Number of threads to create.
+ * \param message Message to be printed at threads launch and termination.
+ * \param N Number of threads to create.
  * \param args Pointer to array of arguments for thread routines.
  * \param s_elem Size of one argument (in bytes).
  * \param routine Threads routine.
@@ -219,7 +221,7 @@ int LaunchThreadsAndWaitForTermination(const char *message, uint_fast32_t N, voi
 					void *(*routine)(void *), void (*freeArg)(void *));
 
 /**
- * \fn void CancelAction(Action action)
+ * \fn void CancelAction(Action *action)
  * \brief Send cancelation request to action.
  *
  * It is up to the thread routine to take the request into
@@ -230,23 +232,25 @@ int LaunchThreadsAndWaitForTermination(const char *message, uint_fast32_t N, voi
  *
  * \param action Action to send cancelation request to.
  */
-void CancelAction(Action action);
+void CancelAction(Action *action);
 
 /**
- * \fn int CancelActionAndWaitForTermination(Action action)
+ * \fn int CancelActionAndWaitForTermination(Action *action)
  * \brief Send cancelation request to action and wait for it to terminate.
  *
  * \param action Action to be canceled.
  * \return 0 if all threads terminated normally, 1 otherwise (at least one canceled).
  */
-int CancelActionAndWaitForTermination(Action action);
+int CancelActionAndWaitForTermination(Action *action);
 
 /**
  * \fn void FreeAction(Action action)
- * \brief Free action.
+ * \brief Free action data.
  *
  * Action MUST have already terminated (i.e. WaitForActionTermination must 
- * already have been called).
+ * already have been called) : exit with error otherwise.
+ *
+ * \param action Action to be freed.
  */
 void FreeAction(Action action);
 

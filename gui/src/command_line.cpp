@@ -69,7 +69,10 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 			renderingFileName = optarg;
 			break;
 		case 'j':
-			sscanf(optarg, "%"SCNd64, &tmp);
+			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n    ", optarg);
+			}
+
 			if (tmp <= 0) {
 				invalid_use_error("Number of threads must be positive.\n");
 			} else {
@@ -77,7 +80,9 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 			}
 			break;
 		case 'm':
-			sscanf(optarg, "%"SCNd64, &tmp);
+			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n    ", optarg);
+			}
 			if (tmp < 2) {
 				invalid_use_error("Minimum anti-aliasing size must be >= 2.\n");
 			}
@@ -85,7 +90,9 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 			minAntiAliasingSizeSpecified = 1;
 			break;
 		case 'M':
-			sscanf(optarg, "%"SCNd64, &tmp);
+			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n    ", optarg);
+			}
 			if (tmp < 2) {
 				invalid_use_error("Maximum anti-aliasing size must be >= 2.\n");
 			}
@@ -93,7 +100,9 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 			maxAntiAliasingSizeSpecified = 1;
 			break;
 		case 'x':
-			sscanf(optarg, "%"SCNd64, &tmp);
+			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n    ", optarg);
+			}
 			if (tmp < 2) {
 				invalid_use_error("Output image width must be >= 2.\n");
 			} else {
@@ -102,7 +111,9 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 			}
 			break;
 		case 'y':
-			sscanf(optarg, "%"SCNd64, &tmp);
+			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n    ", optarg);
+			}
 			if (tmp < 2) {
 				invalid_use_error("Output image height must be >= 2.\n");
 			} else {
@@ -128,6 +139,9 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 	if (!widthSpecified && !heightSpecified) {
 		width = DEFAULT_FRACTAL_IMAGE_WIDTH;
 	}
+	if (widthSpecified && heightSpecified) {
+		invalid_use_error("Width and height cannot be specified simultaneously.\n");
+	}
 
 	if (!minAntiAliasingSizeSpecified) {
 		minAntiAliasingSize = DEFAULT_MIN_ANTIALIASING_SIZE;
@@ -146,11 +160,5 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 
 	if (renderingFileName != NULL && access(renderingFileName, F_OK) != 0) {
 		existence_error(renderingFileName);
-	}
-	
-	if (fractalFileName && !renderingFileName) {
-		error("No rendering file was specified while a fractal file was specified.\n");
-	} else if (!fractalFileName && renderingFileName) {
-		error("No fractal file was specified while a rendering file was specified.\n");
 	}
 }

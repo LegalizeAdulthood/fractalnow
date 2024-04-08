@@ -282,14 +282,14 @@ inline void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color
 	}
 }
 
-Action LaunchApplyGaussianBlur(Image *dst, Image *src, FLOAT radius)
+Action *LaunchApplyGaussianBlur(Image *dst, Image *src, FLOAT radius)
 {
 	Filter gaussianFilter;
 	CreateGaussianFilter(&gaussianFilter, radius);
 
-	Action res = LaunchApplyFilter(dst, src, &gaussianFilter);
+	Action *res = LaunchApplyFilter(dst, src, &gaussianFilter);
 
-	FreeFilter(&gaussianFilter);
+	FreeFilter(gaussianFilter);
 
 	return res;
 }
@@ -306,9 +306,9 @@ void ApplyGaussianBlur(Image *dst, Image *src, FLOAT radius)
 	ApplyFilter(&temp, src, &horizFilter);
 	ApplyFilter(dst, &temp, &vertFilter);
 
-	FreeFilter(&horizFilter);
-	FreeFilter(&vertFilter);
-	FreeImage(&temp);
+	FreeFilter(horizFilter);
+	FreeFilter(vertFilter);
+	FreeImage(temp);
 }
 
 typedef struct s_DownscaleImageArguments {
@@ -325,8 +325,8 @@ void FreeDownscaleImageArguments(void *arg)
 {
 	DownscaleImageArguments *c_arg = (DownscaleImageArguments *)arg;
 	free(c_arg->dstRect);
-	FreeFilter(c_arg->horizontalGaussianFilter);
-	FreeFilter(c_arg->verticalGaussianFilter);
+	FreeFilter(*c_arg->horizontalGaussianFilter);
+	FreeFilter(*c_arg->verticalGaussianFilter);
 	free(c_arg->horizontalGaussianFilter);
 	free(c_arg->verticalGaussianFilter);
 }
@@ -363,7 +363,7 @@ void *DownscaleImageThreadRoutine(void *arg)
 		}
 	}
 
-	FreeImage(&tmpImage);
+	FreeImage(tmpImage);
 
 	info(T_VERBOSE,"Downscaling image from (%"PRIuFAST32",%"PRIuFAST32") to \
 (%"PRIuFAST32",%"PRIuFAST32") : %s.\n", dstRect->x1,dstRect->y1, dstRect->x2,
@@ -372,7 +372,7 @@ void *DownscaleImageThreadRoutine(void *arg)
 	return ((*cancel) ? PTHREAD_CANCELED : NULL);
 }
 
-inline Action LaunchDownscaleImage(Image *dst, Image *src)
+inline Action *LaunchDownscaleImage(Image *dst, Image *src)
 {
 	if (src->width == 0 || src->height == 0 || dst->width == 0 || dst->height == 0) {
 		return DoNothingAction();
@@ -413,29 +413,30 @@ in %"PRIuFAST32" parts.\n", rectangle[0].x1, rectangle[0].y1, rectangle[0].x2, r
 		arg[i].horizontalGaussianFilter = CopyFilter(&horizontalGaussianFilter);
 		arg[i].verticalGaussianFilter = CopyFilter(&verticalGaussianFilter);
 	}
-	Action res = LaunchThreads("Downscaling image", realNbThreads, arg, sizeof(DownscaleImageArguments),
+	Action *res = LaunchThreads("Downscaling image", realNbThreads, arg, sizeof(DownscaleImageArguments),
 					DownscaleImageThreadRoutine, FreeDownscaleImageArguments);
 
 	free(rectangle);
 	free(arg);
-	FreeFilter(&horizontalGaussianFilter);
-	FreeFilter(&verticalGaussianFilter);
+	FreeFilter(horizontalGaussianFilter);
+	FreeFilter(verticalGaussianFilter);
 
 	return res;
 }
 
 void DownscaleImage(Image *dst, Image *src)
 {
-	Action action = LaunchDownscaleImage(dst, src);
+	Action *action = LaunchDownscaleImage(dst, src);
 	int unused = WaitForActionTermination(action);
 	(void)unused;
-	FreeAction(action);
+	FreeAction(*action);
+	free(action);
 }
 
-void FreeImage(Image *image)
+void FreeImage(Image image)
 {
-	if (image->width != 0 && image->height != 0
-		&& !image->data_is_external) {
-		free(image->data);
+	if (image.width != 0 && image.height != 0
+		&& !image.data_is_external) {
+		free(image.data);
 	}
 }

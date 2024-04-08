@@ -51,9 +51,10 @@ class FractalConfigWidget : public QWidget
 	QSpinBox *maxIterationsSpinBox;
 
 	public slots:
-	void UpdateSpaceSingleSteps(double spanX);
-	void UpdateCParamReSingleStep(double cParamRe);
-	void UpdateCParamImSingleStep(double cParamIm);
+	void updateSpaceSingleSteps(double spanX);
+	void updateCParamReSingleStep(double cParamRe);
+	void updateCParamImSingleStep(double cParamIm);
+	void updateBoxesEnabledValue(int fractalFormula);
 };
 
 #endif

@@ -36,7 +36,7 @@ extern "C" {
 struct s_Fractal;
 
 /**
- * \typedef CountingFunction
+ * \enum e_CountingFunction
  * \brief Possible counting functions.
  *
  * There are different ways to "count" the number of iterations

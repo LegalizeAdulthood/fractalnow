@@ -30,9 +30,9 @@
 	printf("\nDraw some fractal subset :\n\
 Usage : qfractal2D [-h] \n  \
 or \n\
-fractal2D [-q|-v] [-d] [-j <NbThreads>] [-c <FractalFile> -r \
-<RenderingFile>] [-x <Width>] [-y <Height>] -m <MinAAMSize> \
--M <MaxAAMSize>]] \n\n  \
+fractal2D [-q|-v] [-d] [-j <NbThreads>] [-c <FractalFile>] [-r \
+<RenderingFile>] [-x <Width> | -y <Height>] [-m <MinAAMSize> \
+-M <MaxAAMSize>] \n\n  \
 -h : Prints this help.\n  \
 -q : Quiet mode.\n  \
 -v : Verbose mode.\n  \
@@ -44,7 +44,8 @@ computing fractal. See fractal file syntax below.\n  \
 -r <RenderingFile> : Specify the rendering file, used for \
 rendering fractal. See rendering file syntax below.\n  \
 -x <Width> : Specify output image width (%"PRIuFAST32" by \
-default. \n  \
+default, or set to keep fractal space ratio if height is \
+specified). \n  \
 -y <Height> : Specify output image height (by default set \
 to keep fractal space ratio). \n  \
 -m <MinAAMSize> : Specify minimum size of adaptive \

@@ -47,7 +47,7 @@ void FreeDrawFractalArguments(void *arg)
 	DrawFractalArguments *c_arg = (DrawFractalArguments *)arg;
 	free(c_arg->clipRect);
 	if (c_arg->copyImage != NULL) {
-		FreeImage(c_arg->copyImage);
+		FreeImage(*c_arg->copyImage);
 		free(c_arg->copyImage);
 	}
 }
@@ -390,7 +390,7 @@ void *DrawFractalThreadRoutine(void *arg)
 	return ((*cancel) ? PTHREAD_CANCELED : NULL);
 }
 
-inline Action LaunchDrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render,
+inline Action *LaunchDrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render,
 			uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold)
 {
 	if (image->width < 2 || image->height < 2) {
@@ -429,7 +429,7 @@ inline Action LaunchDrawFractalFast(Image *image, Fractal *fractal, RenderingPar
 		arg[i].size = quadInterpolationSize;
 		arg[i].threshold = interpolationThreshold;
 	}
-	Action action = LaunchThreads("Drawing fractal", realNbThreads, arg, sizeof(DrawFractalArguments),
+	Action *action = LaunchThreads("Drawing fractal", realNbThreads, arg, sizeof(DrawFractalArguments),
 					DrawFractalThreadRoutine, FreeDrawFractalArguments);
 
 	free(arg);
@@ -441,10 +441,11 @@ inline Action LaunchDrawFractalFast(Image *image, Fractal *fractal, RenderingPar
 inline void DrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render,
 			uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold)
 {
-	Action action = LaunchDrawFractalFast(image, fractal, render, quadInterpolationSize, interpolationThreshold);
+	Action *action = LaunchDrawFractalFast(image, fractal, render, quadInterpolationSize, interpolationThreshold);
 	int unused = WaitForActionTermination(action);
 	(void)unused;
-	FreeAction(action);
+	FreeAction(*action);
+	free(action);
 }
 
 void DrawFractal(Image *image, Fractal *fractal, RenderingParameters *render)
@@ -521,10 +522,10 @@ void *AntiAliaseFractalThreadRoutine(void *arg)
 		}
 	}
 
-	FreeFilter(&horizontalGaussianFilter);
-	FreeFilter(&verticalGaussianFilter);
-	FreeImage(&tmpImage1);
-	FreeImage(&tmpImage2);
+	FreeFilter(horizontalGaussianFilter);
+	FreeFilter(verticalGaussianFilter);
+	FreeImage(tmpImage1);
+	FreeImage(tmpImage2);
 
 	info(T_VERBOSE,"Anti-aliasing fractal from (%"PRIuFAST32",%"PRIuFAST32") to \
 (%"PRIuFAST32",%"PRIuFAST32") : %s.\n", clipRect->x1, clipRect->y1, clipRect->x2,
@@ -533,7 +534,7 @@ void *AntiAliaseFractalThreadRoutine(void *arg)
 	return ((*cancel) ? PTHREAD_CANCELED : NULL);
 }
 
-inline Action LaunchAntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *render,
+inline Action *LaunchAntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *render,
 			uint_fast32_t antiAliasingSize, FLOAT threshold)
 {
 	if (antiAliasingSize == 0) {
@@ -571,7 +572,7 @@ inline Action LaunchAntiAliaseFractal(Image *image, Fractal *fractal, RenderingP
 		arg[i].size = antiAliasingSize;
 		arg[i].threshold = threshold;
 	}
-	Action res = LaunchThreads("Anti-aliasing fractal", realNbThreads, arg, sizeof(DrawFractalArguments),
+	Action *res = LaunchThreads("Anti-aliasing fractal", realNbThreads, arg, sizeof(DrawFractalArguments),
 					AntiAliaseFractalThreadRoutine, FreeDrawFractalArguments);
 
 	free(rectangle);
@@ -583,8 +584,10 @@ inline Action LaunchAntiAliaseFractal(Image *image, Fractal *fractal, RenderingP
 void AntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *render,
 			uint_fast32_t antiAliasingSize, FLOAT threshold)
 {
-	Action action = LaunchAntiAliaseFractal(image, fractal, render, antiAliasingSize, threshold);
+	Action *action = LaunchAntiAliaseFractal(image, fractal, render, antiAliasingSize, threshold);
 	int unused = WaitForActionTermination(action);
 	(void)unused;
-	FreeAction(action);
+	FreeAction(*action);
+	free(action);
 }
+

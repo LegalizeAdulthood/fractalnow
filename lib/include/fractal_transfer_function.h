@@ -35,11 +35,10 @@ extern "C" {
 #include <stdint.h>
 
 /**
- * \typedef TransferFunction
+ * \enum e_TransferFunction
  * \brief Possible transfer functions.
  *
- * \Transfer function are used to map fractal values to colors correctly.
- *
+ * Transfer function are used to map fractal values to colors correctly.
  */
 typedef enum e_TransferFunction {
 	TF_LOG = 0,

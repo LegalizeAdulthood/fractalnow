@@ -36,7 +36,7 @@ void FreeApplyFilterArguments(void *arg)
 {
 	ApplyFilterArguments *c_arg = (ApplyFilterArguments *)arg;
 	free(c_arg->dstRect);
-	FreeFilter(c_arg->filter);
+	FreeFilter(*c_arg->filter);
 	free(c_arg->filter);
 }
 
@@ -264,7 +264,7 @@ void *ApplyFilterThreadRoutine(void *arg)
 	return ((*cancel) ? PTHREAD_CANCELED : NULL);
 }
 
-inline Action LaunchApplyFilter(Image *dst, Image *src, Filter *filter)
+inline Action *LaunchApplyFilter(Image *dst, Image *src, Filter *filter)
 {
 	if (src->width == 0 || src->height == 0) {
 		return DoNothingAction();
@@ -290,7 +290,7 @@ inline Action LaunchApplyFilter(Image *dst, Image *src, Filter *filter)
 		arg[i].src = src;
 		arg[i].filter = CopyFilter(filter);
 	}
-	Action res = LaunchThreads("Applying filter", realNbThreads, arg, sizeof(ApplyFilterArguments),
+	Action *res = LaunchThreads("Applying filter", realNbThreads, arg, sizeof(ApplyFilterArguments),
 					ApplyFilterThreadRoutine, FreeApplyFilterArguments);
 
 	free(rectangle);
@@ -301,14 +301,15 @@ inline Action LaunchApplyFilter(Image *dst, Image *src, Filter *filter)
 
 void ApplyFilter(Image *dst, Image *src, Filter *filter)
 {
-	Action action = LaunchApplyFilter(dst, src, filter);
+	Action *action = LaunchApplyFilter(dst, src, filter);
 	int unused = WaitForActionTermination(action);
 	(void)unused;
-	FreeAction(action);
+	FreeAction(*action);
+	free(action);
 }
 
-void FreeFilter(Filter *filter)
+void FreeFilter(Filter filter)
 {
-	free(filter->data);
+	free(filter.data);
 }
 
