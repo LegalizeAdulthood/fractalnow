@@ -1,5 +1,5 @@
 /*
- *  image_label.h -- part of fractal2D
+ *  fractal_image_label.h -- part of fractal2D
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -19,34 +19,45 @@
  */
  
  /**
-  * \file help.h
+  * \file fractal_image_label.h
   * \brief Header file introducing ImageLabel class.
   *
   * \author Marc Pegon
   */
 
-#ifndef _IMAGE_LABEL__H__
-#define _IMAGE_LABEL__H__
+#ifndef _FRACTAL_IMAGE_LABEL__H__
+#define _FRACTAL_IMAGE_LABEL__H__
 
 #include <QImage>
 #include <QLabel>
 #include <QPaintEvent>
 
-class ImageLabel : public QLabel
+class FractalImageLabel : public QLabel
 {
 	Q_OBJECT
 	 
 	public:
-	ImageLabel();
+	FractalImageLabel();
 	void paintEvent(QPaintEvent *event);
 	QSize sizeHint() const;
+	QSize minimumSizeHint() const;
 
-	QImage *image;
+	void mousePressEvent(QMouseEvent *event);
+	void mouseReleaseEvent(QMouseEvent *event);
+	void mouseMoveEvent(QMouseEvent *event);
+	void wheelEvent(QWheelEvent *event);
 
 	private:
+	QImage *image;
 
 	public slots:
 	void setImage(QImage *newImage);
+
+	signals:
+	void mousePressed(QMouseEvent *event);
+	void mouseReleased(QMouseEvent *event);
+	void mouseMoved(QMouseEvent *event);
+	void mouseWheelRotated(QWheelEvent *event);
 };
 
 #endif

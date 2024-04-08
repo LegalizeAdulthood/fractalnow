@@ -30,58 +30,64 @@
 
 FractalRenderingWidget::FractalRenderingWidget(RenderingParameters &render) : QWidget()
 {
-	QLabel *countingFunctionLabel = new QLabel(QString("Counting function:"));
+	QLabel *countingFunctionLabel = new QLabel(tr("Counting function:"));
 	countingFunctionComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbCountingFunctions; ++i) {
 		countingFunctionComboBox->addItem(CountingFunctionDescStr[i]);
 	}
 	countingFunctionComboBox->setCurrentIndex((int)render.countingFunction);
 
-	QLabel *coloringMethodLabel = new QLabel(QString("Coloring method:"));
+	QLabel *coloringMethodLabel = new QLabel(tr("Coloring method:"));
 	coloringMethodComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbColoringMethods; ++i) {
 		coloringMethodComboBox->addItem(ColoringMethodDescStr[i]);
 	}
 	coloringMethodComboBox->setCurrentIndex((int)render.coloringMethod);
 
-	QLabel *addendFunctionLabel = new QLabel(QString("Addend function:"));
+	QLabel *addendFunctionLabel = new QLabel(tr("Addend function:"));
 	addendFunctionComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbAddendFunctions; ++i) {
 		addendFunctionComboBox->addItem(AddendFunctionDescStr[i]);
 	}
 	addendFunctionComboBox->setCurrentIndex((int)render.addendFunction);
 
-	QLabel *stripeDensityLabel = new QLabel(QString("Stripe density:"));
+	QLabel *stripeDensityLabel = new QLabel(tr("Stripe density:"));
 	stripeDensitySpinBox = new QSpinBox;
 	stripeDensitySpinBox->setRange(1, std::numeric_limits<int>::max());
 	stripeDensitySpinBox->setValue((int)render.stripeDensity);
 	stripeDensitySpinBox->setAccelerated(true);
 
-	QLabel *interpolationMethodLabel = new QLabel(QString("Interpolation method:"));
+	QLabel *interpolationMethodLabel = new QLabel(tr("Interpolation method:"));
 	interpolationMethodComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbInterpolationMethods; ++i) {
 		interpolationMethodComboBox->addItem(InterpolationMethodDescStr[i]);
 	}
 	interpolationMethodComboBox->setCurrentIndex((int)render.interpolationMethod);
 
-	QLabel *transferFunctionLabel = new QLabel(QString("Transfer function:"));
+	QLabel *transferFunctionLabel = new QLabel(tr("Transfer function:"));
 	transferFunctionComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbTransferFunctions; ++i) {
 		transferFunctionComboBox->addItem(TransferFunctionDescStr[i]);
 	}
 	transferFunctionComboBox->setCurrentIndex((int)render.transferFunction);
 
-	QLabel *colorScalingLabel = new QLabel(QString("Color scaling:"));
+	QLabel *spaceColorLabel = new QLabel(tr("Space color:"));
+	spaceColorButton = new ColorButton;
+	spaceColorButton->setCurrentColor(QColor(render.spaceColor.r, render.spaceColor.g,
+					render.spaceColor.b));
+
+	QLabel *colorScalingLabel = new QLabel(tr("Color scaling:"));
 	colorScalingSpinBox = new QDoubleSpinBox;
 	colorScalingSpinBox->setDecimals(8);
 	colorScalingSpinBox->setRange(0, std::numeric_limits<double>::max());
 	colorScalingSpinBox->setValue(render.multiplier);
 	colorScalingSpinBox->setAccelerated(true);
 
-	QLabel *colorOffsetLabel = new QLabel(QString("Color offset:"));
+	QLabel *colorOffsetLabel = new QLabel(tr("Color offset:"));
 	colorOffsetSpinBox = new QDoubleSpinBox;
-	colorOffsetSpinBox->setDecimals(0);
-	colorOffsetSpinBox->setRange(0, std::numeric_limits<double>::max());
+	colorOffsetSpinBox->setDecimals(6);
+	colorOffsetSpinBox->setRange(0, 1);
+	colorOffsetSpinBox->setSingleStep(0.01);
 	colorOffsetSpinBox->setValue(render.offset);
 	colorOffsetSpinBox->setAccelerated(true);
 
@@ -110,16 +116,21 @@ FractalRenderingWidget::FractalRenderingWidget(RenderingParameters &render) : QW
 	gridLayout->addWidget(colorOffsetLabel, 7, 0);
 	gridLayout->addWidget(colorOffsetSpinBox, 7, 1);
 
+	gridLayout->addWidget(spaceColorLabel, 8, 0);
+	gridLayout->addWidget(spaceColorButton, 8, 1);
+
 	gridLayout->setColumnStretch(1, 1);
-	gridLayout->setRowStretch(8, 1);
+	gridLayout->setRowStretch(9, 1);
 	this->setLayout(gridLayout);
 
 	updateBoxesEnabledValue();
+	updateColorScalingSingleStep();
 
 	connect(coloringMethodComboBox, SIGNAL(currentIndexChanged(int)),
 		this, SLOT(updateBoxesEnabledValue()));
 	connect(addendFunctionComboBox, SIGNAL(currentIndexChanged(int)),
 		this, SLOT(updateBoxesEnabledValue()));
+	connect(colorScalingSpinBox, SIGNAL(valueChanged(double)), this, SLOT(updateColorScalingSingleStep()));
 }
 
 void FractalRenderingWidget::updateBoxesEnabledValue()
@@ -144,5 +155,11 @@ void FractalRenderingWidget::updateBoxesEnabledValue()
 		interpolationMethodComboBox->setEnabled(true);
 		break;
 	}
+}
+
+void FractalRenderingWidget::updateColorScalingSingleStep()
+{
+	double colorScaling = colorScalingSpinBox->value();
+	colorScalingSpinBox->setSingleStep(colorScaling / 10);
 }
 

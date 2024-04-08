@@ -30,6 +30,7 @@ void FractalRenderingWidget::updateBoxesEnabledValue()
 #define __FRACTAL_RENDERING_WIDGET_H__
 
 #include "fractal_rendering_parameters.h"
+#include "color_button.h"
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QWidget>
@@ -49,9 +50,11 @@ class FractalRenderingWidget : public QWidget
 	QComboBox *transferFunctionComboBox;
 	QDoubleSpinBox *colorScalingSpinBox;
 	QDoubleSpinBox *colorOffsetSpinBox;
+	ColorButton *spaceColorButton;
 
 	public slots:
 	void updateBoxesEnabledValue();
+	void updateColorScalingSingleStep();
 };
 
 #endif

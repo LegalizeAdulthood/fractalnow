@@ -70,6 +70,12 @@ typedef struct s_RenderingParameters {
  /*!< Offset for mapping value to gradient.*/
 	Gradient gradient;
  /*!< Gradient for mapping float values to colors.*/
+
+ /* For internal use.*/
+	FLOAT realMultiplier;
+ /*< Real multiplier (normalized according to gradient size).*/
+	FLOAT realOffset;
+ /*< Real offset (normalized according to gradient size).*/
 } RenderingParameters;
 
 /**

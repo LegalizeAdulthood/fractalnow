@@ -22,6 +22,20 @@
 #include "error.h"
 #include <stdlib.h>
 
+Color ColorFromRGB(uint8_t bytesPerComponent, uint16_t r, uint16_t g, uint16_t b)
+{
+	if (bytesPerComponent != 1 && bytesPerComponent != 2) {
+		error("Invalid bytes per component.\n");
+	}
+	Color res;
+	res.bytesPerComponent = bytesPerComponent;
+	res.r = r;
+	res.g = g;
+	res.b = b;
+
+	return res;
+}
+
 inline Color ColorFromUint32(uint32_t color)
 {
 	Color res;

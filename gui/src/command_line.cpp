@@ -26,6 +26,18 @@
 #include <getopt.h>
 #include <inttypes.h>
 
+int FileExists(const char *fileName)
+{
+	FILE *file;
+	int res = 0;
+
+	if ((file = fopen(fileName,"r")) != NULL) {
+		res = 1;
+		fclose(file);
+	}
+	return res;
+}
+
 CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 {
 	traceLevel = T_NORMAL;
@@ -154,11 +166,11 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 		invalid_use_error("Maximum anti-aliasing size must be greater than minimum anti-aliasing size.\n");
 	}
 	
-	if (fractalFileName != NULL && access(fractalFileName, F_OK) != 0) {
+	if (fractalFileName != NULL && !FileExists(fractalFileName)) {
 		existence_error(fractalFileName);
 	}
 
-	if (renderingFileName != NULL && access(renderingFileName, F_OK) != 0) {
+	if (renderingFileName != NULL && !FileExists(renderingFileName)) {
 		existence_error(renderingFileName);
 	}
 }

@@ -1,5 +1,5 @@
 /*
- *  main.cpp -- part of fractal2D
+ *  color_button.h -- part of fractal2D
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -18,19 +18,41 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
  
-#include "main.h"
-#include "main_window.h"
-#include <QApplication>
+ /**
+  * \file color_button.h
+  * \brief Header file introducing ColorButton class.
+  *
+  * \author Marc Pegon
+  */
+
+#ifndef _COLOR_BUTTON__H__
+#define _COLOR_BUTTON__H__
+
 #include <QPushButton>
- 
-int main(int argc, char *argv[])
+#include <QColorDialog>
+
+class ColorButton : public QPushButton
 {
-	QApplication::setGraphicsSystem(QString("raster"));
-	QApplication app(argc, argv);
+	Q_OBJECT
 
-	MainWindow mainWindow(argc, argv);
-	mainWindow.show();
+	public:
+	ColorButton(QWidget *parent = 0);
+	QColor currentColor();
 
-	return app.exec();
-}
+	private:
+	QColor color;
+	QColorDialog *colorDialog;
+	void updateIcon();
+
+	public slots:
+	void setCurrentColor(QColor color);
+
+	private slots:
+	void openColorDialog();
+
+	signals:
+	void currentColorChanged(const QColor &color);
+};
+
+#endif
 

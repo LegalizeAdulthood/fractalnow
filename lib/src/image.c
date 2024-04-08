@@ -267,13 +267,13 @@ inline void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color
 	case 1:
 		{
 		uint32_t *data32 = (uint32_t *)(image->data) + y*image->width+x;
-		*data32 = RGB8_TO_UINT32(color.r, color.g, color.b);//0xFF000000 + (color.r << 16) + (color.g << 8) + color.b;
+		*data32 = RGB8_TO_UINT32(color.r, color.g, color.b);
 		break;
 		}
 	case 2:
 		{
 		uint64_t *data64 = (uint64_t *)(image->data) + y*image->width+x;
-		*data64 = RGB16_TO_UINT64(color.r, color.g, color.b);//0xFFFF000000000000 + ((uint64_t)(color.r) << 32) + ((uint64_t)(color.g) << 16) + (uint64_t)(color.b);
+		*data64 = RGB16_TO_UINT64(color.r, color.g, color.b);
 		}
 		break;
 	default:

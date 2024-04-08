@@ -40,7 +40,9 @@ inline void InitRenderingParameters(RenderingParameters *param, uint_fast8_t byt
 	param->transferFunction = transferFunction;
 	param->transferFunctionPtr = GetTransferFunctionPtr(transferFunction);
 	param->multiplier = multiplier;
+	param->realMultiplier = multiplier*gradient.size;
 	param->offset = offset;
+	param->realOffset = offset*gradient.size;
 	param->gradient = gradient;
 }
 
@@ -104,11 +106,6 @@ void ReadRenderingFile(RenderingParameters *param, const char *fileName)
 	multiplier = safeReadFLOAT(file, fileName);
 	offset = safeReadFLOAT(file, fileName);
 
-	uint_fast32_t nbTransitions = safeReadUint32(file, fileName);
-	if (nbTransitions < 2) {
-		error("Invalid rendering file : number of transitions must be > 1.\n");
-	}
-
 	Color color[256];
 	uint_fast32_t nbColors=0;
 	int res;
@@ -123,7 +120,7 @@ void ReadRenderingFile(RenderingParameters *param, const char *fileName)
 		error("Invalid rendering file : number of colors must be between 2 and 256.\n");
 	}
 
-	GenerateGradient(&gradient, color, nbColors, nbTransitions);
+	GenerateGradient(&gradient, color, nbColors, DEFAULT_GRADIENT_TRANSITIONS);
 
 	InitRenderingParameters(param, bytesPerComponent, spaceColor, countingFunction, coloringMethod,
 				addendFunction, stripeDensity, interpolationMethod, transferFunction,

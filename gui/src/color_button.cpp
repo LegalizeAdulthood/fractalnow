@@ -1,5 +1,5 @@
 /*
- *  main.cpp -- part of fractal2D
+ *  color_button.cpp -- part of fractal2D
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -17,20 +17,41 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
+
+#include "color_button.h"
  
-#include "main.h"
-#include "main_window.h"
-#include <QApplication>
-#include <QPushButton>
- 
-int main(int argc, char *argv[])
+void ColorButton::updateIcon()
 {
-	QApplication::setGraphicsSystem(QString("raster"));
-	QApplication app(argc, argv);
+	QPixmap pixmap(sizeHint());
+	pixmap.fill(color);
+	QIcon icon(pixmap);
+	setIcon(icon);
+}
 
-	MainWindow mainWindow(argc, argv);
-	mainWindow.show();
+ColorButton::ColorButton(QWidget *parent) : QPushButton(parent)
+{
+	color = Qt::white;
+	updateIcon();
+	colorDialog = new QColorDialog(this);
+	connect(this, SIGNAL(clicked()), this, SLOT(openColorDialog()));
+}
 
-	return app.exec();
+QColor ColorButton::currentColor()
+{
+	return color;
+}
+
+void ColorButton::setCurrentColor(QColor color)
+{
+	if (color != this->color) {
+		this->color = color;
+		updateIcon();
+		emit currentColorChanged(color);
+	}
+}
+
+void ColorButton::openColorDialog()
+{
+	colorDialog->open(this, SLOT(setCurrentColor(QColor)));
 }
 

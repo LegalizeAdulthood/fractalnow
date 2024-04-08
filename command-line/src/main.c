@@ -27,7 +27,6 @@
 #include <getopt.h>
 #include <inttypes.h>
 #include <stdint.h>
-#include <unistd.h>
 
 int main(int argc, char *argv[]) {
 	setlocale(LC_NUMERIC, "C");

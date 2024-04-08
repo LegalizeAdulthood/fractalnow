@@ -34,6 +34,8 @@ extern "C" {
 #include "color.h"
 #include <stdint.h>
 
+#define DEFAULT_GRADIENT_TRANSITIONS (uint_fast32_t)(UINT16_MAX+1)
+
 /**
  * \struct s_Gradient
  * \brief Gradient structure.

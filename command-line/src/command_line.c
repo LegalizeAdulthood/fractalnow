@@ -28,6 +28,18 @@
 #include <inttypes.h>
 #include <string.h>
 
+int FileExists(const char *fileName)
+{
+	FILE *file;
+	int res = 0;
+
+	if ((file = fopen(fileName,"r")) != NULL) {
+		res = 1;
+		fclose(file);
+	}
+	return res;
+}
+
 void ParseCommandLineArguments(CommandLineArguments *dst, int argc, char *argv[])
 {
 	traceLevel = T_NORMAL;
@@ -231,11 +243,11 @@ must be > 1.\n");
 		break;
 	}
 	
-	if (access(dst->fractalFileName, F_OK) != 0) {
+	if (!FileExists(dst->fractalFileName)) {
 		existence_error(dst->fractalFileName);
 	}
 
-	if (access(dst->renderingFileName, F_OK) != 0) {
+	if (!FileExists(dst->renderingFileName)) {
 		existence_error(dst->renderingFileName);
 	}
 }

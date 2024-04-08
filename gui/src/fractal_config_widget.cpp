@@ -28,66 +28,57 @@
 
 FractalConfigWidget::FractalConfigWidget(Fractal &fractal) : QWidget()
 {
-	QLabel *fractalFormulaLabel = new QLabel(QString("Fractal formula:"));
+	QLabel *fractalFormulaLabel = new QLabel(tr("Fractal formula:"));
 	fractalFormulaComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbFractalFormulas; ++i) {
 		fractalFormulaComboBox->addItem(FractalFormulaDescStr[i]);
 	}
-	fractalFormulaComboBox->setCurrentIndex((int)fractal.fractalFormula);
 
-	QLabel *pParamLabel = new QLabel(QString("p:"));
+	QLabel *pParamLabel = new QLabel(tr("p:"));
 	pParamSpinBox = new QDoubleSpinBox;
 	pParamSpinBox->setDecimals(DEFAULT_DECIMAL_NUMBER);
 	pParamSpinBox->setRange(1, std::numeric_limits<double>::max());
-	pParamSpinBox->setValue(fractal.p);
 	pParamSpinBox->setAccelerated(true);
 
-	QLabel *cParamReLabel = new QLabel(QString("c (Re):"));
+	QLabel *cParamReLabel = new QLabel(tr("c (Re):"));
 	cParamReSpinBox = new QDoubleSpinBox;
 	cParamReSpinBox->setDecimals(DEFAULT_DECIMAL_NUMBER);
 	cParamReSpinBox->setRange(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
-	cParamReSpinBox->setValue(crealF(fractal.c));
 	cParamReSpinBox->setAccelerated(true);
 
-	QLabel *cParamImLabel = new QLabel(QString("c (Im):"));
+	QLabel *cParamImLabel = new QLabel(tr("c (Im):"));
 	cParamImSpinBox = new QDoubleSpinBox;
 	cParamImSpinBox->setDecimals(DEFAULT_DECIMAL_NUMBER);
 	cParamImSpinBox->setRange(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
-	cParamImSpinBox->setValue(cimagF(fractal.c));
 	cParamImSpinBox->setAccelerated(true);
 
-	QLabel *centerXLabel = new QLabel(QString("Center X:"));
+	QLabel *centerXLabel = new QLabel(tr("Center X:"));
 	centerXSpinBox = new QDoubleSpinBox;
 	centerXSpinBox->setDecimals(DEFAULT_DECIMAL_NUMBER);
 	centerXSpinBox->setRange(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
-	centerXSpinBox->setValue(fractal.centerX);
 	centerXSpinBox->setAccelerated(true);
 
-	QLabel *centerYLabel = new QLabel(QString("Center Y:"));
+	QLabel *centerYLabel = new QLabel(tr("Center Y:"));
 	centerYSpinBox = new QDoubleSpinBox;
 	centerYSpinBox->setDecimals(DEFAULT_DECIMAL_NUMBER);
 	centerYSpinBox->setRange(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
-	centerYSpinBox->setValue(fractal.centerY);
 	centerYSpinBox->setAccelerated(true);
 
-	QLabel *spanLabel = new QLabel(QString("Span:"));
+	QLabel *spanLabel = new QLabel(tr("Span:"));
 	spanXSpinBox = new QDoubleSpinBox;
 	spanXSpinBox->setDecimals(DEFAULT_DECIMAL_NUMBER);
 	spanXSpinBox->setRange(0, std::numeric_limits<double>::max());
-	spanXSpinBox->setValue(fractal.spanX);
 	spanXSpinBox->setAccelerated(true);
 
-	QLabel *bailoutRadiusLabel = new QLabel(QString("Bailout radius:"));
+	QLabel *bailoutRadiusLabel = new QLabel(tr("Bailout radius:"));
 	bailoutRadiusSpinBox = new QDoubleSpinBox;
 	bailoutRadiusSpinBox->setDecimals(0);
 	bailoutRadiusSpinBox->setRange(1, std::numeric_limits<double>::max());
-	bailoutRadiusSpinBox->setValue(fractal.escapeRadius);
 	bailoutRadiusSpinBox->setAccelerated(true);
 
-	QLabel *maxIterationsLabel = new QLabel(QString("Max iterations:"));
+	QLabel *maxIterationsLabel = new QLabel(tr("Max iterations:"));
 	maxIterationsSpinBox = new QSpinBox;
 	maxIterationsSpinBox->setRange(1, std::numeric_limits<int>::max());
-	maxIterationsSpinBox->setValue(fractal.maxIter);
 	maxIterationsSpinBox->setAccelerated(true);
 
 	QGridLayout *gridLayout = new QGridLayout;
@@ -113,38 +104,68 @@ FractalConfigWidget::FractalConfigWidget(Fractal &fractal) : QWidget()
 	gridLayout->setRowStretch(9, 1);
 	this->setLayout(gridLayout);
 
-	updateSpaceSingleSteps(fractal.spanX);
-	updateCParamReSingleStep(crealF(fractal.c));
-	updateCParamImSingleStep(cimagF(fractal.c));
-	updateBoxesEnabledValue((int)fractal.fractalFormula);
+	updateBoxesValues(fractal);
+	updateSpaceBoxesSingleSteps();
+	updateCParamReSingleStep();
+	updateCParamImSingleStep();
+	updateBoxesEnabledValue();
 
-	connect(spanXSpinBox, SIGNAL(valueChanged(double)), this, SLOT(updateSpaceSingleSteps(double)));
-	connect(cParamReSpinBox, SIGNAL(valueChanged(double)), this, SLOT(updateCParamReSingleStep(double)));
-	connect(cParamImSpinBox, SIGNAL(valueChanged(double)), this, SLOT(updateCParamImSingleStep(double)));
+	connect(spanXSpinBox, SIGNAL(valueChanged(double)), this, SLOT(updateSpaceBoxesSingleSteps()));
+	connect(cParamReSpinBox, SIGNAL(valueChanged(double)), this, SLOT(updateCParamReSingleStep()));
+	connect(cParamImSpinBox, SIGNAL(valueChanged(double)), this, SLOT(updateCParamImSingleStep()));
 	connect(fractalFormulaComboBox, SIGNAL(currentIndexChanged(int)),
-		this, SLOT(updateBoxesEnabledValue(int)));
+		this, SLOT(updateBoxesEnabledValue()));
 }
 
-void FractalConfigWidget::updateSpaceSingleSteps(double spanX)
+void FractalConfigWidget::blockBoxesSignals(bool block)
 {
+	fractalFormulaComboBox->blockSignals(block);
+	pParamSpinBox->blockSignals(block);
+	cParamReSpinBox->blockSignals(block);
+	cParamImSpinBox->blockSignals(block);
+	centerXSpinBox->blockSignals(block);
+	centerYSpinBox->blockSignals(block);
+	spanXSpinBox->blockSignals(block);
+	bailoutRadiusSpinBox->blockSignals(block);
+	maxIterationsSpinBox->blockSignals(block);
+}
+
+void FractalConfigWidget::updateBoxesValues(Fractal &fractal)
+{
+	fractalFormulaComboBox->setCurrentIndex((int)fractal.fractalFormula);
+	pParamSpinBox->setValue(fractal.p);
+	cParamReSpinBox->setValue(crealF(fractal.c));
+	cParamImSpinBox->setValue(cimagF(fractal.c));
+	centerXSpinBox->setValue(fractal.centerX);
+	centerYSpinBox->setValue(fractal.centerY);
+	spanXSpinBox->setValue(fractal.spanX);
+	bailoutRadiusSpinBox->setValue(fractal.escapeRadius);
+	maxIterationsSpinBox->setValue(fractal.maxIter);
+}
+
+void FractalConfigWidget::updateSpaceBoxesSingleSteps()
+{
+	double spanX = spanXSpinBox->value();
 	centerXSpinBox->setSingleStep(spanX / 10);
 	centerYSpinBox->setSingleStep(spanX / 10);
-	spanXSpinBox->setSingleStep(spanX / 10);
+	spanXSpinBox->setSingleStep(spanX / 3);
 }
 
-void FractalConfigWidget::updateCParamReSingleStep(double cParamRe)
+void FractalConfigWidget::updateCParamReSingleStep()
 {
+	double cParamRe = cParamReSpinBox->value();
 	cParamReSpinBox->setSingleStep(cParamRe / 10);
 }
 
-void FractalConfigWidget::updateCParamImSingleStep(double cParamIm)
+void FractalConfigWidget::updateCParamImSingleStep()
 {
+	double cParamIm = cParamImSpinBox->value();
 	cParamImSpinBox->setSingleStep(cParamIm / 10);
 }
 
-void FractalConfigWidget::updateBoxesEnabledValue(int fractalFormula)
+void FractalConfigWidget::updateBoxesEnabledValue()
 {
-	FractalFormula formula = (FractalFormula)fractalFormula;
+	FractalFormula formula = (FractalFormula)fractalFormulaComboBox->currentIndex();
 
 	switch (formula) {
 	case FRAC_MANDELBROT:

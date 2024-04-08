@@ -56,6 +56,20 @@ typedef struct s_Color {
 } Color;
 
 /**
+ * \fn Color ColorFromRGB(uint8_t bytesPerComponent, uint16_t r, uint16_t g, uint16_t b)
+ * \brief Create color from RGB values.
+ *
+ * bytesPerComponent must be 1 or 2.
+ *
+ * \param bytesPerComponent Bytes per component.
+ * \param r Red value.
+ * \param g Green value.
+ * \param b Blue value.
+ * \return Corresponding color structure.
+ */
+Color ColorFromRGB(uint8_t bytesPerComponent, uint16_t r, uint16_t g, uint16_t b);
+
+/**
  * \fn Color ColorFromUint32(uint32_t color)
  * \brief Convert a uint32_t color to Color structure.
  *

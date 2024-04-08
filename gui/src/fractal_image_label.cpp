@@ -1,5 +1,5 @@
 /*
- *  image_label.cpp -- part of fractal2D
+ *  fractal_image_label.cpp -- part of fractal2D
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -18,38 +18,30 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
  
-#include "image_label.h"
+#include "fractal_image_label.h"
 #include <QDebug>
 #include <QPainter>
 
-ImageLabel::ImageLabel() : QLabel()
+FractalImageLabel::FractalImageLabel() : QLabel()
 {
 	image = NULL;
+	setCursor(QCursor(Qt::OpenHandCursor));
+	setContextMenuPolicy(Qt::CustomContextMenu);
 }
 
-void ImageLabel::paintEvent(QPaintEvent *event)
+void FractalImageLabel::paintEvent(QPaintEvent *event)
 {
 	(void)event;
+	setFocusPolicy(Qt::StrongFocus);
 
 	if (image != 0) {
 		QPainter painter(this);
 		painter.setRenderHint(QPainter::SmoothPixmapTransform);
-		QRect rect(this->rect());
-		if (image->rect().height() != 0 && rect.height() != 0) {
-			double imageRatio = image->rect().width() / (double)image->rect().height();
-			double rectRatio = rect.width() / (double)rect.height();
-			if (rectRatio > imageRatio) {
-				rect.setWidth(rect.height() * imageRatio);
-			} else if (rectRatio < imageRatio) {
-				rect.setHeight(rect.width() / imageRatio);
-			}
-			rect.moveCenter(this->rect().center());
-		}
-		painter.drawImage(rect, *image, image->rect());
+		painter.drawImage(image->rect(), *image, image->rect());
 	}
 }
 
-QSize ImageLabel::sizeHint() const
+QSize FractalImageLabel::sizeHint() const
 {
 	if (image == NULL) {
 		return QSize(0, 0);
@@ -58,10 +50,39 @@ QSize ImageLabel::sizeHint() const
 	}
 }
 
-void ImageLabel::setImage(QImage *newImage)
+QSize FractalImageLabel::minimumSizeHint() const
+{
+	if (image == NULL) {
+		return QSize(0, 0);
+	} else {
+		return image->size();
+	}
+}
+
+void FractalImageLabel::setImage(QImage *newImage)
 {
 	image = newImage;
 	if (image != NULL) {
 		resize(newImage->size());
 	}
+}
+
+void FractalImageLabel::mousePressEvent(QMouseEvent *event)
+{
+	emit mousePressed(event);
+}
+
+void FractalImageLabel::mouseReleaseEvent(QMouseEvent *event)
+{
+	emit mouseReleased(event);
+}
+
+void FractalImageLabel::mouseMoveEvent(QMouseEvent *event)
+{
+	emit mouseMoved(event);
+}
+
+void FractalImageLabel::wheelEvent(QWheelEvent *event)
+{
+	emit mouseWheelRotated(event);
 }

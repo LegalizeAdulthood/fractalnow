@@ -188,8 +188,8 @@ static inline Color aux_ComputeFractalColor(Fractal *fractal, RenderingParameter
 	if (value < 0) {
 		res = render->spaceColor;
 	} else {
-		value = render->transferFunctionPtr(value)*render->multiplier+
-			render->offset;
+		value = render->transferFunctionPtr(value)*render->realMultiplier+
+			render->realOffset;
 		res = GetGradientColor(&render->gradient, (uint_fast64_t)(value));
 	}
 	return res;

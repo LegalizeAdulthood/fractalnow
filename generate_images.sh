@@ -19,6 +19,7 @@ FRACTAL2D_OPTIONS (see fractal2D help) :
 -v | --verbose
 -a | --anti-aliasing
 -s | --aa-size
+-j | --nb-threads
 EOF
 }
 
@@ -27,13 +28,13 @@ VERBOSE=0;
 DRY_RUN=0;
 DEBUG=0;
 FRACTAL_DIR="configs"
-RENDER_DIR="render"
+RENDER_DIR="configs"
 IMGS_DIR="imgs"
 FRACTAL_FILE_PREFIX="fractal"
 RENDER_FILE_PREFIX="render"
 EXE="./fractal2D"
 
-ARGS='eval set -- '`getopt -s bash -l 'help,config:,render:,ouput:,quiet,verbose,debug,dry-run,width:,height:,anti-aliasing:,aa-size:' 'hc:r:o:qvdnx:y:a:s:' "$@"`;
+ARGS='eval set -- '`getopt -s bash -l 'help,config:,render:,ouput:,quiet,verbose,debug,dry-run,width:,height:,anti-aliasing:,aa-size:,nb-threads:' 'hc:r:o:qvdnx:y:a:s:j:' "$@"`;
 
 if [ $? -ne 0 ]; then
 	usage;
@@ -110,6 +111,14 @@ while [ $# -ne 0 ] ; do
 				error 'AAM_Size is not a number.';
 			fi;
 		;;
+		'-j'|'--nb-threads')
+			shift;
+			if eval [ "$1" -eq "$1" 2>/dev/null ]; then
+				NB_THREADS=`eval echo "$1"`;
+			else
+				error 'Number of threads is not a number.';
+			fi;
+		;;
 	esac;
 
 	shift;
@@ -135,9 +144,9 @@ fi;
 
 # Make sure that RENDER_DIR is a directory.
 if [ ! -e "${RENDER_DIR}" ]; then
-	error "'${FRACTAL_DIR}' doesn't exist.";
+	error "'${RENDER_DIR}' doesn't exist.";
 elif [ ! -d "${RENDER_DIR}" ]; then
-	error "'${FRACTAL_DIR}' is not a directory.";
+	error "'${RENDER_DIR}' is not a directory.";
 fi;
 
 # Check whether IMGS_DIR exists or not
@@ -157,6 +166,9 @@ if [ ${VERBOSE} -eq 1 ]; then
 fi;
 if [ ${QUIET} -eq 1 ]; then
 	FLAGS="$FLAGS -q";
+fi;
+if [ ! -z ${NB_THREADS} ]; then
+	FLAGS="$FLAGS -j ${NB_THREADS}";
 fi;
 if [ ! -z ${WIDTH} ]; then
 	FLAGS="$FLAGS -x ${WIDTH}";

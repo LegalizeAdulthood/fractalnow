@@ -36,6 +36,7 @@ Action *DoNothingAction()
 	Action *res = (Action *)safeMalloc("do-nothing action", sizeof(Action));
 	res->is_do_nothing = 1;
 	res->done = 1;
+	res->cancel = 0;
 
 	return res;
 }
@@ -88,22 +89,19 @@ inline Action *LaunchThreads(const char *message, uint_fast32_t N, void *args, s
 
 void CancelAction(Action *action)
 {
-	if (!action->is_do_nothing) {
-		action->cancel = 1;
-	}
+	action->cancel = 1;
 }
 
 inline int WaitForActionTermination(Action *action)
 {
 	if (action->is_do_nothing) {
-		return 0;
+		return action->cancel;
 	}
 	if (action->done) {
 		return action->return_value;
 	}
 
 	void *status;
-	int res = 0;
 	uint8_t *c_arg = (uint8_t *)(action->args) + sizeof(sig_atomic_t *);
 	for (uint_fast32_t i = 0; i < action->N; ++i) {
 		safePThreadJoin(action->thread[i], &status);
@@ -111,10 +109,10 @@ inline int WaitForActionTermination(Action *action)
 		if (status != NULL && status != PTHREAD_CANCELED) {
 			error("Thread ended because of an error.\n");
 		}
-		res |= (status == PTHREAD_CANCELED);
 		c_arg += action->s_elem + sizeof(sig_atomic_t *);
 	}
 
+	int res = action->cancel;
 	info(T_NORMAL, "%s : %s.\n", action->message, (res == 0) ? "DONE" : "CANCELED");
 	action->return_value = res;
 	action->done = 1;

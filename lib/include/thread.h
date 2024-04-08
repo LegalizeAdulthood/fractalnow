@@ -35,7 +35,6 @@ extern "C" {
 #include <pthread.h>
 #include <signal.h>
 #include <stdint.h>
-#include <unistd.h>
 
 /**
  * \def DEFAULT_NB_THREADS

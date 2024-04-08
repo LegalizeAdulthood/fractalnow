@@ -22,7 +22,6 @@
 #include "floating_point.h"
 #include "main.h"
 #include "thread.h"
-#include <cstdio>
 #include <inttypes.h>
 
  void Help::Print()
