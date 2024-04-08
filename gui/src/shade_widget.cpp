@@ -71,6 +71,7 @@ ShadeWidget::ShadeWidget(ShadeType type, QWidget *parent)
 	m_hoverPoints->setPointLock(0, HoverPoints::LockToLeft);
 	m_hoverPoints->setPointLock(1, HoverPoints::LockToRight);
 	m_hoverPoints->setSortType(HoverPoints::XSort);
+	m_hoverPoints->setConnectionType(HoverPoints::LineConnection);
 
 	setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 

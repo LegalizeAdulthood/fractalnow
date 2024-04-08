@@ -1,5 +1,5 @@
 /*
- *  misc.h -- part of fractal2D
+ *  misc.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -35,6 +35,16 @@ extern "C" {
 #include <inttypes.h>
 #include <stdlib.h>
 
+#ifndef complex
+#define complex _Complex
+#endif
+
+/**
+ * \def UNUSED(x)
+ * \brief Macro for unused variables.
+ */
+#define UNUSED(x) (void)x
+
 /**
  * \fn void toLowerCase(char *str)
  * \brief Convert string letter to lower case.
@@ -59,6 +69,19 @@ void toLowerCase(char *str);
 void *safeMalloc(const char *name, uint_least64_t size);
 
 /**
+ * \fn void *safeRealloc(const char *name, void *ptr, uint_least64_t size)
+ * \brief Safe memory reallocation.
+ *
+ * Exit with error if memory reallocation fails.
+ *
+ * \param name Name to print in case of allocation failure.
+ * \param ptr Pointer to memory to reallocate.
+ * \param size Number of bytes to allocate.
+ * \return Pointer to the allocated memory.
+ */
+void *safeRealloc(const char *name, void *ptr, uint_least64_t size);
+
+/**
  * \fn void void *safeCalloc(const char *name, uint_least64_t nmemb, uint_least64_t size)
  * \brief Safe memory allocation.
  *
@@ -72,13 +95,13 @@ void *safeMalloc(const char *name, uint_least64_t size);
 void *safeCalloc(const char *name, uint_least64_t nmemb, uint_least64_t size);
 
 /**
- * \fn int isInteger(FLOAT x)
- * \brief Test whether or not FLOAT is integer.
+ * \fn int isInteger(FLOATT complex x)
+ * \brief Test whether or not FLOATT complex is an integer.
  *
- * \param x FLOAT to test.
+ * \param x FLOATT complex to test.
  * \return 1 is x is an integer, 0 instead.
  */
-int isInteger(FLOAT x);
+int isInteger(FLOATT complex x);
 
 #ifdef __cplusplus
 }

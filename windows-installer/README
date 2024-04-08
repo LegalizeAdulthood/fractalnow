@@ -1,0 +1,12 @@
+To build installer, just copy fractalnow directory created
+by "make install" here and compile NSIS script.
+
+Note 1: If you are building an installer targetting win64
+(x64) systems, you should first edit the script and define
+PROGRAM_FILES constant as $PROGRAMFILES64 instead of
+$PROGRAMFILES.
+
+Note 2: Make sure all needed DLLs are present in fractalnow
+directory before compiling the script (some DLLs may need
+to be added manually to fractalnow directory after
+"make install").

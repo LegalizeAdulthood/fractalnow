@@ -1,5 +1,5 @@
 /*
- *  fractal_loop.c -- part of fractal2D
+ *  fractal_loop.c -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -23,29 +23,30 @@
 #include "fractal_addend_function.h"
 #include "fractal_formula.h"
 #include "macro_build_fractals.h"
+#include "misc.h"
 #include <signal.h>
 
 /* Build Fractal loop functions. */
-static inline FLOAT cnorm2F(FLOAT complex z) {
-	FLOAT real = crealF(z);
-	FLOAT imag = cimagF(z);
+static inline FLOATT cnorm2F(FLOATT complex z) {
+	FLOATT real = crealF(z);
+	FLOATT imag = cimagF(z);
 	
 	return (real*real+imag*imag);
 }
 
 #define BUILD_FRACTAL_LOOP_FUNCTION(formula,ptype,coloring,addend,interpolation) \
-FLOAT FractalLoop##formula##ptype##coloring##addend##interpolation( \
-	const Fractal *fractal, const RenderingParameters *render, FLOAT complex pixel) \
+FLOATT FractalLoop##formula##ptype##coloring##addend##interpolation( \
+	const Fractal *fractal, const RenderingParameters *render, FLOATT complex pixel) \
 {\
-	FLOAT complex z, c;\
-	FLOAT res = 0;\
+	FLOATT complex z = 0, c = 0;\
+	FLOATT res = 0;\
 	CountingFunctionPtr countingFunction = render->countingFunctionPtr;\
-	(void)countingFunction;\
+	UNUSED(countingFunction);\
 	LOOP_INIT_FRAC_##formula\
 	LOOP_INIT_CM_##coloring(addend,interpolation)\
-	FLOAT normC = cabsF(c);\
-	(void)normC;\
-	FLOAT normZ2 = cnorm2F(z);\
+	FLOATT normC = cabsF(c);\
+	UNUSED(normC);\
+	FLOATT normZ2 = cnorm2F(z);\
 	uint_fast32_t n;\
 	for (n=0; n<fractal->maxIter && normZ2 < fractal->escapeRadius2; n++) {\
 		LOOP_ITERATION_CM_##coloring(addend,interpolation)\
@@ -70,7 +71,7 @@ MACRO_BUILD_FRACTALS
 
 /* Build GetFractalLoop function. */
 #define VAL_PINT 1
-#define VAL_PFLOAT 0
+#define VAL_PFLOATT 0
 
 #define BUILD_GetFractalLoop(formula,ptype,coloring,addend,interpolation) \
 if (fractalFormula == FRAC_##formula && p_is_integer == VAL_##ptype && \
@@ -91,11 +92,11 @@ FractalLoop GetFractalLoop(FractalFormula fractalFormula, int p_is_integer, Colo
 	/* This should never happen, because fractal loops are built by macros for all possible
 	 * values of each parameter.
 	 */
-	fractal2D_error("Could not get fractal loop function from parameters.\n");
+	FractalNow_error("Could not get fractal loop function from parameters.\n");
 
 	return NULL;
 }
 
 #undef VAL_PINT
-#undef VAL_PFLOAT
+#undef VAL_PFLOATT
 

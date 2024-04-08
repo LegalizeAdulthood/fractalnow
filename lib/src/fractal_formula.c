@@ -1,5 +1,5 @@
 /*
- *  fractal_formula.c -- part of fractal2D
+ *  fractal_formula.c -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -28,14 +28,22 @@ const char *fractalFormulaStr[] = {
 	(const char *)"mandelbrotp",
 	(const char *)"julia",
 	(const char *)"juliap",
+	(const char *)"burningship",
+	(const char *)"juliaburningship",
+	(const char *)"mandelbar",
+	(const char *)"juliabar",
 	(const char *)"rudy"
 };
 
 const char *fractalFormulaDescStr[] = {
 	(const char *)"Mandelbrot (z^2+c)",
-	(const char *)"Mandelbrot P (z^p+c))",
+	(const char *)"Multibrot (z^p+c))",
 	(const char *)"Julia (z^2+c)",
-	(const char *)"Julia P (z^p+c)",
+	(const char *)"Multi Julia (z^p+c)",
+	(const char *)"Burning ship ((|Re(z)|+|Im(z)|)^p+c)",
+	(const char *)"Julia Burning ship ((|Re(z)|+|Im(z)|)^p+c)",
+	(const char *)"Mandelbar (conjugate(z)^p+c)",
+	(const char *)"Juliabar (conjugate(z)^p+c)",
 	(const char *)"Rudy (z^p + c*z + d)"
 };
 
@@ -47,7 +55,7 @@ int GetFractalFormula(FractalFormula *fractalFormula, const char *str)
 	size_t len = strlen(str);
 
 	if (len > 255) {
-		fractal2D_werror("Unknown fractal formula \'%s\'.\n", str);
+		FractalNow_werror("Unknown fractal formula \'%s\'.\n", str);
 	}
 
 	char FFStr[256];
@@ -63,7 +71,7 @@ int GetFractalFormula(FractalFormula *fractalFormula, const char *str)
 	}
 
 	if (i == nbFractalFormulas) {
-		fractal2D_werror("Unknown fractal formula \'%s\'.\n", str);
+		FractalNow_werror("Unknown fractal formula \'%s\'.\n", str);
 	}
 
 	end:

@@ -1,0 +1,58 @@
+BINDIR        = bin
+FRACTALLIBDIR = ../lib
+SRCDIR        = src
+INCLUDEDIR    = include
+OBJDIR        = objs
+TARGET        = ${BINDIR}/${TARGET_NAME}
+DEPENDENCY_FILE=${OBJDIR}/makefile.dep
+
+CC            = gcc
+LD            = gcc
+
+CFLAGS        = -std=c99 -pedantic -Wall -Wextra -D${SPINLOCK_DEFINE}
+ifdef FLOAT_PRECISION
+CFLAGS       += -DFLOAT_PRECISION=$(FLOAT_PRECISION)
+endif
+
+ifdef DEBUG
+	CFLAGS += -O0 -g -DDEBUG
+else
+	CFLAGS += -O2
+endif
+CFLAGS       += -I${INCLUDEDIR} -I${FRACTALLIBDIR}/include
+
+LDFLAGS   = ${STATIC_FLAG} -L${FRACTALLIBDIR}/bin -l${FRACTAL2D_LIB} -lm -lpthread 
+
+OBJECTS = \
+	$(OBJDIR)/anti_aliasing.o \
+	$(OBJDIR)/command_line.o \
+	$(OBJDIR)/help.o \
+	$(OBJDIR)/main.o
+
+all : $(OBJDIR) ${BINDIR} ${DEPENDENCY_FILE} $(TARGET)
+	
+${DEPENDENCY_FILE}: $(OBJDIR) ${SRCDIR}/*.c ${INCLUDEDIR}/*.h
+	$(call quiet-command,for i in ${SRCDIR}/*.c; do ${CC} ${CFLAGS} -MM "$${i}"; done | sed "s/\(^.*:\)/${OBJDIR}\/\1/" > $@,"  BUILDING DEPENDENCY DATABASE");
+-include ${DEPENDENCY_FILE}
+
+
+$(TARGET): $(OBJECTS)
+	$(call quiet-command, $(LD) -o $@ $^ $(LDFLAGS), "  LD     $@")
+
+$(OBJDIR):
+	$(call quiet-command, mkdir -p $(OBJDIR),)
+
+$(BINDIR):
+	$(call quiet-command, mkdir -p $(BINDIR),)
+
+$(OBJDIR)/%.o:${SRCDIR}/%.c
+	${CC} ${CFLAGS} -c $< -o $@
+
+clean:
+	$(call quiet-command, rm -f ${DEPENDENCY_FILE}, "  CLEAN    (DEPENDENCY DATABASE)")
+	$(call quiet-command, rm -f $(OBJECTS) , "  CLEAN    (OBJECTS)")
+
+distclean: clean
+	$(call quiet-command, rm -rf $(OBJDIR), "  CLEAN    (OBJDIR)")
+	$(call quiet-command, rm -rf $(BINDIR), "  CLEAN    (BINDIR)")
+

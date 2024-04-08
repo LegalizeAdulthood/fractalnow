@@ -1,5 +1,5 @@
 /*
- *  filter.h -- part of fractal2D
+ *  filter.h -- part of FractalNow
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *
@@ -20,7 +20,7 @@
  
  /**
   * \file filter.h
-  * \brief Header file related to filters.
+  * \brief Header file related to image filters.
   * \author Marc Pegon
   *
   * Convolution filters are used to apply transformations on image, such
@@ -41,7 +41,7 @@ extern "C" {
 
 /**
  * \struct Filter
- * \brief Structure to represent a filter.
+ * \brief Structure to represent an image filter.
  *
  * A filter is typically a matrix (kernel) with a center of application.
  */
@@ -55,11 +55,11 @@ typedef struct Filter
 	uint_fast32_t sy; /*!< Number of rows.*/
 	uint_fast32_t cx; /*!< X coordinate of filter's center.*/
 	uint_fast32_t cy; /*!< Y coordinate of filter's center.*/
-	FLOAT *data; /*!< Filter data (the elements of the matrix).*/
+	FLOATT *data; /*!< Filter data (the elements of the matrix).*/
 } Filter;
 
 /**
- * \fn void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, uint_fast32_t cx, uint_fast32_t cy, FLOAT *data)
+ * \fn void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, uint_fast32_t cx, uint_fast32_t cy, FLOATT *data)
  * \brief Initialize filter.
  *
  * Data will be owned by filter, and freed when the filter is freed,
@@ -73,13 +73,13 @@ typedef struct Filter
  * \param data Filter data (NOT copied, and will be freed when the filter is freed).
  */
 void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy,
-		uint_fast32_t cx, uint_fast32_t cy, FLOAT *data);
+		uint_fast32_t cx, uint_fast32_t cy, FLOATT *data);
 
 /**
- * \fn void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOAT *data)
+ * \fn void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOATT *data)
  * \brief Initialize filter without specifying center.
  *
- * The center is automatically computed : ((sx-1)/2, (sy-1)/2).
+ * The center is automatically computed : ((sx-1)/2, (sy-1)/2).\n
  * Data will be owned by filter, and freed when the filter is freed,
  * so it must have been dynamically allocated.
  *
@@ -88,7 +88,7 @@ void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy,
  * \param sy Number of lines.
  * \param data Filter data (NOT copied, and will be freed when the filter is freed).
  */
-void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOAT *data);
+void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOATT *data);
 
 /**
  * \fn Filter CopyFilter(const Filter *filter)
@@ -100,7 +100,7 @@ void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOAT *data
 Filter CopyFilter(const Filter *filter);
 
 /**
- * \fn void CreateHorizontalGaussianFilter(Filter *filter, FLOAT sigma)
+ * \fn void CreateHorizontalGaussianFilter(Filter *filter, FLOATT sigma)
  * \brief Create a horizontal gaussian filter given sigma.
  *
  * sigma must be strictly positive (exit with error otherwise).
@@ -108,10 +108,10 @@ Filter CopyFilter(const Filter *filter);
  * \param filter Pointer to the filter structure to initialize.
  * \param sigma See Wikipedia (or others) for that.
  */
-void CreateHorizontalGaussianFilter(Filter *filter, FLOAT sigma);
+void CreateHorizontalGaussianFilter(Filter *filter, FLOATT sigma);
 
 /**
- * \fn void CreateHorizontalGaussianFilter2(Filter *filter, FLOAT radius)
+ * \fn void CreateHorizontalGaussianFilter2(Filter *filter, FLOATT radius)
  * \brief Create a horizontal gaussian filter given its radius.
  *
  * radius must be strictly positive (exit with error otherwise).
@@ -119,10 +119,10 @@ void CreateHorizontalGaussianFilter(Filter *filter, FLOAT sigma);
  * \param filter Pointer to the filter structure to initialize.
  * \param radius Blur radius.
  */
-void CreateHorizontalGaussianFilter2(Filter *filter, FLOAT radius);
+void CreateHorizontalGaussianFilter2(Filter *filter, FLOATT radius);
 
 /**
- * \fn void CreateVerticalGaussianFilter(Filter *filter, FLOAT sigma)
+ * \fn void CreateVerticalGaussianFilter(Filter *filter, FLOATT sigma)
  * \brief Create a vertical gaussian filter given sigma.
  *
  * sigma must be strictly positive (exit with error otherwise).
@@ -130,10 +130,10 @@ void CreateHorizontalGaussianFilter2(Filter *filter, FLOAT radius);
  * \param filter Pointer to the filter structure to initialize.
  * \param sigma See Wikipedia (or others) for that.
  */
-void CreateVerticalGaussianFilter(Filter *filter, FLOAT sigma);
+void CreateVerticalGaussianFilter(Filter *filter, FLOATT sigma);
 
 /**
- * \fn void CreateVerticalGaussianFilter2(Filter *filter, FLOAT radius)
+ * \fn void CreateVerticalGaussianFilter2(Filter *filter, FLOATT radius)
  * \brief Create a vertical gaussian filter given its radius.
  *
  * radius must be strictly positive (exit with error otherwise).
@@ -141,13 +141,13 @@ void CreateVerticalGaussianFilter(Filter *filter, FLOAT sigma);
  * \param filter Pointer to the filter structure to initialize.
  * \param radius Blur radius.
  */
-void CreateVerticalGaussianFilter2(Filter *filter, FLOAT radius);
+void CreateVerticalGaussianFilter2(Filter *filter, FLOATT radius);
 
 /**
- * \fn void CreateGaussianFilter(Filter *filter, FLOAT sigma)
+ * \fn void CreateGaussianFilter(Filter *filter, FLOATT sigma)
  * \brief Create a square gaussian filter given sigma.
  *
- * sigma must be strictly positive (exit with error otherwise).
+ * sigma must be strictly positive (exit with error otherwise).\n
  * Note that it is actually more efficient (computationally speaking)
  * to apply a horizontal and then vertical gaussian filter (or vice
  * versa), with the same sigma, than to apply a square gaussian
@@ -156,13 +156,13 @@ void CreateVerticalGaussianFilter2(Filter *filter, FLOAT radius);
  * \param filter Pointer to the filter structure to initialize.
  * \param sigma See Wikipedia (or others) for that.
  */
-void CreateGaussianFilter(Filter *filter, FLOAT sigma);
+void CreateGaussianFilter(Filter *filter, FLOATT sigma);
 
 /**
- * \fn void CreateGaussianFilter2(Filter *filter, FLOAT radius)
+ * \fn void CreateGaussianFilter2(Filter *filter, FLOATT radius)
  * \brief Create a square gaussian filter given its radius.
  *
- * radius must be strictly positive (exit with error otherwise).
+ * radius must be strictly positive (exit with error otherwise).\n
  * Note that it is actually more efficient (computationally speaking)
  * to apply a horizontal and then vertical gaussian filter (or vice
  * versa), with the same radius, than to apply a square gaussian
@@ -171,13 +171,13 @@ void CreateGaussianFilter(Filter *filter, FLOAT sigma);
  * \param filter Pointer to the filter structure to initialize.
  * \param radius Blur Radius
  */
-void CreateGaussianFilter2(Filter *filter, FLOAT radius);
+void CreateGaussianFilter2(Filter *filter, FLOATT radius);
 
 /**
- * \fn FLOAT GetFilterValueUnsafe(const Filter *filter, uint_fast32_t x, uint_fast32_t y)
+ * \fn FLOATT GetFilterValueUnsafe(const Filter *filter, uint_fast32_t x, uint_fast32_t y)
  * \brief Get some particular value of filter.
  *
- * Get value of filter at row x, column y.
+ * Get value of filter at row x, column y.\n
  * Warning: function does not check whether (x,y) is within
  * range or not (undefined behaviour otherwise).
  *
@@ -186,10 +186,10 @@ void CreateGaussianFilter2(Filter *filter, FLOAT radius);
  * \param y Column of the filter value.
  * \return Value at position (x,y) of filter.
  */
-FLOAT GetFilterValueUnsafe(const Filter *filter, uint_fast32_t x, uint_fast32_t y);
+FLOATT GetFilterValueUnsafe(const Filter *filter, uint_fast32_t x, uint_fast32_t y);
 
 /**
- * \fn void MultiplyFilterByScalar(Filter *filter, FLOAT scalar)
+ * \fn void MultiplyFilterByScalar(Filter *filter, FLOATT scalar)
  * \brief Multiply whole filter by scalar.
  *
  * Multiply each filter's value by a scalar.
@@ -197,14 +197,14 @@ FLOAT GetFilterValueUnsafe(const Filter *filter, uint_fast32_t x, uint_fast32_t 
  * \param filter Filter to be modified.
  * \param scalar Scalar to multiply the filter by.
  */
-void MultiplyFilterByScalar(Filter *filter, FLOAT scalar);
+void MultiplyFilterByScalar(Filter *filter, FLOATT scalar);
 
 /**
  * \fn int NormalizeFilter(Filter *filter)
  * \brief Normalize filter.
  *
  * Warning : some filters cannot be normalized (if the sum of
- * its values is equal to 0).
+ * its values is equal to 0).\n
  * If the filter cannot be normalized, it will be left unchanged.
  *
  * \param filter Filter to normalize.
@@ -214,9 +214,9 @@ int NormalizeFilter(Filter *filter);
 
 /**
  * \fn Color ApplyFilterOnSinglePixel(const Image *src, uint_fast32_t x, uint_fast32_t y, const Filter *filter)
- * \brief Apply a filter on the single pixel of an image.
+ * \brief Apply a filter on a single pixel of an image.
  *
- * It is safe to pass (x,y) outside image.
+ * It is safe to pass (x,y) outside image.\n
  * Pixels outside of the image will be duplicates of the pixels
  * at the sides of it.
  *
@@ -238,25 +238,27 @@ Color ApplyFilterOnSinglePixel(const Image *src, uint_fast32_t x, uint_fast32_t 
  * \param dst Destination image.
  * \param src Source image.
  * \param filter Filter to apply.
- * \param threads Threads to be used for action.
+ * \param threads Threads to be used for task.
  */
 void ApplyFilter(Image *dst, const Image *src, const Filter *filter, Threads *threads);
 
 /**
- * \fn Action *LaunchApplyFilter(Image *dst, const Image *src, const Filter *filter, Threads *threads)
- * \brief Launch apply filter action (non-blocking).
+ * \fn Task *CreateApplyFilterTask(Image *dst, const Image *src, const Filter *filter, uint_fast32_t nbThreads)
+ * \brief Create task applying a filte on an image.
  *
- * Launch action and return immediately.
- * Action structure can be used to query progress, send
- * cancellation request, etc.
+ * Create task adapted to nbThreads threads, and return
+ * immediately.\n
+ * When launching task, Threads structure should provide
+ * enough threads (at least number specified here).
  *
  * \param dst Destination image.
  * \param src Source image.
  * \param filter Filter to apply.
- * \param threads Threads to be used for action.
- * \return Corresponding newly-allocated action.
+ * \param nbThreads Number of threads that action will need to be launched.
+ * \return Corresponding newly-allocated task.
  */
-Action *LaunchApplyFilter(Image *dst, const Image *src, const Filter *filter, Threads *threads);
+Task *CreateApplyFilterTask(Image *dst, const Image *src, const Filter *filter,
+				uint_fast32_t nbThreads);
 
 /**
  * \fn void FreeFilter(Filter filter)

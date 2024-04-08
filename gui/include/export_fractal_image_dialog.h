@@ -1,5 +1,5 @@
 /*
- *  export_fractal_image_dialog.h -- part of fractal2D
+ *  export_fractal_image_dialog.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -30,27 +30,30 @@
 
 #include <QDialog>
 #include <QComboBox>
+#include <QDialogButtonBox>
 #include <QDoubleSpinBox>
 #include <QLineEdit>
 #include <QRadioButton>
 #include <QSpinBox>
 #include "fractal.h"
-#include "fractal_rendering_parameters.h"
+#include "fractal_config.h"
 
 class ExportFractalImageDialog : public QDialog
 {
 	Q_OBJECT
 
 	public:
-	ExportFractalImageDialog(const QString &fileName, const Fractal &fractal,
-					const RenderingParameters &render,
+	ExportFractalImageDialog(const FractalConfig &config,
 					uint_fast32_t nbThreads,
+					QString imageDir = QString(),
 					QWidget *parent = 0, Qt::WindowFlags f = 0);
+	void resetFractalConfig(const FractalConfig &config);
+	QString exportedFile();
 	~ExportFractalImageDialog();
 
 	private:
 	void reInitFractal(Fractal &fractal);
-	void ActionProgressBar(Action *action, QString labelText, QString cancelButtonText);
+	void TaskProgressBar(Task *task, QString labelText, QString cancelButtonText);
 
 	enum AntiAliasingMethod {
 		AAM_NONE = 0,
@@ -58,11 +61,13 @@ class ExportFractalImageDialog : public QDialog
 		AAM_OVERSAMPLING,
 		AAM_ADAPTIVE
 	};
-	AntiAliasingMethod getAntiAliasingMethod();
+	AntiAliasingMethod getAntiAliasingMethod() const;
 
-	const QString &fileName;
-	const Fractal &fractal;
-	const RenderingParameters &render;
+	QString m_exportedFile;
+	QString imageDir;
+	FractalConfig config;
+	Fractal &fractal;
+	RenderingParameters &render;
 	Threads *threads;
 	QComboBox *colorDepthBox;
 	QLineEdit *outputFileEdit;
@@ -75,6 +80,9 @@ class ExportFractalImageDialog : public QDialog
 	QDoubleSpinBox *oversamplingSizeBox;
 	QSpinBox *imageWidthBox;
 	QSpinBox *imageHeightBox;
+	QDialogButtonBox *dialogButtonBox;
+	QPushButton *exportButton;
+	QPushButton *cancelButton;
 
 	private slots:
 	void onAAMNoneToggled(bool);

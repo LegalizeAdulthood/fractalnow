@@ -1,5 +1,5 @@
 /*
- *  fractal_rendering_parameters.h -- part of fractal2D
+ *  fractal_rendering_parameters.h -- part of FractalNow
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *
@@ -41,7 +41,7 @@ extern "C" {
 
 /**
  * \struct RenderingParameters
- * \brief Structure containing fractal rendering parameters.
+ * \brief Structure for handling fractal rendering parameters.
  */
 /**
  * \typedef RenderingParameters
@@ -49,9 +49,9 @@ extern "C" {
  */
 typedef struct RenderingParameters {
 	uint_fast8_t bytesPerComponent;
- /*!< Bytes per component for colors of rendering.*/
+ /*!< Bytes per component matching gradient colors'.*/
 	Color spaceColor;
- /*!< The color for fractal space.*/
+ /*!< Fractal space color.*/
 	CountingFunction countingFunction;
  /*!< Fractal counting function enum value.*/
 	CountingFunctionPtr countingFunctionPtr;
@@ -59,44 +59,46 @@ typedef struct RenderingParameters {
 	ColoringMethod coloringMethod;
  /*!< Fractal coloring method.*/
 	AddendFunction addendFunction;
- /*!< Fractal addend function (used only for CM_AVERAGE coloring method).*/
+ /*!< Fractal addend function (used only for average coloring method).*/
 	uint_fast32_t stripeDensity;
  /*!< Stripe density (used only for AF_STRIPE addend function).*/
 	InterpolationMethod interpolationMethod;
- /*!< Fractal interpolation method (used only for CM_AVERAGE coloring method).*/
+ /*!< Fractal interpolation method (used only for average coloring method).*/
 	TransferFunction transferFunction;
  /*!< Fractal transfer function enum value (to make the values fit the gradient better).*/
 	TransferFunctionPtr transferFunctionPtr;
  /*!< Transfer function ptr.*/
-	FLOAT multiplier;
+	FLOATT multiplier;
  /*!< Value with which fractal values will be multiplied (to make the values fit the gradient better).*/
-	FLOAT offset;
+	FLOATT offset;
  /*!< Offset for mapping value to gradient.*/
 	Gradient gradient;
  /*!< Gradient for mapping float values to colors.*/
 
  /* For internal use.*/
-	FLOAT realMultiplier;
- /*!< Real multiplier (normalized according to gradient size).*/
-	FLOAT realOffset;
- /*!< Real offset (normalized according to gradient size).*/
+	FLOATT realMultiplier;
+ /*!< Real multiplier (scaled according to gradient size).*/
+	FLOATT realOffset;
+ /*!< Real offset (scaled according to gradient size).*/
 } RenderingParameters;
 
 /**
- * \fn void InitRenderingParameters(RenderingParameters *param, uint_fast8_t bytesPerComponent, Color spaceColor, CountingFunction countingFunction, ColoringMethod coloringMethod, AddendFunction addendFunction, uint_fast32_t stripeDensity, InterpolationMethod interpolationMethod, TransferFunction transferFunction, FLOAT multiplier, FLOAT offset, Gradient gradient)
+ * \fn void InitRenderingParameters(RenderingParameters *param, uint_fast8_t bytesPerComponent, Color spaceColor, CountingFunction countingFunction, ColoringMethod coloringMethod, AddendFunction addendFunction, uint_fast32_t stripeDensity, InterpolationMethod interpolationMethod, TransferFunction transferFunction, FLOATT multiplier, FLOATT offset, Gradient gradient)
  * \brief Initialize rendering parameters.
  *
  * Bytes per component *must* agree with space color and gradient colors :
- * this is *not* checked by the function.
+ * this is *not* checked by the function.\n
+ * Gradient will be owned by rendering parameters, and free'd when
+ * rendering parameters are free'd.
  *
  * \param param Pointer to structure to initialize.
  * \param bytesPerComponent Bytes per component for colors of rendering.
  * \param spaceColor The color for fractal space.
  * \param countingFunction  Fractal counting function.
  * \param coloringMethod Fractal coloring method.
- * \param addendFunction Fractal addend function (used only for CM_AVERAGE coloring method).
+ * \param addendFunction Fractal addend function (used only for average coloring method).
  * \param stripeDensity Stripe density (used only for AF_STRIPE addend function).
- * \param interpolationMethod Fractal interpolation method (used only for CM_AVERAGE coloring method).
+ * \param interpolationMethod Fractal interpolation method (used only for average coloring method).
  * \param transferFunction Fractal transfer function (to make the values fit the gradient better).
  * \param multiplier Value with which fractal values will be multiplied (to make the values fit the gradient better).
  * \param offset Offset for mapping value to gradient.
@@ -106,7 +108,7 @@ void InitRenderingParameters(RenderingParameters *param, uint_fast8_t bytesPerCo
 				CountingFunction countingFunction, ColoringMethod coloringMethod,
 				AddendFunction addendFunction, uint_fast32_t stripeDensity,
 				InterpolationMethod interpolationMethod, TransferFunction transferFunction,
-				FLOAT multiplier, FLOAT offset, Gradient gradient);
+				FLOATT multiplier, FLOATT offset, Gradient gradient);
 
 /**
  * \fn RenderingParameters CopyRenderingParameters(const RenderingParameters *render)
@@ -118,32 +120,81 @@ void InitRenderingParameters(RenderingParameters *param, uint_fast8_t bytesPerCo
 RenderingParameters CopyRenderingParameters(const RenderingParameters *param);
 
 /**
- * \fn int ReadRenderingFile(RenderingParameters *param, const char *fileName)
- * \brief Read and parse fractal rendering parameters from file.
+ * \fn void ResetGradient(RenderingParameters *param, Gradient gradient)
+ * \brief Reset gradient.
  *
- * \param param Pointer to the structure to store rendering parameters.
- * \param fileName Name of file containing rendering parameters.
- * \return 0 in case of success, 1 in case of failure.
+ * Gradient will be owned by rendering parameters, and will be free'd
+ * when rendering parameters are free'd.
+ *
+ * \param param Rendering parameters to be changed.
+ * \param gradient New Gradient.
  */
-int ReadRenderingFile(RenderingParameters *param, const char *fileName);
+void ResetGradient(RenderingParameters *param, Gradient gradient);
+
+/**
+ * \fn int isSupportedRenderingFile(const char *fileName)
+ * \brief Check whether a file is a supported rendering file.
+ *
+ * \param fileName File name.
+ * \return 1 if file is a supported rendering file, 0 otherwise.
+ */
+int isSupportedRenderingFile(const char *fileName);
 
 /**
  * \fn int ReadRenderingFileBody(RenderingParameters *param, const char *fileName, FILE *file, const char *format)
  * \brief Read fractal rendering parameters from rendering file body.
  *
  * The body of a rendering file is everything that comes after
- * the format version.
- * fileName is used only for error messages.
+ * the format version.\n
+ * fileName is used only for error messages.\n
  * This function should only be used internally by the library.
  *
  * \param param Pointer to the rendering parameters structure to create.
- * \param fileName Gradient file name.
+ * \param fileName Rendering file name.
  * \param file Pointer to opened file, positioned at the beginning of the body.
  * \param format Rendering file format.
  * \return 0 in case of success, 1 in case of failure.
  */
 int ReadRenderingFileBody(RenderingParameters *param, const char *fileName,
 			FILE *file, const char *format);
+
+/**
+ * \fn int ReadRenderingFile(RenderingParameters *param, const char *fileName)
+ * \brief Read and parse fractal rendering parameters file.
+ *
+ * \param param Pointer to the structure to store rendering parameters.
+ * \param fileName Rendering file name.
+ * \return 0 in case of success, 1 in case of failure.
+ */
+int ReadRenderingFile(RenderingParameters *param, const char *fileName);
+
+/**
+ * \fn int WriteRenderingFileBody(const RenderingParameters *param, const char *fileName, FILE *file, const char *format)
+ * \brief Write rendering parameters into file.
+ *
+ * The body of a rendering file is everything that comes after
+ * the format version.\n
+ * fileName is used only for error messages.\n
+ * This function should only be used internally by the library.
+ *
+ * \param param Rendering parameters to write.
+ * \param fileName Rendering file name.
+ * \param file Pointer to opened file, positioned at the beginning of the body.
+ * \param format Rendering file format.
+ * \return 0 in case of success, 1 in case of failure.
+ */
+int WriteRenderingFileBody(const RenderingParameters *param, const char *fileName,
+				FILE *file, const char *format);
+
+/**
+ * \fn int WriteRenderingFile(const RenderingParameters *param, const char *fileName)
+ * \brief Write rendering parameters into file.
+ *
+ * \param param Rendering parameters to write.
+ * \param fileName Rendering file name.
+ * \return 0 in case of success, 1 in case of failure.
+ */
+int WriteRenderingFile(const RenderingParameters *param, const char *fileName);
 
 /**
  * \fn void FreeRenderingParameters(RenderingParameters param)

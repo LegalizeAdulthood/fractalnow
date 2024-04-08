@@ -1,0 +1,41 @@
+Gradient file syntax:
+
+GRADIENT_FILE_FORMAT
+BYTES_PER_COMPONENT
+Pos1 Color1 ... PosN ColorN
+
+Text characters can be upper-case or lower-case.
+Arguments separators can be tabs, blank spaces, carriage return.
+
+GRADIENT_FILE_FORMAT should be G073, which is the format described in this document.
+Other format values (of older versions) may still be supported though.
+
+BYTES_PER_COMPONENT specifies the number of bytes per component used for colors. It can be :
+ - 1 for RGB8 (8 bits per component)
+ - 2 for RGB16 (16 bits per component)
+
+POSi : position of COLORi in gradient (between 0 and 1). First position must be 0, and last position must be 1. Positions must be strictly increasing.
+COLORi : colors composing gradient.
+Gradient must be made of at least 2 colors.
+
+Colors must be specified as hexadecimal numbers. Red, green, and blue are respectively the 1st, 2nd and 3rd component.
+Some RGB8 color examples :
+- 0x0 for black
+- 0xFF for blue
+- 0xFF00 for green
+- 0xFF0000 for red
+- 0xFFFFFF for white
+Some RGB16 color examples :
+- 0x0 for black
+- 0xFFFF for blue
+- 0xFFFF0000 for green
+- 0xFFFF00000000 for red
+- 0xFFFFFFFFFFFF for white
+
+In order for the gradient not to be discontinuous, the first and last color should be the same, for example 0x0 0xFFFFFF 0x0 for a black and white continuous gradient.
+
+Acceptable floating numbers are for example :
+2.567
+4.146E-5
+8.26e2
+

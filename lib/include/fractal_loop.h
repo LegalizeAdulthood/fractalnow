@@ -1,5 +1,5 @@
 /*
- *  fractal_loop.h -- part of fractal2D
+ *  fractal_loop.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -47,28 +47,28 @@ struct RenderingParameters;
  * \brief Fractal loop function.
  *
  * Fractal loops are functions to compute the sequence of complex z0, z1, z2, ...
- * and do the coloring.
- * Depending on coloring method and other parameters, we do make the same calculations
- * inside the loop. That's why there are different fractal loops, for each case
- * (even for same fractal types).
+ * and do the coloring.\n
+ * Depending on coloring method and other parameters, we do not make the same
+ * calculations inside the loop. That's why there are different fractal loops,
+ * for each case (even for same fractal types).\n
  * The reason for all this is that branching inside the loop (cascading ifs) is slow, so
  * we generate different loops.
  *
  * Fractal loop functions are automatically created by C preprocessor for all the possible
- * types of p, coloring methods, addend functions and interpolation methods.
+ * types of p, coloring methods, addend functions and interpolation methods.\n
  * Here is (in pseudo-code) the code executed by the fractal loop :
- *	LOOP_INIT_FRAC_##formula
- *	LOOP_INIT_CM_##coloring(addend_function, interpolation_method)
- *	n = 1;
- *	while (n < maxIter && |z| < escapeRadius) {
- *		LOOP_ITERATION_FRAC_##formula(p_type)
- *		LOOP_ITERATION_CM_##coloring(addend_function, interpolation_method)
- *	}
- *	--n;
- *	if (|z| < escapeRadius) {
- *		return -1;
- *	} else {
- *		LOOP_END_CM_##coloring(addend_function, interpolation_method)
+ *	LOOP_INIT_FRAC_##formula\n
+ *	LOOP_INIT_CM_##coloring(addend_function, interpolation_method)\n
+ *	n = 1;\n
+ *	while (n < maxIter && |z| < escapeRadius) {\n
+ *		LOOP_ITERATION_FRAC_##formula(p_type)\n
+ *		LOOP_ITERATION_CM_##coloring(addend_function, interpolation_method)\n
+ *	}\n
+ *	--n;\n
+ *	if (|z| < escapeRadius) {\n
+ *		return -1;\n
+ *	} else {\n
+ *		LOOP_END_CM_##coloring(addend_function, interpolation_method)\n
  *	}
  *
  * Coloring methods, addend functions and interpolation methods can use some already defined variables :
@@ -81,13 +81,12 @@ struct RenderingParameters;
  * - normC : |c|
  * - countingFunction : counting function given by rendering parameters
  *
- * See coloring method, addend function and interpolation method for more details.
- * \see fractal_coloring_method.h
+ * \see fractal_coloring.h
  * \see fractal_addend_function.h
- * \see fractal_interpolation_method.h
+ * \see fractal_interpolation.h
  */
-typedef FLOAT (*FractalLoop)(const Fractal *fractal, const struct RenderingParameters *render,
-				FLOAT complex pixel);
+typedef FLOATT (*FractalLoop)(const Fractal *fractal, const struct RenderingParameters *render,
+				FLOATT complex pixel);
 
 /**
  * \fn FractalLoop GetFractalLoop(FractalFormula fractalFormula, int p_is_integer, ColoringMethod coloringMethod, AddendFunction addendFunction, InterpolationMethod interpolationMethod)

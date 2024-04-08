@@ -1,5 +1,5 @@
 /*
- *  main.c -- part of fractal2D
+ *  main.c -- part of FractalNow
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *
@@ -21,82 +21,118 @@
 #include "anti_aliasing.h"
 #include "command_line.h"
 #include "fractal.h"
+#include "fractal_config.h"
 #include "image.h"
 #include "locale.h"
 #include "ppm.h"
 #include <getopt.h>
 #include <inttypes.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 int main(int argc, char *argv[]) {
 	setlocale(LC_NUMERIC, "C");
 	CommandLineArguments arg;
 	ParseCommandLineArguments(&arg, argc, argv);
 
-	Fractal fractal;
-	if (ReadFractalFile(&fractal, arg.fractalFileName)) {
-		fractal2D_error("Failed to read fractal file.\n");
+	FractalConfig fractalConfig;
+	if (arg.fractalConfigFileName != NULL) {
+		if (ReadFractalConfigFile(&fractalConfig, arg.fractalConfigFileName)) {
+			FractalNow_error("Failed to read config file.\n");
+		}
 	}
-	RenderingParameters render;
-	if (ReadRenderingFile(&render, arg.renderingFileName)) {
-		fractal2D_error("Failed to read rendering file.\n");
+	if (arg.fractalFileName != NULL) {
+		Fractal fractal;
+		if (ReadFractalFile(&fractal, arg.fractalFileName)) {
+			FractalNow_error("Failed to read fractal file.\n");
+		}
+		if (arg.fractalConfigFileName == NULL) {
+			fractalConfig.fractal = fractal;
+		} else {
+			ResetFractal(&fractalConfig, fractal);
+		}
+	}
+	if (arg.renderingFileName != NULL) {
+		RenderingParameters render;
+		if (ReadRenderingFile(&render, arg.renderingFileName)) {
+			FractalNow_error("Failed to read rendering file.\n");
+		}
+		if (arg.fractalConfigFileName == NULL) {
+			fractalConfig.render = render;
+		} else {
+			ResetRenderingParameters(&fractalConfig, render);
+		}
+	}
+	if (arg.gradientFileName != NULL) {
+		Gradient gradient;
+		if (ReadGradientFile(&gradient, arg.gradientFileName)) {
+			FractalNow_error("Failed to read gradient file.\n");
+		}
+		ResetGradient(&fractalConfig.render, gradient);
 	}
 
+	Fractal fractal = fractalConfig.fractal;
+	RenderingParameters render = fractalConfig.render;
 	uint_fast32_t width = arg.width;
 	uint_fast32_t height = arg.height;
-	FLOAT spanX = fractal.spanX;
-	FLOAT spanY = fractal.spanY;
+	FLOATT spanX = fractal.spanX;
+	FLOATT spanY = fractal.spanY;
 	if (width == 0) {
 		width = roundF(spanX * height / spanY);
 	} else if (height == 0) {
 		height = roundF(spanY * width / spanX);
 	}
 
-	Threads *threads = CreateThreads((arg.nbThreads <= 0) ? DEFAULT_NB_THREADS : (uint_fast32_t)arg.nbThreads);
+	Threads *threads = CreateThreads((arg.nbThreads <= 0) ? DEFAULT_NB_THREADS :
+						(uint_fast32_t)arg.nbThreads);
 
 	Image fractalImg, tmpImg;
 	CreateImage(&fractalImg, width, height, render.bytesPerComponent);
 
 	switch (arg.antiAliasingMethod) {
 	case AAM_NONE:
-		DrawFractalFast(&fractalImg, &fractal, &render, arg.quadInterpolationSize, arg.colorDissimilarityThreshold,
-				threads);
+		DrawFractal(&fractalImg, &fractal, &render, arg.quadInterpolationSize,
+				arg.colorDissimilarityThreshold, NULL, threads);
 		break;
 	case AAM_GAUSSIANBLUR:
 		CreateImage(&tmpImg, width, height, render.bytesPerComponent);
 		
-		DrawFractalFast(&tmpImg, &fractal, &render, arg.quadInterpolationSize, arg.colorDissimilarityThreshold,
-				threads);
+		DrawFractal(&tmpImg, &fractal, &render, arg.quadInterpolationSize,
+				arg.colorDissimilarityThreshold, NULL, threads);
 		ApplyGaussianBlur(&fractalImg, &tmpImg, arg.antiAliasingSize, threads);
 
 		FreeImage(tmpImg);
 		break;
 	case AAM_OVERSAMPLING:
-		CreateImage(&tmpImg, width*arg.antiAliasingSize, height*arg.antiAliasingSize, render.bytesPerComponent);
+		CreateImage(&tmpImg, width*arg.antiAliasingSize, height*arg.antiAliasingSize,
+				render.bytesPerComponent);
 
-		DrawFractalFast(&tmpImg, &fractal, &render, arg.quadInterpolationSize, arg.colorDissimilarityThreshold,
-				threads);
+		DrawFractal(&tmpImg, &fractal, &render, arg.quadInterpolationSize,
+				arg.colorDissimilarityThreshold, NULL, threads);
 		DownscaleImage(&fractalImg, &tmpImg, threads);
 
 		FreeImage(tmpImg);
 		break;
 	case AAM_ADAPTIVE:
-		DrawFractalFast(&fractalImg, &fractal, &render, arg.quadInterpolationSize, arg.colorDissimilarityThreshold,
-				threads);
-		AntiAliaseFractal(&fractalImg, &fractal, &render, arg.antiAliasingSize, arg.adaptiveAAMThreshold, threads);
+		DrawFractal(&fractalImg, &fractal, &render, arg.quadInterpolationSize,
+				arg.colorDissimilarityThreshold, NULL, threads);
+		AntiAliaseFractal(&fractalImg, &fractal, &render, arg.antiAliasingSize,
+					arg.adaptiveAAMThreshold, NULL, threads);
 		break;
 	default:
-		fractal2D_error("Unknown anti-aliasing method.\n");
+		FractalNow_error("Unknown anti-aliasing method.\n");
 		break;
 	}
 
-	ExportPPM(arg.dstFileName, &fractalImg);
+	if (ExportPPM(arg.dstFileName, &fractalImg)) {
+		FractalNow_error("Failed to export image as PPM.\n");
+	}
 
-	FreeRenderingParameters(render);
+	FreeFractalConfig(fractalConfig);
 	FreeImage(fractalImg);
 	DestroyThreads(threads);
 
-	fractal2D_message(stdout, T_NORMAL, "All done.\n");
+	FractalNow_message(stdout, T_NORMAL, "All done.\n");
 
 	exit(EXIT_SUCCESS);
 }

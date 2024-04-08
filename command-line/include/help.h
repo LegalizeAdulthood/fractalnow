@@ -1,5 +1,5 @@
 /*
- *  help.h -- part of fractal2D
+ *  help.h -- part of FractalNow
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *
@@ -35,7 +35,7 @@ extern "C" {
 void DisplayHelp();
 
 #define invalid_use_error(...) \
-	fractal2D_message(stderr, T_QUIET, __VA_ARGS__);\
+	FractalNow_message(stderr, T_QUIET, __VA_ARGS__);\
 	DisplayHelp(); \
         exit(EXIT_FAILURE)
 

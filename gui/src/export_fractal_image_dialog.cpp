@@ -1,5 +1,5 @@
 /*
- *  export_fractal_image_dialog.cpp -- part of fractal2D
+ *  export_fractal_image_dialog.cpp -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -18,11 +18,13 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#include "export_fractal_image_dialog.h"
-#include "action_progress_dialog.h"
 #include "ppm.h"
+
+#include "export_fractal_image_dialog.h"
+#include "task_progress_dialog.h"
+
 #include <QApplication>
-#include <QDialogButtonBox>
+#include <QDesktopServices>
 #include <QFileDialog>
 #include <QFormLayout>
 #include <QGridLayout>
@@ -34,11 +36,19 @@
 #include <QLabel>
 #include <QPushButton>
 
-ExportFractalImageDialog::ExportFractalImageDialog(const QString &fileName, const Fractal &fractal,
-					const RenderingParameters &render, uint_fast32_t nbThreads,
+ExportFractalImageDialog::ExportFractalImageDialog(const FractalConfig &config,
+					uint_fast32_t nbThreads, QString imageDir,
 					QWidget *parent, Qt::WindowFlags f) :
-	 QDialog(parent, f), fileName(fileName), fractal(fractal), render(render)
+	 QDialog(parent, f), 
+	 config(CopyFractalConfig(&config)),
+	 fractal(this->config.fractal), render(this->config.render)
 {
+	this->imageDir = imageDir;
+	if (this->imageDir.isEmpty()) {
+		this->imageDir = QDesktopServices::storageLocation(QDesktopServices::PicturesLocation);
+	}
+
+	setWindowTitle(tr("Export image"));
 	QVBoxLayout *vBoxLayout = new QVBoxLayout;
 
 	/* Image parameters (width, height, depth) .*/
@@ -112,10 +122,10 @@ ExportFractalImageDialog::ExportFractalImageDialog(const QString &fileName, cons
 	hBoxLayout2->addSpacing(20);
 	hBoxLayout2->addWidget(imageParamBox);
 
-	QDialogButtonBox *dialogButtonBox = new QDialogButtonBox(this);
-	QPushButton *cancelButton = dialogButtonBox->addButton(QDialogButtonBox::Cancel);
+	dialogButtonBox = new QDialogButtonBox(this);
+	cancelButton = dialogButtonBox->addButton(QDialogButtonBox::Cancel);
 	connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
-	QPushButton *exportButton = dialogButtonBox->addButton(tr("Export"), QDialogButtonBox::AcceptRole);
+	exportButton = dialogButtonBox->addButton(tr("Export"), QDialogButtonBox::AcceptRole);
 	connect(exportButton, SIGNAL(clicked()), this, SLOT(exportImage()));
 	
 	vBoxLayout->addLayout(hBoxLayout2);
@@ -129,6 +139,19 @@ ExportFractalImageDialog::ExportFractalImageDialog(const QString &fileName, cons
 ExportFractalImageDialog::~ExportFractalImageDialog()
 {
 	DestroyThreads(threads);
+	FreeFractalConfig(config);
+}
+
+void ExportFractalImageDialog::resetFractalConfig(const FractalConfig &config)
+{
+	FractalConfig oldConfig = this->config;
+	this->config = CopyFractalConfig(&config);
+	FreeFractalConfig(oldConfig);
+}
+
+QString ExportFractalImageDialog::exportedFile()
+{
+	return m_exportedFile;
 }
 
 void ExportFractalImageDialog::onAAMNoneToggled(bool checked)
@@ -169,13 +192,13 @@ void ExportFractalImageDialog::onAAMOversamplingToggled(bool checked)
 
 void ExportFractalImageDialog::reInitFractal(Fractal &fractal)
 {
-	InitFractal2(&fractal, fractal.fractalFormula, fractal.p, fractal.c,
+	InitFractal(&fractal, fractal.fractalFormula, fractal.p, fractal.c,
 			fractal.centerX, fractal.centerY,
 			fractal.spanX, fractal.spanY, 
 			fractal.escapeRadius, fractal.maxIter);
 }
 
-ExportFractalImageDialog::AntiAliasingMethod ExportFractalImageDialog::getAntiAliasingMethod()
+ExportFractalImageDialog::AntiAliasingMethod ExportFractalImageDialog::getAntiAliasingMethod() const
 {
 	if (noAAMButton->isChecked()) {
 		return AAM_NONE;
@@ -191,6 +214,22 @@ ExportFractalImageDialog::AntiAliasingMethod ExportFractalImageDialog::getAntiAl
 void ExportFractalImageDialog::exportImage()
 {
 	int depth = colorDepthBox->currentIndex() + 1;
+	QString imageFormats = (depth == 1) ? "(*.png *.jpg *.tiff *.ppm)" : "(*.ppm)";
+	QString imageSuffix = (depth == 1) ? ".png" : ".ppm";
+	QString fileName = QFileDialog::getSaveFileName(this, tr("Export image"),
+				imageDir + "/fractal" + imageSuffix,
+				tr("Images ") + imageFormats);
+
+	/* It is not very clear in Qt documentation,
+	 * but I think a file dialog cannot return
+	 * an empty string if user clicks OK.
+	 * (one thing for sure is that it returns a
+	 * null string when user clicks Cancel)
+	 */
+	if (fileName.isEmpty()) {
+		return;
+	}
+
 	QFileInfo fileInfo(fileName);
 	QString imageFormat;
 	RenderingParameters render = this->render;
@@ -238,36 +277,36 @@ void ExportFractalImageDialog::exportImage()
 	/* Now generate fractal image according to anti-aliasing method. */
 	Image fractalImg, tmpImg;
 	CreateImage(&fractalImg, width, height, render.bytesPerComponent);
-	Action *action;
+	Task *task;
 	int canceled = 0;
 
 	switch (getAntiAliasingMethod()) {
-	case AAM_NONE:
-		action = LaunchDrawFractalFast(&fractalImg, &fractal, &render,
+	case AAM_NONE: {
+		task = CreateDrawFractalTask(&fractalImg, &fractal, &render,
 			DEFAULT_QUAD_INTERPOLATION_SIZE, DEFAULT_COLOR_DISSIMILARITY_THRESHOLD,
-			threads);
-		canceled = ActionProgressDialog::progress(action, tr("Drawing fractal..."),
+			NULL, threads->N);
+		LaunchTask(task, threads);
+
+		canceled = TaskProgressDialog::progress(task, tr("Drawing fractal..."),
 							tr("Abort"), this);
-		break;
+
+		break; }
 	case AAM_GAUSSIANBLUR:
 		CreateImage(&tmpImg, width, height, render.bytesPerComponent);
 		
-		action = LaunchDrawFractalFast(&fractalImg, &fractal, &render,
+		task = CreateDrawFractalTask(&fractalImg, &fractal, &render,
 			DEFAULT_QUAD_INTERPOLATION_SIZE, DEFAULT_COLOR_DISSIMILARITY_THRESHOLD,
-			threads);
-		canceled = ActionProgressDialog::progress(action, tr("Drawing fractal..."),
+			NULL, threads->N);
+		LaunchTask(task, threads);
+		canceled = TaskProgressDialog::progress(task, tr("Drawing fractal..."),
 							tr("Abort"), this);
 		if (!canceled) {
-			action = LaunchApplyHorizontalGaussianBlur(&tmpImg, &fractalImg,
-							blurRadiusBox->value(), threads);
-			canceled = ActionProgressDialog::progress(action,
-					tr("Applying blur (horizontal)..."), tr("Abort"), this);
-			if (!canceled) {
-				action = LaunchApplyVerticalGaussianBlur(&fractalImg, &tmpImg,
-								blurRadiusBox->value(), threads);
-				canceled = ActionProgressDialog::progress(action,
-					tr("Applying blur (vertical)..."), tr("Abort"), this);
-			}
+			FreeTask(task);
+			task = CreateApplyGaussianBlurTask(&fractalImg, &tmpImg, &fractalImg,
+							blurRadiusBox->value(), threads->N);
+			LaunchTask(task, threads);
+			canceled = TaskProgressDialog::progress(task,
+					tr("Applying blur..."), tr("Abort"), this);
 		}
 
 		FreeImage(tmpImg);
@@ -276,45 +315,59 @@ void ExportFractalImageDialog::exportImage()
 		CreateImage(&tmpImg, width*oversamplingSizeBox->value(),
 			height*oversamplingSizeBox->value(), render.bytesPerComponent);
 
-		action = LaunchDrawFractalFast(&tmpImg, &fractal, &render,
+		task = CreateDrawFractalTask(&tmpImg, &fractal, &render,
 			DEFAULT_QUAD_INTERPOLATION_SIZE, DEFAULT_COLOR_DISSIMILARITY_THRESHOLD,
-			threads);
-		canceled = ActionProgressDialog::progress(action, tr("Drawing fractal..."),
+			NULL, threads->N);
+		LaunchTask(task, threads);
+		canceled = TaskProgressDialog::progress(task, tr("Drawing fractal..."),
 							tr("Abort"), this);
 		if (!canceled) {
-			action = LaunchDownscaleImage(&fractalImg, &tmpImg, threads);
-			canceled = ActionProgressDialog::progress(action, tr("Downscaling image..."),
+			FreeTask(task);
+			task = CreateDownscaleImageTask(&fractalImg, &tmpImg, threads->N);
+			LaunchTask(task, threads);
+			canceled = TaskProgressDialog::progress(task, tr("Downscaling image..."),
 								tr("Abort"), this);
 		}
 
 		FreeImage(tmpImg);
 		break;
 	case AAM_ADAPTIVE:
-		action = LaunchDrawFractalFast(&fractalImg, &fractal, &render,
+		task = CreateDrawFractalTask(&fractalImg, &fractal, &render,
 			DEFAULT_QUAD_INTERPOLATION_SIZE, DEFAULT_COLOR_DISSIMILARITY_THRESHOLD,
-			threads);
-		canceled = ActionProgressDialog::progress(action, tr("Drawing fractal..."),
+			NULL, threads->N);
+		LaunchTask(task, threads);
+		canceled = TaskProgressDialog::progress(task, tr("Drawing fractal..."),
 							tr("Abort"), this);
 		if (!canceled) {
-			action = LaunchAntiAliaseFractal(&fractalImg, &fractal, &render,
+			FreeTask(task);
+			task = CreateAntiAliaseFractalTask(&fractalImg, &fractal, &render,
 					adaptiveSizeBox->value(), DEFAULT_ADAPTIVE_AAM_THRESHOLD,
-					threads);
-			canceled = ActionProgressDialog::progress(action,
+					NULL, threads->N);
+			LaunchTask(task, threads);
+			canceled = TaskProgressDialog::progress(task,
 					tr("Anti-aliasing fractal..."), tr("Abort"), this);
 		}
 
 		break;
 	default:
-		fractal2D_error("Unknown anti-aliasing method.\n");
+		FractalNow_error("Unknown anti-aliasing method.\n");
 		break;
 	}
+	FreeTask(task);
 
 	if (canceled) {
 		FreeImage(fractalImg);
 	} else {
+		setEnabled(false);
+		QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+		QApplication::processEvents();
 		/* Export image. */
+		int exportError = 0;
 		if (depth == 2) {
-			ExportPPM(fileName.toStdString().c_str(), &fractalImg);
+			if ((exportError = ExportPPM(fileName.toStdString().c_str(), &fractalImg)) != 0) {
+				QMessageBox::critical(this, tr("Failed to export image"),
+					tr("Error occured while exporting image."));
+			}
 			FreeGradient(gradient16);
 		} else {
 			QImage qImage(fractalImg.data, fractalImg.width, fractalImg.height,
@@ -323,23 +376,32 @@ void ExportFractalImageDialog::exportImage()
 				+ QApplication::applicationName());
 			qImage.setText("Fractal formula",
 				fractalFormulaDescStr[(int)fractal.fractalFormula]);
-			qImage.setText("Fractal p", QString::number(fractal.p, 'G', FLOAT_DIG));
-			qImage.setText("Fractal c", QString::number(crealF(fractal.c), 'G', FLOAT_DIG) + " + i*"
-							+ QString::number(cimagF(fractal.c), 'G', FLOAT_DIG));
+			qImage.setText("Fractal p", QString::number(crealF(fractal.p), 'G', FLOATT_DIG) + " + i*"
+							+ QString::number(cimagF(fractal.p), 'G', FLOATT_DIG));
+			qImage.setText("Fractal c", QString::number(crealF(fractal.c), 'G', FLOATT_DIG) + " + i*"
+							+ QString::number(cimagF(fractal.c), 'G', FLOATT_DIG));
 			qImage.setText("Fractal center", "(" +
-							QString::number(fractal.centerX, 'G', FLOAT_DIG) +
-							", " + QString::number(fractal.centerY, 'G', FLOAT_DIG) +
+							QString::number(fractal.centerX, 'G', FLOATT_DIG) +
+							", " + QString::number(fractal.centerY, 'G', FLOATT_DIG) +
 							")");
-			qImage.setText("Fractal span X", QString::number(fractal.spanX, 'G', FLOAT_DIG));
-			qImage.setText("Fractal span Y", QString::number(fractal.spanY, 'G', FLOAT_DIG));
+			qImage.setText("Fractal span X", QString::number(fractal.spanX, 'G', FLOATT_DIG));
+			qImage.setText("Fractal span Y", QString::number(fractal.spanY, 'G', FLOATT_DIG));
 			qImage.setText("Fractal bailout radius", QString::number(fractal.escapeRadius,
-							'G', FLOAT_DIG));
+							'G', FLOATT_DIG));
 			qImage.setText("Fractal max iterations", QString::number(fractal.maxIter));
-			qImage.save(fileName, imageFormat.toStdString().c_str());
+			if ((exportError = !qImage.save(fileName, imageFormat.toStdString().c_str())) != 0) {
+				QMessageBox::critical(this, tr("Failed to export image"),
+					tr("Error occured while exporting image."));
+			}
 		}
 		FreeImage(fractalImg);
+		setEnabled(true);
+		QApplication::restoreOverrideCursor();
 
-		this->accept();
+		if (!exportError) {
+			m_exportedFile = fileName;
+			this->accept();
+		}
 	}
 }
 

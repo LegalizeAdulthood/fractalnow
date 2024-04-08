@@ -1,5 +1,5 @@
 /*
- *  gradient_label.cpp -- part of fractal2D
+ *  gradient_label.cpp -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -19,6 +19,7 @@
  */
 
 #include "gradient_label.h"
+#include "misc.h"
 #include <QPainter>
 
 GradientLabel::GradientLabel(QWidget *parent) :
@@ -36,10 +37,12 @@ void GradientLabel::setGradientStops(const QGradientStops &gradientStops)
 
 void GradientLabel::paintEvent(QPaintEvent *event)
 {
-	(void)event;
+	UNUSED(event);
 	QPainter painter(this);
-	QLinearGradient qGradient(QLinearGradient(0, (height()-1)/2., width()-1, (height()-1)/2.));
+	QLinearGradient qGradient(rect().topLeft(), rect().topRight());
 	qGradient.setStops(gradientStops);
-	painter.fillRect(rect(), QBrush(qGradient));
+	painter.setBrush(qGradient);
+	painter.setPen(Qt::NoPen);
+	painter.drawRect(rect());
 }
 

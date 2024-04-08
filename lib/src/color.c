@@ -1,5 +1,5 @@
 /*
- *  color.c -- part of fractal2D
+ *  color.c -- part of FractalNow
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *
@@ -25,7 +25,7 @@
 Color ColorFromRGB(uint8_t bytesPerComponent, uint16_t r, uint16_t g, uint16_t b)
 {
 	if (bytesPerComponent != 1 && bytesPerComponent != 2) {
-		fractal2D_error("Invalid bytes per component.\n");
+		FractalNow_error("Invalid bytes per component.\n");
 	}
 	Color res;
 	res.bytesPerComponent = bytesPerComponent;
@@ -83,23 +83,22 @@ Color Color8(Color color)
 	} else {
 		res.bytesPerComponent = 1;
 		res.r = roundF(color.r * UINT8_MAX / UINT16_MAX);
-		if ((color.r % (UINT8_MAX+1)) >= (UINT8_MAX+1) / 2) {
-			++res.r;
-		}
 		res.g = roundF(color.g * UINT8_MAX / UINT16_MAX);
-		if ((color.g % (UINT8_MAX+1)) >= (UINT8_MAX+1) / 2) {
-			++res.g;
-		}
 		res.b = roundF(color.b * UINT8_MAX / UINT16_MAX);
-		if ((color.b % (UINT8_MAX+1)) >= (UINT8_MAX+1) / 2) {
-			++res.b;
-		}
 	}
 
 	return res;
 }
 
-Color MixColors(Color C1, FLOAT weight1, Color C2, FLOAT weight2)
+int CompareColors(const Color color1, const Color color2)
+{
+	return (color1.bytesPerComponent != color2.bytesPerComponent ||
+		color1.r != color2.r ||
+		color1.g != color2.g ||
+		color1.b != color2.b);
+}
+
+Color MixColors(Color C1, FLOATT weight1, Color C2, FLOATT weight2)
 {
 	Color res;
 
@@ -111,28 +110,28 @@ Color MixColors(Color C1, FLOAT weight1, Color C2, FLOAT weight2)
 	return res;
 }
 
-inline FLOAT ColorManhattanDistance(Color C1, Color C2)
+inline FLOATT ColorManhattanDistance(Color C1, Color C2)
 {
-	FLOAT res = 0;
+	FLOATT res = 0;
 	uint_fast32_t sum = (labs(C1.r-(long int)C2.r)+labs(C1.g-(long int)C2.g)+
 			labs(C1.b-(long int)C2.b));
 
 	switch (C1.bytesPerComponent) {
 	case 1:
-		res = sum / (FLOAT)(3*UINT8_MAX);
+		res = sum / (FLOATT)(3*UINT8_MAX);
 		break;
 	case 2:
-		res = sum / (FLOAT)(3*UINT16_MAX);
+		res = sum / (FLOATT)(3*UINT16_MAX);
 		break;
 	default:
-		fractal2D_error("Invalid bytes per component.\n");
+		FractalNow_error("Invalid bytes per component.\n");
 		break;
 	}
 
 	return res;
 }
 
-inline FLOAT QuadAvgDissimilarity(const Color C[4])
+inline FLOATT QuadAvgDissimilarity(const Color C[4])
 {
 	Color avg;
 	avg.r = (C[0].r + C[1].r + C[2].r + C[3].r) / 4;
@@ -144,7 +143,7 @@ inline FLOAT QuadAvgDissimilarity(const Color C[4])
 		ColorManhattanDistance(C[3],avg)) / 4;
 }
 
-inline Color QuadLinearInterpolation(const Color C[4], FLOAT x, FLOAT y)
+inline Color QuadLinearInterpolation(const Color C[4], FLOATT x, FLOATT y)
 {
 	Color res;
 	res.bytesPerComponent = C[0].bytesPerComponent;

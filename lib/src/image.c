@@ -1,5 +1,5 @@
 /*
- *  image.c -- part of fractal2D
+ *  image.c -- part of FractalNow
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *
@@ -27,17 +27,23 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define HandleRequests(max_counter) \
+if (counter == max_counter) {\
+	HandlePauseRequest(threadArgHeader);\
+	cancelRequested =\
+		CancelTaskRequested(threadArgHeader);\
+	counter = 0;\
+} else {\
+	++counter;\
+}
+
 inline void CreateImage(Image *image, uint_fast32_t width, uint_fast32_t height,
 			uint_fast8_t bytesPerComponent)
 {
 	if (bytesPerComponent != 1 && bytesPerComponent != 2) {
-		fractal2D_error("Invalid bytes per component. Only 1 and 2 are allowed.\n");
+		FractalNow_error("Invalid bytes per component. Only 1 and 2 are allowed.\n");
 	}
-	if (width == 0 || height == 0) {
-		image->data = NULL;
-	} else {
-		image->data = (uint8_t *)safeCalloc("image data", width*height, 4*bytesPerComponent);
-	}
+	image->data = (uint8_t *)safeCalloc("image data", width*height, 4*bytesPerComponent);
 	image->data_is_external = 0;
 	image->width = width;
 	image->height = height;
@@ -48,7 +54,7 @@ void CreateImage2(Image *image, uint8_t *data, uint_fast32_t width, uint_fast32_
 			uint_fast8_t bytesPerComponent)
 {
 	if (bytesPerComponent != 1 && bytesPerComponent != 2) {
-		fractal2D_error("Invalid bytes per component. Only 1 and 2 are allowed.\n");
+		FractalNow_error("Invalid bytes per component. Only 1 and 2 are allowed.\n");
 	}
 	image->data = data;
 	image->data_is_external = 1;
@@ -57,7 +63,7 @@ void CreateImage2(Image *image, uint8_t *data, uint_fast32_t width, uint_fast32_
 	image->bytesPerComponent = bytesPerComponent;
 }
 
-Image CopyImage(const Image *image)
+Image CloneImage(const Image *image)
 {
 	Image res;
 	CreateImage(&res, image->width, image->height, image->bytesPerComponent);
@@ -138,7 +144,7 @@ uint8_t *ImageToBytesArray(const Image *image)
 		res = ImageRGB16ToBytesArray(image);
 		break;
 	default:
-		fractal2D_error("Invalid bytes per component (%"PRIuFAST8").\n",
+		FractalNow_error("Invalid bytes per component (%"PRIuFAST8").\n",
 			image->bytesPerComponent);
 		break;
 	}
@@ -171,7 +177,7 @@ inline Color iGetPixelUnsafe(const Image *image, uint_fast32_t x, uint_fast32_t 
 		}
 		break;
 	default:
-		fractal2D_error("Invalid bytes per component.\n");
+		FractalNow_error("Invalid bytes per component.\n");
 		break;
 	}
 	
@@ -255,7 +261,7 @@ Color iGetPixel(const Image *image, int_fast64_t x, int_fast64_t y) {
 		res = iGetPixelUnsafe(image, x, y);
 		break;
 	default:
-		fractal2D_error("Unknown region.\n");
+		FractalNow_error("Unknown region.\n");
 		break;
 	}
 	return res;
@@ -278,60 +284,52 @@ inline void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color
 		}
 		break;
 	default:
-		fractal2D_error("Invalid bytes per component.\n");
+		FractalNow_error("Invalid bytes per component.\n");
 		break;
 	}
 }
 
-Action *LaunchApplyHorizontalGaussianBlur(Image *dst, const Image *src, FLOAT radius, 
-						Threads *threads)
+char applyGaussianBlurMessage[] = "Applying gaussian blur";
+
+Task *CreateApplyGaussianBlurTask(Image *dst, Image *temp, const Image *src, FLOATT radius, 
+						uint_fast32_t nbThreads)
 {
-	Filter gaussianFilter;
-	CreateHorizontalGaussianFilter2(&gaussianFilter, radius);
+	Filter horizontalGaussianFilter;
+	Filter verticalGaussianFilter;
+	CreateHorizontalGaussianFilter2(&horizontalGaussianFilter, radius);
+	CreateVerticalGaussianFilter2(&verticalGaussianFilter, radius);
 
-	Action *res = LaunchApplyFilter(dst, src, &gaussianFilter, threads);
+	Task *subTasks[2];
+	subTasks[0] = CreateApplyFilterTask(temp, src, &horizontalGaussianFilter, nbThreads);
+	subTasks[1] = CreateApplyFilterTask(dst, temp, &verticalGaussianFilter, nbThreads);
+	Task *res = CreateCompositeTask(applyGaussianBlurMessage, 2,  subTasks);
 
-	FreeFilter(gaussianFilter);
+	FreeFilter(horizontalGaussianFilter);
+	FreeFilter(verticalGaussianFilter);
 
 	return res;
 }
 
-Action *LaunchApplyVerticalGaussianBlur(Image *dst, const Image *src, FLOAT radius,
-						Threads *threads)
+void ApplyGaussianBlur(Image *dst, const Image *src, FLOATT radius, Threads *threads)
 {
-	Filter gaussianFilter;
-	CreateVerticalGaussianFilter2(&gaussianFilter, radius);
-
-	Action *res = LaunchApplyFilter(dst, src, &gaussianFilter, threads);
-
-	FreeFilter(gaussianFilter);
-
-	return res;
-}
-
-void ApplyGaussianBlur(Image *dst, const Image *src, FLOAT radius, Threads *threads)
-{
-	Filter horizFilter, vertFilter;
-	CreateHorizontalGaussianFilter2(&horizFilter, radius);
-	CreateVerticalGaussianFilter2(&vertFilter, radius);
-
 	Image temp;
 	CreateImage(&temp, src->width, src->height, src->bytesPerComponent);
 
-	ApplyFilter(&temp, src, &horizFilter, threads);
-	ApplyFilter(dst, &temp, &vertFilter, threads);
+	Task *task = CreateApplyGaussianBlurTask(dst, &temp, src, radius, threads->N);
+	int unused = ExecuteTaskBlocking(task, threads);
+	UNUSED(unused);
 
-	FreeFilter(horizFilter);
-	FreeFilter(vertFilter);
 	FreeImage(temp);
 }
 
 typedef struct s_DownscaleImageArguments {
+	uint_fast32_t threadId;
 	Image *dst;
-	Rectangle *dstRect;
+	uint_fast32_t nbRectangles;
+	Rectangle *rectangles;
 	const Image *src;
-	FLOAT invScaleX;
-	FLOAT invScaleY;
+	FLOATT invScaleX;
+	FLOATT invScaleY;
 	Filter *horizontalGaussianFilter;
 	Filter *verticalGaussianFilter;
 } DownscaleImageArguments;
@@ -339,122 +337,135 @@ typedef struct s_DownscaleImageArguments {
 void FreeDownscaleImageArguments(void *arg)
 {
 	DownscaleImageArguments *c_arg = (DownscaleImageArguments *)arg;
-	free(c_arg->dstRect);
-	FreeFilter(*c_arg->horizontalGaussianFilter);
-	FreeFilter(*c_arg->verticalGaussianFilter);
-	free(c_arg->horizontalGaussianFilter);
-	free(c_arg->verticalGaussianFilter);
+	if (c_arg->threadId == 0) {
+		free(c_arg->rectangles);
+		FreeFilter(*c_arg->horizontalGaussianFilter);
+		FreeFilter(*c_arg->verticalGaussianFilter);
+		free(c_arg->horizontalGaussianFilter);
+		free(c_arg->verticalGaussianFilter);
+	}
 }
 
 void *DownscaleImageThreadRoutine(void *arg)
 {
 	ThreadArgHeader *threadArgHeader = GetThreadArgHeader(arg);
-	volatile sig_atomic_t *cancel = threadArgHeader->cancel;
 	DownscaleImageArguments *c_arg = (DownscaleImageArguments *)GetThreadArgBody(arg);
 	Image *dst = c_arg->dst;
-	Rectangle *dstRect = c_arg->dstRect;
 	const Image *src = c_arg->src;
-	FLOAT invScaleX = c_arg->invScaleX;
-	FLOAT invScaleY = c_arg->invScaleY;
+	FLOATT invScaleX = c_arg->invScaleX;
+	FLOATT invScaleY = c_arg->invScaleY;
 	Filter *horizontalGaussianFilter = c_arg->horizontalGaussianFilter;
 	Filter *verticalGaussianFilter = c_arg->verticalGaussianFilter;
 	Image tmpImage;
-	CreateImage(&tmpImage, 1, verticalGaussianFilter->sy, src->bytesPerComponent);
+	CreateImage(&tmpImage, horizontalGaussianFilter->sx, 1, src->bytesPerComponent);
 
-	fractal2D_message(stdout, T_VERBOSE,"Downscaling image from (%"PRIuFAST32",%"PRIuFAST32") to \
-(%"PRIuFAST32",%"PRIuFAST32")...\n", dstRect->x1,dstRect->y1, dstRect->x2,dstRect->y2);
+	uint_fast32_t nbRectangles = c_arg->nbRectangles;
+	Rectangle *dstRect;
+	uint_fast32_t rectHeight;
+	uint_fast32_t counter = 0;
+	int cancelRequested = CancelTaskRequested(threadArgHeader);
+	for (uint_fast32_t i = 0; i < nbRectangles && !cancelRequested; ++i) {
+		dstRect = &c_arg->rectangles[i];
+		rectHeight = dstRect->y2+1 - dstRect->y1;
 
-	uint_fast32_t dstRectHeight = dstRect->x2 - dstRect->x1 + 1;
-	for (uint_fast32_t i = dstRect->x1; i <= dstRect->x2 && !(*cancel); ++i) {
-		uint_fast32_t x = (i+0.5)*invScaleX;
-		for (uint_fast32_t j = dstRect->y1; j <= dstRect->y2 && !(*cancel); ++j) {
+		for (uint_fast32_t j = dstRect->y1; j <= dstRect->y2 && !cancelRequested; ++j) {
+			SetThreadProgress(threadArgHeader, 100 * (i * rectHeight + (j-dstRect->y1)) /
+								(rectHeight * nbRectangles));
 			uint_fast32_t y = (j+0.5)*invScaleY;
+			for (uint_fast32_t k = dstRect->x1; k <= dstRect->x2 && !cancelRequested; ++k) {
+				HandleRequests(32);
 
-			for (uint_fast32_t k = 0; k < verticalGaussianFilter->sy; ++k) {
-				PutPixelUnsafe(&tmpImage, 0, k, ApplyFilterOnSinglePixel(src,
-					x, y-verticalGaussianFilter->cy+k, horizontalGaussianFilter));
+				uint_fast32_t x = (k+0.5)*invScaleX;
+
+				for (uint_fast32_t l = 0; l < horizontalGaussianFilter->sx; ++l) {
+					PutPixelUnsafe(&tmpImage, l, 0, ApplyFilterOnSinglePixel(src,
+						x-horizontalGaussianFilter->cx+l, y, verticalGaussianFilter));
+				}
+				PutPixelUnsafe(dst, k, j, ApplyFilterOnSinglePixel(&tmpImage,
+					horizontalGaussianFilter->cx, 0, horizontalGaussianFilter));
 			}
-			PutPixelUnsafe(dst, i, j, ApplyFilterOnSinglePixel(&tmpImage,
-				0, verticalGaussianFilter->cy, verticalGaussianFilter));
 		}
-		threadArgHeader->progress = 100 * (i - dstRect->x1) / dstRectHeight;
 	}
-	threadArgHeader->progress = 100;
+	SetThreadProgress(threadArgHeader, 100);
 
 	FreeImage(tmpImage);
 
-	fractal2D_message(stdout, T_VERBOSE,"Downscaling image from (%"PRIuFAST32",%"PRIuFAST32") to \
-(%"PRIuFAST32",%"PRIuFAST32") : %s.\n", dstRect->x1,dstRect->y1, dstRect->x2,
-		dstRect->y2, (*cancel) ? "CANCELED" : "DONE");
+	int canceled = CancelTaskRequested(threadArgHeader);
 
-	return ((*cancel) ? PTHREAD_CANCELED : NULL);
+	return (canceled ? PTHREAD_CANCELED : NULL);
 }
 
-Action *LaunchDownscaleImage(Image *dst, const Image *src, Threads *threads)
+char downscaleImageMessage[] = "Downscaling image";
+
+Task *CreateDownscaleImageTask(Image *dst, const Image *src, uint_fast32_t nbThreads)
 {
 	if (src->width == 0 || src->height == 0 || dst->width == 0 || dst->height == 0) {
-		return DoNothingAction();
+		return DoNothingTask();
 	}
 	if (dst->width > src->width || dst->height > src->height) {
-		fractal2D_error("Downscaling to a bigger image makes no sense.\n");
+		FractalNow_error("Downscaling to a bigger image makes no sense.\n");
 	}
 
-	FLOAT invScaleX = src->width / (FLOAT)dst->width;
-	FLOAT invScaleY = src->height / (FLOAT)dst->height;
+	FLOATT invScaleX = src->width / (FLOATT)dst->width;
+	FLOATT invScaleY = src->height / (FLOATT)dst->height;
 
-	Filter horizontalGaussianFilter;
-	Filter verticalGaussianFilter;
+	Filter *horizontalGaussianFilter =
+		(Filter *)safeMalloc("horizontal gaussian filter", sizeof(Filter));
+	Filter *verticalGaussianFilter =
+		(Filter *)safeMalloc("vertical gaussian filter", sizeof(Filter));
 
-	CreateHorizontalGaussianFilter2(&horizontalGaussianFilter, invScaleX);
-	CreateVerticalGaussianFilter2(&verticalGaussianFilter, invScaleY);
+	CreateHorizontalGaussianFilter2(horizontalGaussianFilter, invScaleX);
+	CreateVerticalGaussianFilter2(verticalGaussianFilter, invScaleY);
 
-	uint_fast32_t nbPixels = src->width*src->height;
-	uint_fast32_t nbThreadsNeeded = (threads->N > nbPixels) ? nbPixels : threads->N;
+	uint_fast32_t nbPixels = dst->width*dst->height;
+	uint_fast32_t nbThreadsNeeded = nbThreads;
+	uint_fast32_t rectanglesPerThread = DEFAULT_RECTANGLES_PER_THREAD;
+	if (nbPixels <= nbThreadsNeeded) {
+		nbThreadsNeeded = nbPixels;
+		rectanglesPerThread = 1;
+	} else if (nbPixels < nbThreadsNeeded*rectanglesPerThread) {
+		rectanglesPerThread = nbPixels / nbThreadsNeeded;
+	}
+	uint_fast32_t nbRectangles = nbThreadsNeeded*rectanglesPerThread;
 
 	Rectangle *rectangle;
-	rectangle = (Rectangle *)safeMalloc("rectangles", nbThreadsNeeded * sizeof(Rectangle));
+	rectangle = (Rectangle *)safeMalloc("rectangles", nbRectangles * sizeof(Rectangle));
 	InitRectangle(&rectangle[0], 0, 0, dst->width-1, dst->height-1);
-	if (CutRectangleInN(rectangle[0], nbThreadsNeeded, rectangle)) {
-		fractal2D_error("Could not cut rectangle ((%"PRIuFAST32",%"PRIuFAST32"),\
+	if (CutRectangleInN(rectangle[0], nbRectangles, rectangle)) {
+		FractalNow_error("Could not cut rectangle ((%"PRIuFAST32",%"PRIuFAST32"),\
 (%"PRIuFAST32",%"PRIuFAST32") in %"PRIuFAST32" parts.\n", rectangle[0].x1, rectangle[0].y1,
-				rectangle[0].x2, rectangle[0].y2, nbThreadsNeeded);
+				rectangle[0].x2, rectangle[0].y2, nbRectangles);
 	}
 
 	DownscaleImageArguments *arg;
 	arg = (DownscaleImageArguments *)safeMalloc("arguments", nbThreadsNeeded *
 							sizeof(DownscaleImageArguments));
 	for (uint_fast32_t i = 0; i < nbThreadsNeeded; ++i) {
+		arg[i].threadId = i;
 		arg[i].dst = dst;
-		arg[i].dstRect = (Rectangle *)safeMalloc("dstRect", sizeof(Rectangle));
-		*(arg[i].dstRect) = CopyRectangle(&rectangle[i]);
+		arg[i].nbRectangles = rectanglesPerThread;
+		arg[i].rectangles = &rectangle[i*rectanglesPerThread];
 		arg[i].src = src;
 		arg[i].invScaleX = invScaleX;
 		arg[i].invScaleY = invScaleY;
-		arg[i].horizontalGaussianFilter = (Filter *)safeMalloc("horizontalGaussianFilter",
-									sizeof(Filter));
-		*(arg[i].horizontalGaussianFilter) = CopyFilter(&horizontalGaussianFilter);
-		arg[i].verticalGaussianFilter = (Filter *)safeMalloc("verticalGaussianFilter",
-									sizeof(Filter));
-		*(arg[i].verticalGaussianFilter) = CopyFilter(&verticalGaussianFilter);
+		/* Filters copied to avoid concurrent read. */
+		arg[i].horizontalGaussianFilter = horizontalGaussianFilter;
+		arg[i].verticalGaussianFilter = verticalGaussianFilter;
 	}
-	Action *res = LaunchAction("Downscaling image", threads, nbThreadsNeeded, arg,
+	Task *res = CreateTask(downscaleImageMessage, nbThreadsNeeded, arg,
 					sizeof(DownscaleImageArguments), DownscaleImageThreadRoutine,
 					FreeDownscaleImageArguments);
 
-	free(rectangle);
 	free(arg);
-	FreeFilter(horizontalGaussianFilter);
-	FreeFilter(verticalGaussianFilter);
 
 	return res;
 }
 
 void DownscaleImage(Image *dst, const Image *src, Threads *threads)
 {
-	Action *action = LaunchDownscaleImage(dst, src, threads);
-	int unused = GetActionResult(action);
-	(void)unused;
-	FreeAction(action);
+	Task *task = CreateDownscaleImageTask(dst, src, threads->N);
+	int unused = ExecuteTaskBlocking(task, threads);
+	UNUSED(unused);
 }
 
 void FreeImage(Image image)
@@ -464,3 +475,4 @@ void FreeImage(Image image)
 		free(image.data);
 	}
 }
+

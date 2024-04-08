@@ -1,5 +1,5 @@
 /*
- *  fractal_transfer_function.c -- part of fractal2D
+ *  fractal_transfer_function.c -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -25,32 +25,38 @@
 #include <stdlib.h>
 #include <string.h>
 
-FLOAT logp1F(FLOAT x)
+FLOATT logp1logp1F(FLOATT x)
+{
+	return logF(logF(1+x)+1);
+}
+	
+FLOATT logp1F(FLOATT x)
 {
 	return logF(1+x);
 }
 
-FLOAT cubertF(FLOAT x)
+FLOATT cubertF(FLOATT x)
 {
 	return powF(x, 1./3);
 }
 
-FLOAT identityF(FLOAT x)
+FLOATT identityF(FLOATT x)
 {
 	return x;
 }
 
-FLOAT squareF(FLOAT x)
+FLOATT squareF(FLOATT x)
 {
 	return x*x;
 }
 
-FLOAT cubeF(FLOAT x)
+FLOATT cubeF(FLOATT x)
 {
 	return x*x*x;
 }
 
 const TransferFunctionPtr transferFunctionsArray[] = {
+	logp1logp1F,
 	logp1F,
 	cubertF,
 	SQRTF,
@@ -61,6 +67,7 @@ const TransferFunctionPtr transferFunctionsArray[] = {
 };
 
 const char *transferFunctionStr[] = {
+	(const char *)"loglog",
 	(const char *)"log",
 	(const char *)"cuberoot",
 	(const char *)"squareroot",
@@ -71,6 +78,7 @@ const char *transferFunctionStr[] = {
 };
 
 const char *transferFunctionDescStr[] = {
+	(const char *)"Log log",
 	(const char *)"Logarithm",
 	(const char *)"Cube root",
 	(const char *)"Square root",
@@ -88,7 +96,7 @@ int GetTransferFunction(TransferFunction *transferFunction, const char *str)
 	size_t len = strlen(str);
 
 	if (len > 255) {
-		fractal2D_werror("Unknown transfer function \'%s\'.\n", str);
+		FractalNow_werror("Unknown transfer function \'%s\'.\n", str);
 	}
 
 	char TFStr[256];
@@ -103,7 +111,7 @@ int GetTransferFunction(TransferFunction *transferFunction, const char *str)
 		}
 	}
 	if (i == nbTransferFunctions) {
-		fractal2D_werror("Unknown transfer function \'%s\'.\n", str);
+		FractalNow_werror("Unknown transfer function \'%s\'.\n", str);
 	}
 
 	end:

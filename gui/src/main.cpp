@@ -1,5 +1,5 @@
 /*
- *  main.cpp -- part of fractal2D
+ *  main.cpp -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
  
-#include "fractal2D.h"
+#include "fractalnow.h"
 #include "main.h"
 #include "main_window.h"
 #include <QApplication>
@@ -26,8 +26,9 @@
 int main(int argc, char *argv[])
 {
 	QApplication::setGraphicsSystem(QString("raster"));
-	QApplication::setApplicationName("qFractal2D");
-	QApplication::setApplicationVersion(QString(fractal2D_VersionNumber()));
+	QApplication::setApplicationName("QFractalNow");
+	QApplication::setOrganizationName("fractalnow");
+	QApplication::setApplicationVersion(QString(FractalNow_VersionNumber()));
 	QApplication app(argc, argv);
 
 	MainWindow mainWindow(argc, argv);

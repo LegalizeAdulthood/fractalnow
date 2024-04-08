@@ -1,5 +1,5 @@
 /*
- *  color_button.h -- part of fractal2D
+ *  color_button.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -37,7 +37,7 @@ class ColorButton : public QPushButton
 
 	public:
 	ColorButton(QWidget *parent = 0);
-	QColor currentColor();
+	const QColor &currentColor() const;
 
 	private:
 	QColor color;
@@ -45,7 +45,7 @@ class ColorButton : public QPushButton
 	void updateIcon();
 
 	public slots:
-	void setCurrentColor(QColor color);
+	void setCurrentColor(const QColor &color);
 
 	private slots:
 	void openColorDialog();

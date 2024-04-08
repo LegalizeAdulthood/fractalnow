@@ -1,6 +1,5 @@
 /*
-void FractalRenderingWidget::updateBoxesEnabledValue()
- *  fractal_rendering_widget.h -- part of fractal2D
+ *  fractal_rendering_widget.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -41,7 +40,7 @@ class FractalRenderingWidget : public QWidget
 	Q_OBJECT
 
 	public:
-	FractalRenderingWidget(RenderingParameters &render);
+	FractalRenderingWidget(const RenderingParameters &render);
 
 	QComboBox *countingFunctionComboBox;
 	QComboBox *coloringMethodComboBox;
@@ -55,9 +54,10 @@ class FractalRenderingWidget : public QWidget
 	GradientBox *gradientBox;
 
 	public slots:
-	void updateBoxesValues(RenderingParameters &render);
+	void updateBoxesValues(const RenderingParameters &render);
 	void updateBoxesEnabledValue();
 	void updateColorScalingSingleStep();
+	void editGradient();
 
 	private:
 	void blockBoxesSignals(bool block);

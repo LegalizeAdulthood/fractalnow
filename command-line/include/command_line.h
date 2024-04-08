@@ -1,5 +1,5 @@
 /*
- *  command_line.h -- part of fractal2D
+ *  command_line.h -- part of FractalNow
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *
@@ -36,16 +36,24 @@ extern "C" {
 #include <stdint.h>
 
 /**
- * \struct s_CommandLineArguments
+ * \struct CommandLineArguments
  * \brief For storing command lines arguments.
  *
  * This structure is to store the arguments given on the command line.
  */
-typedef struct s_CommandLineArguments {
+/**
+ * \typedef CommandLineArguments
+ * \brief Convenient typedef for struct CommandLineArguments.
+ */
+typedef struct CommandLineArguments {
+	char *fractalConfigFileName;
+ /*!< Fractal Config file name.*/
 	char *fractalFileName;
  /*!< Fractal file name.*/
 	char *renderingFileName;
  /*!< Rendering file name.*/
+	char *gradientFileName;
+ /*!< Gradient file name.*/
 	char *dstFileName;
  /*!< Output image file name.*/
 	uint_fast32_t width;
@@ -56,13 +64,13 @@ typedef struct s_CommandLineArguments {
  /*!< Maximum size of quadrilaterals for interpolation.*/
 	int nbThreads;
  /*!< Number of threads. Negative if not specified. */
-	FLOAT colorDissimilarityThreshold;
+	FLOATT colorDissimilarityThreshold;
  /*!< Dissimilarity threshold for interpolation.*/
 	AntiAliasingMethod antiAliasingMethod;
  /*!< Anti-aliasing method.*/
-	FLOAT antiAliasingSize;
+	FLOATT antiAliasingSize;
  /*!< Size for anti-aliasing (radius for blur, factor for oversampling and adaptive).*/
-	FLOAT adaptiveAAMThreshold;
+	FLOATT adaptiveAAMThreshold;
  /*!< Threshold used when anti-aliasing method is adaptive.*/
 } CommandLineArguments;
 

@@ -1,5 +1,5 @@
 /*
- *  help.cpp -- part of fractal2D
+ *  help.cpp -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -19,7 +19,8 @@
  */
  
 #include "help.h"
-#include "fractal2D.h"
+#include "fractal.h"
+#include "fractalnow.h"
 #include "floating_point.h"
 #include "main.h"
 #include "thread.h"
@@ -27,37 +28,81 @@
 
 void Help::Print()
 {
-	printf("qfractal2D v%s - Explore \
-2D fractals.\n\
-Usage : qfractal2D [-h] \n  \
-or \n\
-qfractal2D [-v] [-d] [-j <NbThreads>] [-c <FractalFile>] [-r \
-<RenderingFile>] [-x <Width> | -y <Height>] [-m <MinAAMSize> \
--M <MaxAAMSize>] \n\n  \
--h : Prints this help.\n  \
--v : Verbose mode.\n  \
--d : Debug mode.\n  \
--j <NbThreads> : Specify the number of threads to compute image \
-(%"PRIuFAST32" by default).\n  \
--f <FractalFile> : Specify the fractal config file, used for \
-computing fractal. See documentation for details on syntax.\n  \
--r <RenderingFile> : Specify the rendering file, used for \
-rendering fractal. See documentation for details on syntax.\n  \
--x <Width> : Specify output image width (%"PRIuFAST32" by \
-default, or set to keep fractal space ratio if height is \
-specified). \n  \
--y <Height> : Specify output image height (by default set \
-to keep fractal space ratio). \n  \
--m <MinAAMSize> : Specify minimum size of adaptive \
-anti-aliasing (%"PRIuFAST32" by default). Must be an \
-integer strictly greater than 1.\n  \
--M <MinAAMSize> : Specify maximum size of adaptive \
-anti-aliasing (%"PRIuFAST32" by default). Must be an \
-integer strictly greater than 1.\n",
-	fractal2D_VersionNumber(),
+	printf("qfractalnow v%s - Explore fractals and generate \
+fractal images.\n\
+Usage : qfractalnow [-h] \n\
+  or \n\
+qfractalnow [-q|-v] [-d] [-j <NbThreads>] \n\
+           [-c <ConfigFile>] [-f <FractalFile>] [-r \
+<RenderingFile>] [-g <GradientFile]\n\
+           [-x <Width>|-y <Height>]\n\
+           [-m <MinAAMSize> -M <MaxAAMSize>] [-p \
+<AdaptiveAAMThreshold>]\n\
+           [-i <QuadSize>] [-t <Threshold>]\n\n\
+  -h                       Prints this help.\n\
+  -q                       Quiet mode.\n\
+  -v                       Verbose mode.\n"
+#ifdef DEBUG
+"  -d                       Debug mode.\n"
+#endif
+"  -j <NbThreads>           Specify number of threads \
+(%"PRIuFAST32" by default).\n\
+  -c <ConfigFile>          Specify configuration file. See \
+documentation for details on configuration files.\n\
+  -f <FractalFile>         Specify fractal file. See \
+documentation for details on fractal files.\n\
+                           If a configuration file was already \
+specified,\n\
+                           fractal file will override \
+overlapping parameters.\n\
+  -r <RenderingFile>       Specify rendering file. See \
+documentation for details on rendering files.\n\
+                           If a configuration file was already \
+specified,\n\
+                           rendering file will override the \
+overlapping parameters.\n\
+  -g <GradientFile>        Specify gradient file. See \
+documentatin for details on gradient file.\n\
+                           If a configuration file and/or a \
+rendering file were already specified,\n\
+                           gradient file will override the \
+overlapping parameters.\n\
+  -x <Width>               Specify image width (set to keep \
+fractal space ratio if height is specified).\n\
+  -y <Height>              Specify image height (by default \
+set to keep fractal space ratio).\n\
+  -m <MinAAMSize>          Specify minimum size of adaptive \
+anti-aliasing (%"PRIuFAST32" by default).\n\
+                           Must be an integer strictly greater \
+than 1.\n\
+  -M <MaxAAMSize>          Specify maximum size of adaptive \
+anti-aliasing (%"PRIuFAST32" by default).\n\
+                           Must be an integer strictly greater \
+than 1.\n\
+  -n <AAMSizeIteration>    Anti-aliasing size iteration.\n\
+                           Anti-aliasing size will increase by \
+steps of AAMSizeIteration from MinAAMSize to MaxAAMSize.\n\
+  -p <AAMThreshold>        Threshold for adaptive \
+anti-aliasing (%"PRIFLOATT" by default).\n\
+  -i <QuadSize>            Maximum size of quadrilaterals for \
+linear interpolation.\n\
+                           %"PRIuFAST32" by default, which is \
+good for no visible loss of quality.\n\
+                           1 means no interpolation (all \
+pixels are computed).\n\
+  -t <Threshold>           Dissimilarity threshold for quad \
+interpolation.\n\
+                           %"PRIFLOATT" by default, which is \
+good for no visible loss of quality.\n\
+                           A quadrilateral that shows too \
+dissimilar values at its corners will be computed, \n\
+                           as opposed to interpolated.\n",
+	FractalNow_VersionNumber(),
 	DEFAULT_NB_THREADS,
-	DEFAULT_FRACTAL_IMAGE_WIDTH,
 	DEFAULT_MIN_ANTIALIASING_SIZE,
-	DEFAULT_MAX_ANTIALIASING_SIZE);
+	DEFAULT_MAX_ANTIALIASING_SIZE,
+	FLOATT_DIG, DEFAULT_ADAPTIVE_AAM_THRESHOLD,
+	DEFAULT_QUAD_INTERPOLATION_SIZE,
+	FLOATT_DIG, DEFAULT_COLOR_DISSIMILARITY_THRESHOLD);
 }
 

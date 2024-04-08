@@ -1,5 +1,5 @@
 /*
- *  fractal_explorer.h -- part of fractal2D
+ *  fractal_explorer.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -34,6 +34,7 @@
 #include <QLabel>
 #include <QPaintEvent>
 #include "fractal.h"
+#include "fractal_config.h"
 #include "fractal_rendering_parameters.h"
 #include "image.h"
 #include "thread.h"
@@ -44,16 +45,22 @@ class FractalExplorer : public QLabel
 	Q_OBJECT
 	 
 	public:
-	FractalExplorer(const Fractal &fractal, const RenderingParameters &render,
-				uint_fast32_t width, uint_fast32_t height,
-				uint_fast32_t minAntiAliasingSize,
-				uint_fast32_t maxAntiAliasingSize,
-				uint_fast32_t antiAliasingSizeIteration,
-				uint_fast32_t nbThreads,
-				QWidget *parent = 0, Qt::WindowFlags f = 0);
-
-	Fractal &getFractal();
-	RenderingParameters &getRender();
+	FractalExplorer(const FractalConfig &fractalConfig,
+			uint_fast32_t width, uint_fast32_t height,
+			uint_fast32_t minAntiAliasingSize,
+			uint_fast32_t maxAntiAliasingSize,
+			uint_fast32_t antiAliasingSizeIteration,
+			uint_fast32_t quadInterpolationSize,
+			FLOATT colorDissimilarityThreshold,
+			FLOATT adaptiveAAMThreshold,
+			uint_fast32_t nbThreads,
+			QWidget *parent = 0, Qt::WindowFlags f = 0);
+	const FractalConfig &getFractalConfig() const;
+	const Fractal &getFractal() const;
+	const RenderingParameters &getRender() const;
+	bool getFractalCacheEnabled() const;
+	int getFractalCacheSize() const;
+	bool getSolidGuessingEnabled() const;
 	void launchFractalDrawing();
 	void launchFractalAntiAliasing();
 	void resizeImage(uint_fast32_t width, uint_fast32_t height);
@@ -74,6 +81,8 @@ class FractalExplorer : public QLabel
 	void restoreInitialState();
 	void refresh();
 	int stopDrawing(); // return 1 if drawing was not active anyway
+	void pauseDrawing();
+	void resumeDrawing();
 	void zoomInFractal();
 	void zoomOutFractal();
 	void moveUpFractal();
@@ -81,8 +90,14 @@ class FractalExplorer : public QLabel
 	void moveLeftFractal();
 	void moveRightFractal();
 
+	void useFractalCache(bool enabled);
+	void resizeFractalCache(int size);
+	void setSolidGuessingEnabled(bool enabled);
+
 	void setFractalFormula(int index);
-	void setPParam(double value);
+	void setPParam(double complex value);
+	void setPParamRe(double value);
+	void setPParamIm(double value);
 	void setCParamRe(double value);
 	void setCParamIm(double value);
 	void setCenterX(double value);
@@ -99,8 +114,11 @@ class FractalExplorer : public QLabel
 	void setTransferFunction(int index);
 	void setColorScaling(double value);
 	void setColorOffset(double value);
-	void setSpaceColor(QColor color);
+	void setSpaceColor(const QColor &color);
 	void setGradient(const QGradientStops &gradientStops);
+	void setFractalConfig(const FractalConfig &fractalConfig);
+	void setFractal(const Fractal &fractal);
+	void setRenderingParameters(const RenderingParameters &render);
 	void setGradient(const Gradient &gradient);
 
 	private:
@@ -127,6 +145,7 @@ class FractalExplorer : public QLabel
 		A_FractalAntiAliasing
 	};
 	enum ActionType lastActionType;
+	bool drawingPaused;
 	bool redrawFractal;
 	double currentAntiAliasingSize;
 	bool movingFractalDeferred;
@@ -138,15 +157,22 @@ class FractalExplorer : public QLabel
 	QImage imageCopyOnPress;
 
 	uint_fast32_t initialWidth, initialHeight;
-	Fractal fractal, initialFractal;
-	RenderingParameters render, initialRender;
+	FractalConfig fractalConfig, initialFractalConfig;
+	Fractal &fractal;
+	RenderingParameters &render;
+	uint_fast32_t quadInterpolationSize;
+	FLOATT colorDissimilarityThreshold;
+	FLOATT adaptiveAAMThreshold;
+	bool solidGuessing;
+	FractalCache cache;
+	FractalCache *pCache;
 	uint_fast32_t minAntiAliasingSize;
 	uint_fast32_t maxAntiAliasingSize;
 	uint_fast32_t antiAliasingSizeIteration;
 	Threads *threads;
 	QImage *fractalQImage;
 	Image fractalImage;
-	Action *action;
+	Task *task;
 	QTimer *timer;
 
 	private slots:
@@ -154,8 +180,9 @@ class FractalExplorer : public QLabel
 
 	signals:
 	void wakeUpSignal();
-	void fractalChanged(Fractal &);
-	void renderingParametersChanged(RenderingParameters &);
+	void fractalChanged(const Fractal &);
+	void renderingParametersChanged(const RenderingParameters &);
+	void fractalCacheSizeChanged(int size);
 };
 
 #endif

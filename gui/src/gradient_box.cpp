@@ -1,5 +1,5 @@
 /*
- *  gradient_box.cpp -- part of fractal2D
+ *  gradient_box.cpp -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *

@@ -1,5 +1,5 @@
 /*
- *  fractal_rendering_widget.cpp -- part of fractal2D
+ *  fractal_rendering_widget.cpp -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -28,19 +28,19 @@
 #include <QFormLayout>
 #include <QLabel>
 
-FractalRenderingWidget::FractalRenderingWidget(RenderingParameters &render) : QWidget()
+FractalRenderingWidget::FractalRenderingWidget(const RenderingParameters &render) : QWidget()
 {
-	countingFunctionComboBox = new QComboBox;
-	for (uint_fast32_t i = 0; i < nbCountingFunctions; ++i) {
-		countingFunctionComboBox->addItem(countingFunctionDescStr[i]);
-	}
-	countingFunctionComboBox->setCurrentIndex((int)render.countingFunction);
-
 	coloringMethodComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbColoringMethods; ++i) {
 		coloringMethodComboBox->addItem(coloringMethodDescStr[i]);
 	}
 	coloringMethodComboBox->setCurrentIndex((int)render.coloringMethod);
+
+	countingFunctionComboBox = new QComboBox;
+	for (uint_fast32_t i = 0; i < nbCountingFunctions; ++i) {
+		countingFunctionComboBox->addItem(countingFunctionDescStr[i]);
+	}
+	countingFunctionComboBox->setCurrentIndex((int)render.countingFunction);
 
 	addendFunctionComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbAddendFunctions; ++i) {
@@ -85,8 +85,8 @@ FractalRenderingWidget::FractalRenderingWidget(RenderingParameters &render) : QW
 	gradientBox = new GradientBox(render.gradient);
 
 	QFormLayout *formLayout = new QFormLayout;
-	formLayout->addRow(tr("Counting function:"), countingFunctionComboBox);
 	formLayout->addRow(tr("Coloring method:"), coloringMethodComboBox);
+	formLayout->addRow(tr("Counting function:"), countingFunctionComboBox);
 	formLayout->addRow(tr("Addend function:"), addendFunctionComboBox);
 	formLayout->addRow(tr("Stripe density:"), stripeDensitySpinBox);
 	formLayout->addRow(tr("Interpolation method:"), interpolationMethodComboBox);
@@ -126,7 +126,7 @@ void FractalRenderingWidget::blockBoxesSignals(bool block)
 	gradientBox->blockSignals(block);
 }
 
-void FractalRenderingWidget::updateBoxesValues(RenderingParameters &render)
+void FractalRenderingWidget::updateBoxesValues(const RenderingParameters &render)
 {
 	blockBoxesSignals(true);
 	countingFunctionComboBox->setCurrentIndex((int)render.countingFunction);
@@ -140,6 +140,8 @@ void FractalRenderingWidget::updateBoxesValues(RenderingParameters &render)
 	spaceColorButton->setCurrentColor(QColor(render.spaceColor.r,
 					render.spaceColor.g, render.spaceColor.b));
 	gradientBox->setGradient(render.gradient);
+	updateColorScalingSingleStep();
+	updateBoxesEnabledValue();
 	blockBoxesSignals(false);
 }
 
@@ -149,17 +151,20 @@ void FractalRenderingWidget::updateBoxesEnabledValue()
 	AddendFunction addendFunction = (AddendFunction)addendFunctionComboBox->currentIndex();
 
 	switch (coloringMethod) {
-	case CM_SIMPLE:
+	case CM_ITERATIONCOUNT:
+		countingFunctionComboBox->setEnabled(true);
 		addendFunctionComboBox->setEnabled(false);
 		stripeDensitySpinBox->setEnabled(false);
 		interpolationMethodComboBox->setEnabled(false);
 		break;
-	case CM_AVERAGE:
+	case CM_AVERAGECOLORING:
+		countingFunctionComboBox->setEnabled(false);
 		addendFunctionComboBox->setEnabled(true);
 		stripeDensitySpinBox->setEnabled(addendFunction == AF_STRIPE);
 		interpolationMethodComboBox->setEnabled(true);
 		break;
 	default:
+		countingFunctionComboBox->setEnabled(true);
 		addendFunctionComboBox->setEnabled(true);
 		stripeDensitySpinBox->setEnabled(true);
 		interpolationMethodComboBox->setEnabled(true);
@@ -173,3 +178,8 @@ void FractalRenderingWidget::updateColorScalingSingleStep()
 	colorScalingSpinBox->setSingleStep(colorScaling / 10);
 }
 
+void FractalRenderingWidget::editGradient()
+{
+	gradientBox->openGradientDialog();
+
+}

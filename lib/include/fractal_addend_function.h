@@ -1,5 +1,5 @@
 /*
- *  fractal_addend_function.h -- part of fractal2D
+ *  fractal_addend_function.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -20,7 +20,7 @@
  
  /**
   * \file fractal_addend_function.h
-  * \brief Header file related to interpolation of fractal.
+  * \brief Header file related to fractal addend functions.
   * \author Marc Pegon
   */
  
@@ -44,19 +44,19 @@ extern "C" {
  * \brief Fractal addend function.
  *
  * Addend functions are used to compute values of fractal
- * in case of average coloring (CM_AVERAGE).
+ * in case of average coloring (CM_AVERAGECOLORING).
  *
  * Addend functions are described by a sequence of instructions
  * at the initialization of the fractal loop, for each iteration,
- * and at the end of the fractal loop.
+ * and at the end of the fractal loop.\n
  * They take for parameter 'size' the number of average sums to
- * be computed. Those sums SN[0], SN[1], ..., SN[size-1] MUST be
- * computed (at least initialized) by the addend function, since
- * they will be used by the interpolation method.
+ * be computed. Those sums SN[0], SN[1], ..., SN[size-1] *must*
+ * be computed (at least initialized) by the addend function,
+ * since they will be used by the interpolation method.
  * 
  * Remark : in the fractal "literature", addend functions
- * are not exactly the functions THAT COMPUTE the average sums,
- * but functions USED when computing those sums.
+ * are not exactly the functions *that compute* the average
+ * sums, but functions *used* when computing those sums.\n
  * Remark 2 : some sums might not be computable if the number of
  * iterations (in orbit) is too small (N must be >= size).
  */
@@ -95,6 +95,8 @@ extern const char *addendFunctionDescStr[];
  * Function is case insensitive.
  * Possible strings are :
  * - "triangleinequality" for triangle inequality
+ * - "curvature" for curvature
+ * - "stripe" for stripe
  *
  * \param addendFunction AddendFunction destination.
  * \param str String specifying addend function.
@@ -104,10 +106,12 @@ int GetAddendFunction(AddendFunction *addendFunction, const char *str);
 
 /******************AF_TRIANGLEINEQUALITY******************/
 #define LOOP_INIT_AF_TRIANGLEINEQUALITY(size) \
-FLOAT zeros[size];\
-FLOAT complex prevZP = 0;\
-FLOAT nPrevZP = 0;\
-FLOAT mn=0, Mn=0, rn=0;\
+uint_fast32_t zeros[size];\
+FLOATT complex prevZP = 0;\
+FLOATT nPrevZP = 0;\
+FLOATT mn=0, Mn=0, rn=0;\
+uint_fast32_t currentIndex = 0;\
+uint_fast32_t previousIndex = size-1;\
 for (uint_fast32_t i = 0; i < size; ++i) {\
 	SN[i] = 0;\
 	zeros[i] = 0;\
@@ -121,29 +125,36 @@ if (n >= m) {\
 	mn = fabsF(nPrevZP-normC);\
 	Mn = nPrevZP+normC;\
 	rn = sqrtF(normZ2);\
-	for (uint_fast32_t i = size-1; i > 0; --i) {\
-		SN[i] = SN[i-1];\
-		zeros[i] = zeros[i-1];\
-	}\
-	FLOAT diff = Mn-mn;\
+	FLOATT diff = Mn-mn;\
+	zeros[currentIndex] = zeros[previousIndex];\
+	SN[currentIndex] = SN[previousIndex];\
 	if (diff != 0) {\
 		/* Avoid division by zero. */\
-		SN[0] += (rn - mn) / diff;\
+		SN[currentIndex] += (rn - mn) / diff;\
 	} else {\
 		/* Counting zeros in order to divide by*/\
 		/* the exact number of terms added to SN.*/\
-		++zeros[0];\
+		++zeros[currentIndex];\
 	}\
+	previousIndex = currentIndex;\
+	currentIndex = (currentIndex + 1) % size;\
 }
 
 #define LOOP_END_AF_TRIANGLEINEQUALITY(size) \
 uint_fast32_t m = 1;\
 if (n >= m+size-1) {\
+	FLOATT shiftSN[size];\
+	uint_fast32_t shiftZeros[size];\
 	for (uint_fast32_t i = 0; i < size; ++i) {\
+		shiftSN[i] = SN[i];\
+		shiftZeros[i] = zeros[i];\
+	}\
+	for (uint_fast32_t i = 0; i < size; ++i) {\
+		zeros[i] = shiftZeros[(previousIndex+size-i) % size];\
 		if (zeros[i] == n-m-i) {\
 			SN[i] = 0;\
 		} else {\
-			SN[i] /= n+1-m-i-zeros[i];\
+			SN[i] = shiftSN[(previousIndex+size-i) % size] / (n+1-m-i-zeros[i]);\
 		}\
 	}\
 } else {\
@@ -156,9 +167,12 @@ if (n >= m+size-1) {\
 
 /***********************AF_CURVATURE**********************/
 #define LOOP_INIT_AF_CURVATURE(size) \
-FLOAT zeros[size];\
-FLOAT complex znm1 = 0;\
-FLOAT complex znm2 = 0;\
+uint_fast32_t zeros[size];\
+FLOATT complex znm1 = 0;\
+FLOATT complex znm2 = 0;\
+FLOATT complex diff = 0;\
+uint_fast32_t currentIndex = 0;\
+uint_fast32_t previousIndex = size-1;\
 for (uint_fast32_t i = 0; i < size; ++i) {\
 	SN[i] = 0;\
 	zeros[i] = 0;\
@@ -167,19 +181,19 @@ for (uint_fast32_t i = 0; i < size; ++i) {\
 #define LOOP_ITERATION_AF_CURVATURE(size) \
 uint_fast32_t m = 1;\
 if (n >= m+1) {\
-	for (uint_fast32_t i = size-1; i > 0; --i) {\
-		SN[i] = SN[i-1];\
-		zeros[i] = zeros[i-1];\
-	}\
-	FLOAT complex diff = znm1-znm2;\
+	diff = znm1-znm2;\
+	SN[currentIndex] = SN[previousIndex];\
+	zeros[currentIndex] = zeros[previousIndex];\
 	if (diff != 0) {\
 		/* Avoid division by zero. */\
-		SN[0] += fabsF(cargF((z-znm1) / diff));\
+		SN[currentIndex] += fabsF(cargF((z-znm1) / diff));\
 	} else {\
 		/* Counting zeros in order to divide by*/\
 		/* the exact number of terms added to SN.*/\
-		++zeros[0];\
+		++zeros[currentIndex];\
 	}\
+	previousIndex = currentIndex;\
+	currentIndex = (currentIndex + 1) % size;\
 }\
 znm2 = znm1;\
 znm1 = z;
@@ -187,11 +201,18 @@ znm1 = z;
 #define LOOP_END_AF_CURVATURE(size) \
 uint_fast32_t m = 1;\
 if (n >= m+size) {\
+	FLOATT shiftSN[size];\
+	uint_fast32_t shiftZeros[size];\
 	for (uint_fast32_t i = 0; i < size; ++i) {\
+		shiftSN[i] = SN[i];\
+		shiftZeros[i] = zeros[i];\
+	}\
+	for (uint_fast32_t i = 0; i < size; ++i) {\
+		zeros[i] = shiftZeros[(previousIndex+size-i) % size];\
 		if (zeros[i] == n-m-i) {\
 			SN[i] = 0;\
 		} else {\
-			SN[i] /= n-m-i-zeros[i];\
+			SN[i] = shiftSN[(previousIndex+size-i) % size] / (n-m-i-zeros[i]);\
 		}\
 	}\
 } else {\
@@ -204,6 +225,8 @@ if (n >= m+size) {\
 
 /************************AF_STRIPE************************/
 #define LOOP_INIT_AF_STRIPE(size) \
+uint_fast32_t currentIndex = 0;\
+uint_fast32_t previousIndex = size-1;\
 for (uint_fast32_t i = 0; i < size; ++i) {\
 	SN[i] = 0;\
 }
@@ -211,17 +234,20 @@ for (uint_fast32_t i = 0; i < size; ++i) {\
 #define LOOP_ITERATION_AF_STRIPE(size) \
 uint_fast32_t m = 1;\
 if (n >= m) {\
-	for (uint_fast32_t i = size-1; i > 0; --i) {\
-		SN[i] = SN[i-1];\
-	}\
-	SN[0] += sinF(render->stripeDensity*cargF(z))+1;\
+	SN[currentIndex] = SN[previousIndex] + sinF(render->stripeDensity*cargF(z))+1;\
+	previousIndex = currentIndex;\
+	currentIndex = (currentIndex + 1) % size;\
 }
 
 #define LOOP_END_AF_STRIPE(size) \
 uint_fast32_t m = 1;\
 if (n >= m+size-1) {\
+	FLOATT shiftSN[size];\
 	for (uint_fast32_t i = 0; i < size; ++i) {\
-		SN[i] /= 2*(n+1-m-i);\
+		shiftSN[i] = SN[i];\
+	}\
+	for (uint_fast32_t i = 0; i < size; ++i) {\
+		SN[i] = shiftSN[(previousIndex+size-i) % size] / (2*(n+1-m-i));\
 	}\
 } else {\
 	/* Result undefined. 0 chosen. */\

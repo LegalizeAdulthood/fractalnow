@@ -1,5 +1,5 @@
 /*
- *  rectangle.c -- part of fractal2D
+ *  rectangle.c -- part of FractalNow
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *

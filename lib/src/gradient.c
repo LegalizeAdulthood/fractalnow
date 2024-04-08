@@ -1,5 +1,5 @@
 /*
- *  gradient.c -- part of fractal2D
+ *  gradient.c -- part of FractalNow
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *
@@ -20,27 +20,29 @@
  
 #include "gradient.h"
 #include "error.h"
-#include "file_parsing.h"
+#include "file_io.h"
 #include "misc.h"
 #include <string.h>
 
 const char *gradientFormatStr[] = {
-	(const char *)"g072",
 	(const char *)"g073"
 };
+const uint_fast32_t nbGradientFormats = sizeof(gradientFormatStr) / sizeof(const char *);
 
-int  ReadGradientFileV072(Gradient *gradient, uint_fast8_t bytesPerComponent,
-				const char *fileName, FILE *file);
 int  ReadGradientFileV073(Gradient *gradient, uint_fast8_t bytesPerComponent,
 				const char *fileName, FILE *file);
 typedef int (*ReadGradientFileFunction)(Gradient *gradient, uint_fast8_t bytesPerComponent,
 					const char *fileName, FILE *file);
 
 const ReadGradientFileFunction readGradientFileFunction[] = {
-	ReadGradientFileV072,
 	ReadGradientFileV073
 };
-const uint_fast32_t nbGradientFormats = sizeof(gradientFormatStr) / sizeof(const char *);
+
+int  WriteGradientFileV073(const Gradient *gradient, const char *fileName, FILE *file);
+typedef int (*WriteGradientFileFunction)(const Gradient *gradient, const char *fileName, FILE *file);
+const WriteGradientFileFunction writeGradientFileFunction[] = {
+	WriteGradientFileV073
+};
 
 void aux_GenerateGradient(Gradient *gradient, uint_fast64_t begin_ind_tab, uint_fast64_t end_ind_tab, 
 				Color C1, Color C2)
@@ -60,48 +62,49 @@ void aux_GenerateGradient(Gradient *gradient, uint_fast64_t begin_ind_tab, uint_
 	}
 }
 
-void GenerateGradient(Gradient *gradient, uint_fast32_t nbStops, FLOAT *positionStop,
+void GenerateGradient(Gradient *gradient, uint_fast32_t nbStops, FLOATT *positionStop,
 				Color *colorStop, uint_fast32_t size)
 {
-	fractal2D_message(stdout, T_NORMAL,"Generating gradient...\n");
+	FractalNow_message(stdout, T_NORMAL,"Generating gradient...\n");
 	
 	if (nbStops < 2) {
-		fractal2D_error("Gradient number of stops must be >= 2.\n");
+		FractalNow_error("Gradient number of stops must be >= 2.\n");
 	}
 	if (size == 0) {
-		fractal2D_error("Gradient size must be > 0.\n");
+		FractalNow_error("Gradient size must be > 0.\n");
 	}
 
-	gradient->positionStop = (FLOAT *)safeMalloc("position stops copy", nbStops*sizeof(FLOAT));
-	memcpy(gradient->positionStop, positionStop, nbStops*sizeof(FLOAT));
+	gradient->positionStop = (FLOATT *)safeMalloc("position stops copy", nbStops*sizeof(FLOATT));
+	memcpy(gradient->positionStop, positionStop, nbStops*sizeof(FLOATT));
 	gradient->colorStop = (Color *)safeMalloc("color stops copy", nbStops*sizeof(Color));
 	memcpy(gradient->colorStop, colorStop, nbStops*sizeof(Color));
 	gradient->nbStops = nbStops;
+	gradient->bytesPerComponent = colorStop[0].bytesPerComponent;
 	gradient->size = size;
 
 	gradient->data = (Color *)safeMalloc("gradient data", size*sizeof(Color));
 	for (uint_fast32_t i=0; i<nbStops-1; ++i) {
 		if (positionStop[i] < 0 || positionStop[i] > 1) {
-			fractal2D_error("Gradient position stops must be between 0 and 1.\n");
+			FractalNow_error("Gradient position stops must be between 0 and 1.\n");
 		} else if (i != 0 && positionStop[i] <= positionStop[i-1]) {
-			fractal2D_error("Gradient position stops should be (stricly) increasing.\n");
+			FractalNow_error("Gradient position stops should be (stricly) increasing.\n");
 		}
 		aux_GenerateGradient(gradient, positionStop[i]*(size-1), positionStop[i+1]*(size-1),
 					colorStop[i], colorStop[i+1]);
 	}
 
-	fractal2D_message(stdout, T_NORMAL,"Generating gradient : DONE.\n");
+	FractalNow_message(stdout, T_NORMAL,"Generating gradient : DONE.\n");
 }
 
 void GenerateGradient2(Gradient *gradient, uint_fast32_t nbStops, Color *colorStop, uint_fast32_t nbTransitions)
 {
 	if (nbTransitions == 0) {
-		fractal2D_error("Gradient number of transitions must be > 0.\n");
+		FractalNow_error("Gradient number of transitions must be > 0.\n");
 	}
 
-	FLOAT *positionStop = (FLOAT *)malloc(nbStops * sizeof(FLOAT));
+	FLOATT *positionStop = (FLOATT *)malloc(nbStops * sizeof(FLOATT));
 	for (uint_fast32_t i = 0; i < nbStops; ++i) {
-		positionStop[i] = i / (FLOAT)(nbStops-1);
+		positionStop[i] = i / (FLOATT)(nbStops-1);
 	}
 
 	uint_fast64_t size = (nbStops-1) * nbTransitions;
@@ -113,12 +116,13 @@ void GenerateGradient2(Gradient *gradient, uint_fast32_t nbStops, Color *colorSt
 Gradient CopyGradient(const Gradient *gradient)
 {
 	Gradient res;
+	res.bytesPerComponent = gradient->bytesPerComponent;
 	res.size = gradient->size;
 	res.data = (Color *)safeMalloc("gradient copy data", gradient->size*sizeof(Color));
 	memcpy(res.data, gradient->data, gradient->size*sizeof(Color));
 	res.nbStops = gradient->nbStops;
-	res.positionStop = (FLOAT *)safeMalloc("gradient position stop copy", gradient->nbStops*sizeof(FLOAT));
-	memcpy(res.positionStop, gradient->positionStop, gradient->nbStops*sizeof(FLOAT));
+	res.positionStop = (FLOATT *)safeMalloc("gradient position stop copy", gradient->nbStops*sizeof(FLOATT));
+	memcpy(res.positionStop, gradient->positionStop, gradient->nbStops*sizeof(FLOATT));
 	res.colorStop = (Color *)safeMalloc("gradient color stop copy", gradient->nbStops*sizeof(Color));
 	memcpy(res.colorStop, gradient->colorStop, gradient->nbStops*sizeof(Color));
 
@@ -128,7 +132,7 @@ Gradient CopyGradient(const Gradient *gradient)
 Gradient Gradient16(const Gradient *gradient)
 {
 	Gradient res;
-	if (gradient->colorStop[0].bytesPerComponent == 2) {
+	if (gradient->bytesPerComponent == 2) {
 		res = CopyGradient(gradient);
 	} else {
 		Color *tmp = (Color *)safeMalloc("16 bits gradient color stops copy",
@@ -147,7 +151,7 @@ Gradient Gradient16(const Gradient *gradient)
 Gradient Gradient8(const Gradient *gradient)
 {
 	Gradient res;
-	if (gradient->colorStop[0].bytesPerComponent == 1) {
+	if (gradient->bytesPerComponent == 1) {
 		res = CopyGradient(gradient);
 	} else {
 		Color *tmp = (Color *)safeMalloc("8 bits gradient color stops copy",
@@ -175,57 +179,27 @@ void FreeGradient(Gradient gradient)
 	free(gradient.colorStop);
 }
 
-int ReadGradientFileV072(Gradient *gradient, uint_fast8_t bytesPerComponent, const char *fileName, FILE *file)
-{
-	int res = 0;
-
-	Color color[257];
-	uint_fast32_t nbColors=0;
-	int readRes;
-	while (1) {
-		readRes = readColor(file, bytesPerComponent, &color[nbColors]);
-		if (readRes == EOF) {
-			break;
-		} else if (readRes < 1) {
-			fractal2D_read_werror(fileName);
-		}
-		if (nbColors > 255) {
-			break;
-		}
-		nbColors++;
-	}
-
-	if (nbColors < 2 || nbColors > 255) {
-		fractal2D_werror("Gradient number of colors must be between 2 and 255.\n");
-	}
-
-	GenerateGradient2(gradient, nbColors, color, DEFAULT_GRADIENT_TRANSITIONS);
-
-	end:
-	return res;
-}
-
 int ReadGradientFileV073(Gradient *gradient, uint_fast8_t bytesPerComponent, const char *fileName, FILE *file)
 {
 	int res = 0;
 
-	FLOAT positionStop[257];
+	FLOATT positionStop[257];
 	Color colorStop[257];
 	uint_fast32_t nbStops=0;
 	int readRes;
 	while (1) {
-		readRes = readFLOAT(file, &positionStop[nbStops]);
+		readRes = readFLOATT(file, &positionStop[nbStops]);
 		if (readRes == EOF) {
 			break;
 		} else if (readRes != 1) {
-			fractal2D_read_werror(fileName);
+			FractalNow_read_werror(fileName);
 		}
 
 		readRes = readColor(file, bytesPerComponent, &colorStop[nbStops]);
 		if (readRes == EOF) {
-			fractal2D_werror("Missing gradient color stop.\n");
+			FractalNow_werror("Missing gradient color stop.\n");
 		} else if (readRes != 1) {
-			fractal2D_read_werror(fileName);
+			FractalNow_read_werror(fileName);
 		}
 		if (nbStops > 255) {
 			break;
@@ -233,18 +207,18 @@ int ReadGradientFileV073(Gradient *gradient, uint_fast8_t bytesPerComponent, con
 		nbStops++;
 	}
 	if (nbStops < 2 || nbStops > 255) {
-		fractal2D_werror("Gradient number of stops must be between 2 and 255.\n");
+		FractalNow_werror("Gradient number of stops must be between 2 and 255.\n");
 	}
 	/* Check stops are well-formed (pos0 = 0 <= pos1 <= ... <= posN = 1) */
 	if (positionStop[0] != 0) {
-		fractal2D_werror("First gradient stop position should be 0.\n");
+		FractalNow_werror("First gradient stop position should be 0.\n");
 	}
 	if (positionStop[nbStops-1] != 1) {
-		fractal2D_werror("Last gradient stop position should be 1.\n");
+		FractalNow_werror("Last gradient stop position should be 1.\n");
 	}
 	for (uint_fast32_t i = 1; i < nbStops; ++i) {
 		if (positionStop[i] <= positionStop[i-1]) {
-			fractal2D_werror("Gradient stop positions should be (stricly) increasing.\n");
+			FractalNow_werror("Gradient stop positions should be (stricly) increasing.\n");
 		}
 	}
 
@@ -254,73 +228,204 @@ int ReadGradientFileV073(Gradient *gradient, uint_fast8_t bytesPerComponent, con
 	return res;
 }
 
-int ReadGradientFileBody(Gradient *gradient, uint_fast8_t bytesPerComponent, const char *fileName,
-			FILE *file, const char *format)
+ReadGradientFileFunction GetReadGradientFileFunction(const char *format)
 {
-	fractal2D_message(stdout, T_VERBOSE, "Reading gradient file body...\n");
-	int res = 0;
 	if (strlen(format) != 4) {
-		fractal2D_werror("Invalid gradient format '%s'.\n", format);
+		return NULL;
 	}
+
+	ReadGradientFileFunction readGradientFile = NULL;
 	char formatStr[5];
 	strcpy(formatStr, format);
 	toLowerCase(formatStr);
 
-	ReadGradientFileFunction readGradientFile;
 	uint_fast32_t i;
 	for (i = 0; i < nbGradientFormats; ++i) {
 		if (strcmp(formatStr, gradientFormatStr[i]) == 0) {
-			readGradientFile = (ReadGradientFileFunction)readGradientFileFunction[i];
+			readGradientFile = readGradientFileFunction[i];
 			break;
 		}
 	}
-	if (i == nbGradientFormats) {
-		fractal2D_werror("Unsupported gradient format '%s'.\n", format);
+	
+	return readGradientFile;
+}
+
+int isSupportedGradientFile(const char *fileName)
+{
+	int res = 0;
+	FILE *file;
+
+	file=fopen(fileName,"r");
+	if (!file) {
+		FractalNow_open_werror(fileName);
+	}
+	
+	char formatStr[256];
+	if (readString(file, formatStr) < 1) {
+		res = 1;
+	} else {
+		ReadGradientFileFunction readGradientFileFunction;
+		readGradientFileFunction = GetReadGradientFileFunction(formatStr);
+		res = (readGradientFileFunction == NULL);
+	}
+
+	end:
+	if (file && fclose(file)) {
+		FractalNow_close_errmsg(fileName);
+		res = 1;
+	}
+
+	return !res;
+}
+
+int ReadGradientFileBody(Gradient *gradient, uint_fast8_t bytesPerComponent, const char *fileName,
+			FILE *file, const char *format)
+{
+	FractalNow_message(stdout, T_VERBOSE, "Reading gradient file body...\n");
+	int res = 0;
+	ReadGradientFileFunction readGradientFile;
+	readGradientFile = GetReadGradientFileFunction(format);
+	if (readGradientFile == NULL) {
+		FractalNow_werror("Unsupported gradient format '%s'.\n", format);
 	}
 
 	res |= readGradientFile(gradient, bytesPerComponent, fileName, file);
 
 	end:
-	fractal2D_message(stdout, T_VERBOSE, "Reading gradient file body : %s.\n", (res == 0) ? "DONE" : "FAILED");
+	FractalNow_message(stdout, T_VERBOSE, "Reading gradient file body : %s.\n", (res == 0) ? "DONE" : "FAILED");
 
 	return res;
 }
 
 int ReadGradientFile(Gradient *gradient, const char *fileName)
 {
-	fractal2D_message(stdout, T_NORMAL, "Reading gradient file...\n");
+	FractalNow_message(stdout, T_NORMAL, "Reading gradient file...\n");
 
 	int res = 0;
 	FILE *file;
 
 	file=fopen(fileName,"r");
 	if (!file) {
-		fractal2D_open_werror(fileName);
+		FractalNow_open_werror(fileName);
 	}
 	
 	char formatStr[256];
 	if (readString(file, formatStr) < 1) {
-		fractal2D_read_werror(fileName);
+		FractalNow_read_werror(fileName);
 	}
 	uint_fast8_t bytesPerComponent;
 	uint32_t bytesPerComponent32;
 	if (readUint32(file, &bytesPerComponent32) < 1) {
-		fractal2D_read_werror(fileName);
+		FractalNow_read_werror(fileName);
 	}
 	if (bytesPerComponent32 == 1 || bytesPerComponent32 == 2) {
 		bytesPerComponent = (uint_fast8_t)bytesPerComponent32;
 	} else {
-		fractal2D_werror("Invalid gradient file : bytes per components must be 1 or 2.\n");
+		FractalNow_werror("Invalid gradient file : bytes per components must be 1 or 2.\n");
 	}
 	res = ReadGradientFileBody(gradient, bytesPerComponent, fileName, file, formatStr);
 
 	end:
 	if (file && fclose(file)) {
-		fractal2D_close_errmsg(fileName);
+		FractalNow_close_errmsg(fileName);
 		res = 1;
 	}
 
-	fractal2D_message(stdout, T_NORMAL, "Reading gradient file : %s.\n", (res == 0) ? "DONE" : "FAILED");
+	FractalNow_message(stdout, T_NORMAL, "Reading gradient file : %s.\n", (res == 0) ? "DONE" : "FAILED");
+
+	return res;
+}
+
+int WriteGradientFileV073(const Gradient *gradient, const char *fileName, FILE *file)
+{
+	int res = 0;
+
+	const char *suffix = " ";
+	for (uint_fast32_t i = 0; i < gradient->nbStops; ++i) {
+		if (writeFLOATT(file, gradient->positionStop[i], " ") < 0) {
+			FractalNow_write_werror(fileName);
+		}
+		if (i == gradient->nbStops-1) {
+			suffix = "\n";
+		}
+		if (writeColor(file, gradient->colorStop[i], suffix) < 0) {
+			FractalNow_write_werror(fileName);
+		}
+	}
+
+	end:
+	return res;
+}
+
+WriteGradientFileFunction GetWriteGradientFileFunction(const char *format)
+{
+	if (strlen(format) != 4) {
+		return NULL;
+	}
+
+	WriteGradientFileFunction writeGradientFile = NULL;
+	char formatStr[5];
+	strcpy(formatStr, format);
+	toLowerCase(formatStr);
+
+	uint_fast32_t i;
+	for (i = 0; i < nbGradientFormats; ++i) {
+		if (strcmp(formatStr, gradientFormatStr[i]) == 0) {
+			writeGradientFile = writeGradientFileFunction[i];
+			break;
+		}
+	}
+	
+	return writeGradientFile;
+}
+
+int WriteGradientFileBody(const Gradient *gradient, const char *fileName, FILE *file,
+				const char *format)
+{
+	FractalNow_message(stdout, T_VERBOSE, "Writing gradient file body...\n");
+	int res = 0;
+	WriteGradientFileFunction writeGradientFile;
+	writeGradientFile = GetWriteGradientFileFunction(format);
+	if (writeGradientFile == NULL) {
+		FractalNow_werror("Unsupported gradient format '%s'.\n", format);
+	}
+
+	res |= writeGradientFile(gradient, fileName, file);
+
+	end:
+	FractalNow_message(stdout, T_VERBOSE, "Writing gradient file body : %s.\n", (res == 0) ? "DONE" : "FAILED");
+
+	return res;
+}
+
+int WriteGradientFile(const Gradient *gradient, const char *fileName)
+{
+	FractalNow_message(stdout, T_NORMAL, "Writing gradient file...\n");
+
+	int res = 0;
+	FILE *file;
+
+	file=fopen(fileName,"w");
+	if (!file) {
+		FractalNow_open_werror(fileName);
+	}
+
+	const char *format = gradientFormatStr[nbGradientFormats-1];
+	if (writeString(file, format, "\n") < 0) {
+		FractalNow_write_werror(fileName);
+	}
+	if (writeUint32(file, gradient->bytesPerComponent, "\n") < 0) {
+		FractalNow_write_werror(fileName);
+	}
+	res |= WriteGradientFileBody(gradient, fileName, file, format);
+
+	end:
+	if (file && fclose(file)) {
+		FractalNow_close_errmsg(fileName);
+		res = 1;
+	}
+
+	FractalNow_message(stdout, T_VERBOSE, "Writing gradient file body : %s.\n", (res == 0) ? "DONE" : "FAILED");
 
 	return res;
 }

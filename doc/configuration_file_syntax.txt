@@ -1,0 +1,115 @@
+Configuration files contain all parameters necessary to generate a fractal image (fractal parameters and rendering parameters).
+Hence it is merely a fractal file body followed by a rendering file body.
+
+Configuration file syntax:
+
+CONFIGURATION_FILE_FORMAT
+FRACTAL_TYPE
+[MAIN_POWER]
+[CX CY]
+CENTER_X CENTER_Y SPAN_X SPAN_Y
+ESCAPE_RADIUS NB_ITER_MAX
+
+BYTES_PER_COMPONENT
+SPACE_COLOR
+COUNTING_ALGORITHM
+COLORING_METHOD [ADDEND_FUNCTION [STRIPE_DENSITY] INTERPOLATION_METHOD]
+COLOR_SCALING COLOR_OFFSET NB_TRANSITIONS
+Pos1 Color1 ... PosN ColorN
+
+Text characters can be upper-case or lower-case.
+Arguments separators can be tabs, blank spaces, carriage return.
+
+CONFIGURATION_FILE_FORMAT should be C075, which is the format described in this document.
+Other format values (of older versions) may still be supported though.
+
+FRACTAL_TYPE can be :
+ - MANDELBROT for classic Mandelbrot (z_n = z_{n-1}^2 + c)
+ - MANDELBROTP for custom Mandelbrot (z_n = z_{n-1}^p + c, with p parameter)
+ - JULIA for classic Julia (z_n = z_{n-1}^2 + c, with c parameter)
+ - JULIAP for custom Julia (z_n = z_{n-1}^p + c, with c, p parameters)
+ - BURNINGSHIP for mandelbrot-type burning ship (z_n = (|real(z_{n-1}) + I*|imag(z_{n-1})|)^p + c, with p parameter)
+ - JULIABURNINGSHIP for julia-type burning ship (z_n = (|real(z_{n-1}) + I*|imag(z_{n-1})|)^p + c, with c, p parameters)
+ - MANDELBAR for mandelbar (z_n = conj(z_{n-1})^p + c, with p parameter)
+ - JULIABAR for juliabar (z_n = conj(z_{n-1})^p + c, with c, p parameters)
+ - RUDY for Rudy (z_n = z_{n-1}^p + c*z + d, with c, p parameters)
+
+FOR MANDELBROTP, JULIAP, BURNINGSHIP, JULIABURNINGSHIP, MANDELBAR, JULIABAR and RUDY, p parameter is a complex number that must be specified through REAL_MAIN_POWER and IMAG_MAIN_POWER values.
+For the others, REAL_MAIN_POWER and IMAG_MAIN_POWER are of no use, so they should *not* be specified.
+
+For JULIA, JULIAP, JULIABURNINGSHIP, JULIABAR and RUDY, a parameter c (complex number) MUST be specified, hence the optional parameters CX and CY.
+For the others, CX and CY are of no use, so they should *not* be specified.
+
+CENTER_X, CENTER_Y, SPAN_X and SPAN_Y are floating point numbers specifying the part of fractal space to draw.
+
+ESCAPE RADIUS (often called bailout value) is a floating point number used as a condition for breaking the fractal loop.
+
+NB_ITER_MAX is an integer specifying the maximum number of iterations used to determine if a point is inside fractal or not.
+
+BYTES_PER_COMPONENT specifies the number of bytes per component used for colors. It can be :
+ - 1 for RGB8 (8 bits per component)
+ - 2 for RGB16 (16 bits per component)
+
+SPACE_COLOR specifies the color of points inside fractal.
+
+COUNTING_ALGORITHM can be :
+ - DISCRETE for discrete iteration count (simply the number of iterations).
+ - CONTINUOUS for continuous iteration count
+ - SMOOTH for smooth iteration count
+
+COLORING_METHOD can be :
+ - SIMPLE : the value returned by the counting algorithm is directly used
+ - AVERAGE : average sum(s) is/are computed using the specified addend function and possibly the counting algorithm.
+
+ADDEND_FUNCTION and INTERPOLATION_METHOD are only needed for AVERAGE coloring method, and should *not* be specified for SIMPLE coloring method.
+
+ADDEND_FUNCION can be :
+ - TRIANGLEINEQUALITY
+ - CURVATURE
+ - STRIPE
+
+STRIPE_DENSITY is a positive integer used only for STRIPE addend function. It should not be specified for other addend functions.
+
+INTERPOLATION_METHOD can be :
+ - NONE : only 1 average sum is computed and is directly used
+ - LINEAR : 2 average sums are computed and interpolated linearly using counting algorithm to produce one value
+ - SPLINE : 4 average sums are computed and interpolated with polynomials using counting algorithm to produce one value
+
+TRANSFER_FUNCTION specifies the transfer function to apply to the (nearly) final value, in order to map it better to the gradient. It can be :
+ - LOG for logarithm (base e)
+ - SQUAREROOT for square root
+ - CUBEROOT for cube root
+ - IDENTITY for identity function (value unchanged)
+ - SQUARE for square
+ - CUBE for cube
+ - EXP for exponential
+
+COLOR_SCALING specifies a (floating point) multiplicand to be applied after transfer function, again to fit better to the gradient.
+
+COLOR_OFFSET specifies a (floating point) addend to be applied after multiplicand, again, to fit better to the gradient. It must be between 0 and 1.
+
+POSi : position of COLORi in gradient (between 0 and 1). First position must be 0, and last position must be 1. Positions must be strictly increasing.
+COLORi : colors composing gradient.
+Gradient must be made of at least 2 colors.
+
+Colors must be specified as hexadecimal numbers. Red, green, and blue are respectively the 1st, 2nd and 3rd component.
+Some RGB8 color examples :
+- 0x0 for black
+- 0xFF for blue
+- 0xFF00 for green
+- 0xFF0000 for red
+- 0xFFFFFF for white
+Some RGB16 color examples :
+- 0x0 for black
+- 0xFFFF for blue
+- 0xFFFF0000 for green
+- 0xFFFF00000000 for red
+- 0xFFFFFFFFFFFF for white
+
+In order for the gradient not to be discontinuous, the first and last color should be the same, for example 0x0 0xFFFFFF 0x0 for a black and white continuous gradient.
+
+Acceptable floating numbers are for example :
+2.567
+4.146E-5
+8.26e2
+

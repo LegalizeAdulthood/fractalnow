@@ -1,5 +1,5 @@
 /*
- *  help.h -- part of fractal2D
+ *  help.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -39,7 +39,7 @@ class Help
 };
 
 #define invalid_use_error(...) \
-	fractal2D_message(stderr, T_QUIET, __VA_ARGS__);\
+	FractalNow_message(stderr, T_QUIET, __VA_ARGS__);\
 	Help::Print(); \
         exit(EXIT_FAILURE)
 

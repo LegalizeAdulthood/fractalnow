@@ -1,5 +1,5 @@
 /*
- *  color.h -- part of fractal2D
+ *  color.h -- part of FractalNow
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *
@@ -55,8 +55,16 @@ extern "C" {
 /**
  * \def RGB8_TO_UINT32(r,g,b)
  * \brief Create uint32_t color from 8-bits red, green, and blue components.
+ *
+ * alpha is set to 0xFF by default.
  */
 #define RGB8_TO_UINT32(r,g,b) (0xFF000000+((uint32_t)(r)<<16)+((uint32_t)(g)<<8)+(uint32_t)b)
+
+/**
+ * \def ARGB8_TO_UINT32(a,r,g,b)
+ * \brief Create uint32_t color from 8-bits alpha, red, green, and blue components.
+ */
+#define ARGB8_TO_UINT32(a,r,g,b) (((uint32_t)(a)<<24)+((uint32_t)(r)<<16)+((uint32_t)(g)<<8)+(uint32_t)b)
 
 /**
  * \def GET_R16(x)
@@ -79,12 +87,20 @@ extern "C" {
 /**
  * \def RGB16_TO_UINT64(r,g,b)
  * \brief Create uint64_t color from 16-bits red, green, and blue components.
+ *
+ * alpha is set to 0xFFFF by default.
  */
 #define RGB16_TO_UINT64(r,g,b) (0xFFFF000000000000+((uint64_t)(r)<<32)+((uint64_t)(g)<<16)+(uint64_t)b)
 
 /**
+ * \def ARGB16_TO_UINT64(r,g,b)
+ * \brief Create uint64_t color from 16-bits alpha, red, green, and blue components.
+ */
+#define ARGB16_TO_UINT64(a,r,g,b) (((uint64_t)(a)<<48)+((uint64_t)(r)<<32)+((uint64_t)(g)<<16)+(uint64_t)b)
+
+/**
  * \struct Color
- * \brief RGB8 color.
+ * \brief Simple RGB color structure.
  */
 /**
  * \typedef Color
@@ -115,7 +131,8 @@ Color ColorFromRGB(uint8_t bytesPerComponent, uint16_t r, uint16_t g, uint16_t b
  * \fn Color ColorFromUint32(uint32_t color)
  * \brief Convert a uint32_t color to Color structure.
  *
- * Create an RGB8 Color structure.
+ * Creates a RGB8 Color structure.
+ * alpha component (most significant 8 bits) is ignored.
  *
  * \param color Color to convert.
  * \return Converted color.
@@ -126,7 +143,8 @@ Color ColorFromUint32(uint32_t color);
  * \fn Color ColorFromUint64(uint64_t color)
  * \brief Convert a uint64_t color to Color structure.
  *
- * Create an RGB16 Color structure.
+ * Creates a RGB16 Color structure.
+ * alpha component (most significant 16 bits) is ignored.
  *
  * \param color Color to convert.
  * \return Converted color.
@@ -156,7 +174,17 @@ Color Color16(Color color);
 Color Color8(Color color);
 
 /**
- * \fn Color MixColors(Color C1, FLOAT weight1, Color C2, FLOAT weight2)
+ * \fn int CompareColors(const Color color1, const Color color2)
+ * \brief Compare two colors.
+ *
+ * \param color1 First color.
+ * \param color2 Second color.
+ * \return 0 if colors are the same, 1 otherwise.
+ */
+int CompareColors(const Color color1, const Color color2);
+
+/**
+ * \fn Color MixColors(Color C1, FLOATT weight1, Color C2, FLOATT weight2)
  * \brief Mix two weighted colors.
  *
  * Both colors must have same number of bytes per component
@@ -168,13 +196,13 @@ Color Color8(Color color);
  * \param weight2 Weight given to second color for mixing.
  * \return Result of the mixing of colors C1 and C2 according to given weights.
  */
-Color MixColors(Color C1, FLOAT weight1, Color C2, FLOAT weight2);
+Color MixColors(Color C1, FLOATT weight1, Color C2, FLOATT weight2);
 
 /**
- * \fn FLOAT ColorManhattanDistance(Color C1, Color C2)
+ * \fn FLOATT ColorManhattanDistance(Color C1, Color C2)
  * \brief Compute manhattan distance between two colors.
  *
- * Distance is normalized (i.e. between 0 and 1).
+ * Distance is normalized (i.e. between 0 and 1).\n
  * Both colors must have same number of bytes per component
  * (undefined behaviour otherwise).
  *
@@ -182,28 +210,28 @@ Color MixColors(Color C1, FLOAT weight1, Color C2, FLOAT weight2);
  * \param C2 Second color.
  * \return Manhattan distance between colors C1 and C2.
  */
-FLOAT ColorManhattanDistance(Color C1, Color C2);
+FLOATT ColorManhattanDistance(Color C1, Color C2);
 
 /**
- * \fn FLOAT QuadAvgDissimilarity(const Color C[4])
+ * \fn FLOATT QuadAvgDissimilarity(const Color C[4])
  * \brief Compute average dissimilarity of a quadrilateral given its corner colors.
  *
- * Result is normalized (between 0 and 1).
+ * Result is normalized (between 0 and 1).\n
  * Colors must have same number of bytes per component
  * (undefined behaviour otherwise).
  *
  * \param C Point to colors at the four corners.
  * \return Quadrilateral average anhattan dissimilarity.
  */
-FLOAT QuadAvgDissimilarity(const Color C[4]);
+FLOATT QuadAvgDissimilarity(const Color C[4]);
 
 /**
- * \fn Color QuadLinearInterpolation(const Color C[4], FLOAT x, FLOAT y)
+ * \fn Color QuadLinearInterpolation(const Color C[4], FLOATT x, FLOATT y)
  * \brief Interpolate linearly some color of a quadrilateral.
  *
- * Interpolate color at point (x,y) according to its corner colors.
+ * Interpolate color at point (x,y) according to its corner colors.\n
  * Coordinates x and y are relative (undefined behaviour otherwise) :
- * (0,0 is the top left corner, (1,0) the top right, etc...
+ * (0,0 is the top left corner, (1,0) the top right, etc...\n
  * Colors must have same number of bytes per component
  * (undefined behaviour otherwise).
  *
@@ -212,7 +240,7 @@ FLOAT QuadAvgDissimilarity(const Color C[4]);
  * \param y Y (relative) coordinate of quad point to interpolate.
  * \return Linearly interpolated color at point (x,y) of quadrilateral.
  */
-Color QuadLinearInterpolation(const Color C[4], FLOAT x, FLOAT y);
+Color QuadLinearInterpolation(const Color C[4], FLOATT x, FLOATT y);
 
 #ifdef __cplusplus
 }

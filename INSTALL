@@ -1,0 +1,48 @@
+Installation
+============
+
+Requirements:
+ * Qt 4.7.0 or newer
+
+Note that while Qt is needed for the graphical tool (QFractalNow), the
+command line tool (FractalNow) requires only a C library with pthread
+support (it is pure ISO C99).
+
+Linux
+=====
+
+You will need gcc to build the command-line tool (although any C99
+compiler would do, just edit the CC variable in Makefile.configure files
+from lib and command-line directories) and a modern C++ compiler
+(preferably g++) to build the graphical tool.
+
+The typical procedure for building and installing FractalNow is:
+$ ./configure
+$ make
+# make install
+This will install FractalNow in /usr/local.
+
+See configure help for more options:
+$ ./configure -h
+
+Windows
+=======
+
+The easiest way to build FractalNow for Windows is to use MSYS and
+mingw.
+Under MSYS, make sure Qt libraries and programs are in your path as well
+as mingw binaries, and then type:
+$ ./configure
+$ make
+$ make install
+This will install FractalNow in ./install_dir.
+
+The configure script will normally detect that you are running MSYS on
+Windows and install the needed Qt DLLs (if Qt was not compiled
+statically) as well.
+You may need to add some other DLLs manually (e.g. pthread library if
+dynamically linked).
+
+See configure help for more options:
+$ ./configure -h
+

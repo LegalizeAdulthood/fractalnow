@@ -1,5 +1,5 @@
 /*
- *  fractal_formula.h -- part of fractal2D
+ *  fractal_formula.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -50,12 +50,20 @@ extern "C" {
 typedef enum e_FractalFormula {
 	FRAC_MANDELBROT = 0,
  /*!< Mandelbrot fractal.*/
-	FRAC_MANDELBROTP,
+	FRAC_MULTIBROT,
  /*!< Mandelbrot type fractal with custom p parameter.*/
 	FRAC_JULIA,
  /*!< Julia fractal.*/
-	FRAC_JULIAP,
+	FRAC_MULTIJULIA,
  /*!< Julia type fractal with custom p parameter.*/
+	FRAC_BURNINGSHIP,
+ /*!< Burning ship.*/
+	FRAC_JULIABURNINGSHIP,
+ /*!< Julia burning ship.*/
+	FRAC_MANDELBAR,
+ /*!< Mandelbar.*/
+ 	FRAC_JULIABAR,
+ /*!< Juliabar.*/
 	FRAC_RUDY
  /*!< Rudy fractal (with custom p parameter).*/
 } FractalFormula;
@@ -88,6 +96,10 @@ extern const char *fractalFormulaDescStr[];
  * - "mandelbrotp" for FRAC_MANDELBROTP
  * - "julia" for FRAC_JULIA
  * - "juliap" for FRAC_JULIAP
+ * - "burningship" for FRAC_BURNINGSHIP
+ * - "juliaburningship" for FRAC_JULIABURNINGSHIP
+ * - "mandelbar" for FRAC_MANDELBAR
+ * - "juliabar" for FRAC_JULIABAR
  * - "rudy" for FRAC_RUDY
  *
  * \param fractalFormula Fractal formula destination.
@@ -97,23 +109,27 @@ extern const char *fractalFormulaDescStr[];
 int GetFractalFormula(FractalFormula *fractalFormula, const char *str);
 
 /* Function assumes that y >= 1 and computes x^y. */
-static inline FLOAT complex cipowF(FLOAT complex x, uint_fast32_t y)
+static inline FLOATT complex cipowF(FLOATT complex x, uint_fast32_t y)
 {
-	FLOAT complex rem = 1, res = x;
-	do {
+	if (y == 0) {
+		return 1;
+	}
+
+	FLOATT complex rem = 1, res = x;
+	while (y > 1) {
 		if (y % 2) {
-			rem *= x;
+			rem *= res;
 			--y;
 		}
 		y >>= 1;
 		res *= res;
-	} while (y > 1);
+	}
 
 	return res*rem;
 }
 
 #define cpowPINT(x,y) cipowF(x,y)
-#define cpowPFLOAT(x,y) cpowF(x,y)
+#define cpowPFLOATT(x,y) cpowF(x,y)
 
 /*********************FRAC_MANDELBROT*********************/
 #define LOOP_INIT_FRAC_MANDELBROT \
@@ -125,13 +141,13 @@ z = z*z+c;
 /*********************************************************/
 
 
-/*********************FRAC_MANDELBROTP********************/
-#define LOOP_INIT_FRAC_MANDELBROTP \
+/**********************FRAC_MULTIBROT*********************/
+#define LOOP_INIT_FRAC_MULTIBROT \
 z = 0;\
 c = pixel;
 
-#define LOOP_ITERATION_FRAC_MANDELBROTP(ptype) \
-z = cpow##ptype(z,fractal->p)+c;
+#define LOOP_ITERATION_FRAC_MULTIBROT(ptype) \
+z = cpow##ptype(z,fractal->p##ptype)+c;
 /*********************************************************/
 
 
@@ -145,15 +161,50 @@ z = z*z+c;
 /*********************************************************/
 
 
-/***********************FRAC_JULIAP***********************/
-#define LOOP_INIT_FRAC_JULIAP \
+/*********************FRAC_MULTIJULIA*********************/
+#define LOOP_INIT_FRAC_MULTIJULIA \
 z = pixel;\
 c = fractal->c;
 
-#define LOOP_ITERATION_FRAC_JULIAP(ptype) \
-z = cpow##ptype(z,fractal->p)+c;
+#define LOOP_ITERATION_FRAC_MULTIJULIA(ptype) \
+z = cpow##ptype(z,fractal->p##ptype)+c;
 /*********************************************************/
 
+/*********************FRAC_BURNINGSHIP********************/
+#define LOOP_INIT_FRAC_BURNINGSHIP \
+z = 0;\
+c = pixel;
+
+#define LOOP_ITERATION_FRAC_BURNINGSHIP(ptype) \
+z = cpow##ptype(fabsF(crealF(z))+I*fabsF(cimagF(z)),fractal->p##ptype)+c;
+/*********************************************************/
+
+/*******************FRAC_JULIABURNINGSHIP******************/
+#define LOOP_INIT_FRAC_JULIABURNINGSHIP \
+z = pixel;\
+c = fractal->c;
+
+#define LOOP_ITERATION_FRAC_JULIABURNINGSHIP(ptype) \
+z = cpow##ptype(fabsF(crealF(z))+I*fabsF(cimagF(z)),fractal->p##ptype)+c;
+/*********************************************************/
+
+/**********************FRAC_MANDELBAR*********************/
+#define LOOP_INIT_FRAC_MANDELBAR \
+z = 0;\
+c = pixel;
+
+#define LOOP_ITERATION_FRAC_MANDELBAR(ptype) \
+z = cpow##ptype(conjF(z),fractal->p##ptype)+c;
+/*********************************************************/
+
+/**********************FRAC_JULIABAR**********************/
+#define LOOP_INIT_FRAC_JULIABAR \
+z = pixel;\
+c = fractal->c;
+
+#define LOOP_ITERATION_FRAC_JULIABAR(ptype) \
+z = cpow##ptype(conjF(z),fractal->p##ptype)+c;
+/*********************************************************/
 
 /************************FRAC_RUDY************************/
 #define LOOP_INIT_FRAC_RUDY \
@@ -161,7 +212,7 @@ z = 0;\
 c = pixel;
 
 #define LOOP_ITERATION_FRAC_RUDY(ptype) \
-z = cpow##ptype(z,fractal->p)+fractal->c*z+c;
+z = cpow##ptype(z,fractal->p##ptype)+fractal->c*z+c;
 /*********************************************************/
 
 #ifdef __cplusplus

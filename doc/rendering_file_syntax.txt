@@ -1,4 +1,7 @@
-Rendering file syntax :
+Rendering files contain all parameters necessary to render a fractal file.
+Remark: The end of a rendering file is merely the body of a gradient file.
+
+Rendering file syntax:
 
 RENDERING_FILE_FORMAT
 BYTES_PER_COMPONENT
@@ -8,7 +11,10 @@ COLORING_METHOD [ADDEND_FUNCTION [STRIPE_DENSITY] INTERPOLATION_METHOD]
 COLOR_SCALING COLOR_OFFSET NB_TRANSITIONS
 Pos1 Color1 ... PosN ColorN
 
-RENDERING_FILE_FORMAT should be R072, which is the format described in this document.
+Text characters can be upper-case or lower-case.
+Arguments separators can be tabs, blank spaces, carriage return.
+
+RENDERING_FILE_FORMAT should be R073, which is the format described in this document.
 Other format values (of older versions) may still be supported though.
 
 BYTES_PER_COMPONENT specifies the number of bytes per component used for colors. It can be :
@@ -53,10 +59,7 @@ COLOR_SCALING specifies a (floating point) multiplicand to be applied after tran
 
 COLOR_OFFSET specifies a (floating point) addend to be applied after multiplicand, again, to fit better to the gradient.
 
-NB_TRANSITIONS is an integer specifying the number of color transitions between two colors in gradient. This parameter may disappear in future versions. The bigger the number of transitions the smoother the gradient will be.
-
-POSi : position of COLORi in gradient (between 0 and 1). First position must be 0, and last position must be 1. Positions
-must be strictly increasing.
+POSi : position of COLORi in gradient (between 0 and 1). First position must be 0, and last position must be 1. Positions must be strictly increasing.
 COLORi : colors composing gradient.
 Gradient must be made of at least 2 colors.
 
@@ -75,3 +78,4 @@ Some RGB16 color examples :
 - 0xFFFFFFFFFFFF for white
 
 In order for the gradient not to be discontinuous, the first and last color should be the same, for example 0x0 0xFFFFFF 0x0 for a black and white continuous gradient.
+

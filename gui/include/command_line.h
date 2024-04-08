@@ -1,5 +1,5 @@
 /*
- *  command_line.h -- part of fractal2D
+ *  command_line.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -28,6 +28,7 @@
 #define __COMMAND_LINE_H__
 
 #include "main.h"
+#include "floating_point.h"
 #include <stdint.h>
 
  //! For storing command lines arguments.
@@ -43,10 +44,14 @@ class CommandLineArguments {
 	 */
 	CommandLineArguments(int argc, char *argv[]);
 
+	//! Config file name.
+	char *fractalConfigFileName;
 	//! Fractal file name.
 	char *fractalFileName;
 	//! Rendering file name.
 	char *renderingFileName;
+	//! Rendering file name.
+	char *gradientFileName;
 	//! Width of output float table/image.
 	uint_fast32_t width;
 	//! Height of output float table/image.
@@ -59,6 +64,12 @@ class CommandLineArguments {
 	uint_fast32_t antiAliasingSizeIteration;
 	//! Force number of threads used for drawing fractals.
 	int nbThreads;
+	//! Quad interpolation size.
+	uint_fast32_t quadInterpolationSize;
+	//! Adaptive anti-aliasing threshold.
+	FLOATT adaptiveAAMThreshold;
+	//! Color dissimilarity threshold.
+	FLOATT colorDissimilarityThreshold;
 };
 
 #endif

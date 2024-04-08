@@ -1,5 +1,5 @@
 /*
- *  gradient_box.h -- part of fractal2D
+ *  gradient_box.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -43,14 +43,12 @@ class GradientBox : public QWidget
 	public slots:
 	void setGradient(const Gradient &gradient);
 	void setGradientStops(const QGradientStops &gradientStops);
+	void openGradientDialog();
 
 	private:
 	void initGradientBox(const QGradientStops &gradientStops);
 	GradientLabel *gradientLabel;
 	QGradientStops gradientStops;
-
-	private slots:
-	void openGradientDialog();
 
 	signals:
 	void gradientStopsChanged(const QGradientStops &gradientStops);

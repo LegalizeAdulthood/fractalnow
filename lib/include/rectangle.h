@@ -1,5 +1,5 @@
 /*
- *  rectangle.h -- part of fractal2D
+ *  rectangle.h -- part of FractalNow
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *
@@ -20,7 +20,7 @@
  
  /**
   * \file rectangle.h
-  * \brief Header file for a basic rectangle type.
+  * \brief Header file related to rectangle structure.
   * \author Marc Pegon
   */
 
@@ -35,7 +35,7 @@ extern "C" {
 
 /**
  * \struct Rectangle
- * \brief Basic rectangle type.
+ * \brief Simple rectangle structure.
  */
 /**
  * \typedef Rectangle
@@ -80,7 +80,7 @@ Rectangle CopyRectangle(const Rectangle *rectangle);
  * \fn int CutRectangleInHalf(Rectangle rectangle, Rectangle *out1, Rectangle *out2)
  * \brief Cut rectangle in half.
  *
- * Cut rectangle into two rectangles.
+ * Cut rectangle into two rectangles.\n
  * If the rectangle cannot be cut in half, out1 and out2 will be left unchanged.
  *
  * \param rectangle Rectangle to be cut in half (will not be modified).
@@ -94,7 +94,7 @@ int CutRectangleInHalf(Rectangle rectangle, Rectangle *out1, Rectangle *out2);
  * \fn void CutRectangleMaxSize(Rectangle src, uint_fast32_t size, Rectangle **out, uint_fast32_t *out_size)
  * \brief Cut rectangle into smaller rectangles.
  *
- * Cut rectangle into smaller rectangles. Each of these rectangles are smaller
+ * Cut rectangle into smaller rectangles. Each of these rectangles is smaller
  * (i.e. both width and height) than given size.
  * 
  * \param src Rectangle to be cut into smaller rectangles.
@@ -108,7 +108,7 @@ void CutRectangleMaxSize(Rectangle src, uint_fast32_t size, Rectangle **out, uin
  * \fn int CutRectangleInN(Rectangle rectangle, uint_fast32_t N, Rectangle *out)
  * \brief Cut rectangle in N parts.
  *
- * Cut rectangle into N rectangles.
+ * Cut rectangle into N rectangles.\n
  * If the rectangle cannot be cut in N, the out array will be left unchanged.
  *
  * \param rectangle Rectangle to be cut in N.

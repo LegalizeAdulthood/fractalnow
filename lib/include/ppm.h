@@ -1,5 +1,5 @@
 /*
- *  ppm.h -- part of fractal2D
+ *  ppm.h -- part of FractalNow
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *

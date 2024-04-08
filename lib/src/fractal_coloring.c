@@ -1,5 +1,5 @@
 /*
- *  fractal_coloring.c -- part of fractal2D
+ *  fractal_coloring.c -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -24,13 +24,13 @@
 #include <string.h>
 
 const char *coloringMethodStr[] = {
-	(char *)"simple",
-	(char *)"average"
+	(char *)"iterationcount",
+	(char *)"averagecoloring"
 };
 
 const char *coloringMethodDescStr[] = {
-	(char *)"Simple",
-	(char *)"Average"
+	(char *)"Iteration count",
+	(char *)"Average coloring"
 };
 
 const uint_fast32_t nbColoringMethods = sizeof(coloringMethodStr) / sizeof(char *);
@@ -40,7 +40,7 @@ int GetColoringMethod(ColoringMethod *coloringMethod, const char *str)
 	int res = 0;
 	int len = strlen(str);
 	if (len > 255) {
-		fractal2D_werror("Unknown coloring method \'%s\'.\n", str);
+		FractalNow_werror("Unknown coloring method \'%s\'.\n", str);
 	}
 
 	char CMStr[256];
@@ -55,7 +55,7 @@ int GetColoringMethod(ColoringMethod *coloringMethod, const char *str)
 		}
 	}
 	if (i == nbColoringMethods) {
-		fractal2D_werror("Unknown coloring method \'%s\'.\n", str);
+		FractalNow_werror("Unknown coloring method \'%s\'.\n", str);
 	}
 
 	end:
@@ -81,7 +81,7 @@ int GetInterpolationMethod(InterpolationMethod *interpolationMethod, const char 
 	int res = 0;
 	int len = strlen(str);
 	if (len > 255) {
-		fractal2D_werror("Unknown interpolation method \'%s\'.\n", str);
+		FractalNow_werror("Unknown interpolation method \'%s\'.\n", str);
 	}
 
 	char IMStr[256];
@@ -96,7 +96,7 @@ int GetInterpolationMethod(InterpolationMethod *interpolationMethod, const char 
 		}
 	}
 	if (i == nbInterpolationMethods) {
-		fractal2D_werror("Unknown interpolation method \'%s\'.\n", str);
+		FractalNow_werror("Unknown interpolation method \'%s\'.\n", str);
 	}
 
 	end:

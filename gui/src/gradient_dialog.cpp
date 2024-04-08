@@ -1,5 +1,5 @@
 /*
- *  gradient_dialog.cpp -- part of fractal2D
+ *  gradient_dialog.cpp -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -23,6 +23,7 @@
 GradientDialog::GradientDialog(const QGradientStops &gradientStops, QWidget *parent,
 				Qt::WindowFlags f) : QDialog(parent,f)
 {
+	setWindowTitle(tr("Edit gradient"));
 	this->gradientStops = gradientStops;
 
 	gradientEditor = new GradientEditor;
@@ -42,10 +43,10 @@ GradientDialog::GradientDialog(const QGradientStops &gradientStops, QWidget *par
 
 	setLayout(vBoxLayout);
 
-	QTimer::singleShot(50, this, SLOT(initGradientEditor()));
+	QTimer::singleShot(5, this, SLOT(initGradientEditor()));
 }
 
-QGradientStops GradientDialog::currentGradientStops()
+const QGradientStops &GradientDialog::currentGradientStops() const
 {
 	return gradientStops;
 }

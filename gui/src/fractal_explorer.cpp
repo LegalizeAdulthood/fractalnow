@@ -1,5 +1,5 @@
 /*
- *  fractal_explorer.cpp -- part of fractal2D
+ *  fractal_explorer.cpp -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -20,8 +20,11 @@
  
 #include "fractal_explorer.h"
 
+#include "misc.h"
+
 #include <QApplication>
 #include <QMenu>
+#include <QMessageBox>
 #include <QPainter>
 #include <QStyle>
 #include <QtConcurrentRun>
@@ -29,37 +32,52 @@
 #include <QTimer>
 #include <QVector2D>
 
-FractalExplorer::FractalExplorer(const Fractal &fractal, const RenderingParameters &render,
+FractalExplorer::FractalExplorer(const FractalConfig &fractalConfig,
 					uint_fast32_t width, uint_fast32_t height,
 					uint_fast32_t minAntiAliasingSize,
 					uint_fast32_t maxAntiAliasingSize,
 					uint_fast32_t antiAliasingSizeIteration,
+					uint_fast32_t quadInterpolationSize,
+					FLOATT colorDissimilarityThreshold,
+					FLOATT adaptiveAAMThreshold,
 					uint_fast32_t nbThreads,
-					QWidget *parent, Qt::WindowFlags f) : QLabel(parent, f)
+					QWidget *parent, Qt::WindowFlags f) :
+	QLabel(parent, f), fractal(this->fractalConfig.fractal),
+	render(this->fractalConfig.render),
+	quadInterpolationSize(quadInterpolationSize),
+	colorDissimilarityThreshold(colorDissimilarityThreshold),
+	adaptiveAAMThreshold(adaptiveAAMThreshold)
 {
 	setCursor(QCursor(Qt::OpenHandCursor));
 	setContextMenuPolicy(Qt::DefaultContextMenu);
 
-	this->fractal = CopyFractal(&fractal);
-	this->initialFractal = CopyFractal(&fractal);
-	this->render = CopyRenderingParameters(&render);
-	this->initialRender = CopyRenderingParameters(&render);
+	this->fractalConfig = CopyFractalConfig(&fractalConfig);
+	if (fractalConfig.render.bytesPerComponent == 2) {
+		QMessageBox::critical(this, tr("Gradient color depth is 16 bits."),
+			tr("16-bits gradient will be converted to 8-bits gradient."));
+		ResetGradient(&this->render, Gradient8(&this->render.gradient));
+	}
+	this->initialFractalConfig = CopyFractalConfig(&this->fractalConfig);
 	this->initialWidth = width;
 	this->initialHeight = height;
 	this->minAntiAliasingSize = minAntiAliasingSize;
 	this->maxAntiAliasingSize = maxAntiAliasingSize;
 	this->antiAliasingSizeIteration = antiAliasingSizeIteration;
 
+	drawingPaused = false;
+	redrawFractal = false;
 	movingFractalDeferred = false;
 	movingFractalRealTime = false;
 	fractalMoved = false;
 
 	/* Create QImage and Image (from fractal lib) */
 	fractalQImage = new QImage(width, height, QImage::Format_RGB32);
+	fractalQImage->fill(0);
 	CreateImage2(&fractalImage, fractalQImage->bits(), width, height, 1);
 	adjustSpan();
 
 	restoreInitialStateAction = new QAction(tr("Restore &initial state"), this);
+	restoreInitialStateAction->setIconText(tr("Initial state"));
 	restoreInitialStateAction->setShortcut(QKeySequence::MoveToStartOfDocument);
 	restoreInitialStateAction->setIcon(QApplication::style()->standardIcon(
 						QStyle::SP_DirHomeIcon));
@@ -67,6 +85,7 @@ FractalExplorer::FractalExplorer(const Fractal &fractal, const RenderingParamete
 		SLOT(restoreInitialState()));
 
 	stopDrawingAction = new QAction(tr("&Stop drawing"), this);
+	stopDrawingAction->setIconText(tr("Stop"));
 	stopDrawingAction->setShortcut(Qt::Key_S);
 	stopDrawingAction->setIcon(QApplication::style()->standardIcon(QStyle::SP_BrowserStop));
 	connect(stopDrawingAction, SIGNAL(triggered()), this, SLOT(stopDrawing()));
@@ -104,25 +123,155 @@ FractalExplorer::FractalExplorer(const Fractal &fractal, const RenderingParamete
 	moveDownAction->setShortcut(Qt::Key_Down);
 	connect(moveDownAction, SIGNAL(triggered()), this, SLOT(moveDownFractal()));
 
+	int failure = CreateFractalCache(&cache, 0);
+	if (failure) {
+		emit fractalCacheSizeChanged(cache.size);
+		QMessageBox::critical(this, tr("Failed to resize cache"),
+			tr("Could not allocate memory for cache."));
+	}
+	pCache = NULL;
+
+	solidGuessing = true;
+
 	threads = CreateThreads(nbThreads);
-	action = DoNothingAction();
+	task = DoNothingTask();
+	LaunchTask(task, threads);
 
 	/* Create timer to repaint fractalImageLabel regularly. */
 	timer = new QTimer(this);
-	connect(timer, SIGNAL(timeout()), this, SLOT(update()));
 	connect(timer, SIGNAL(timeout()), this, SLOT(onTimeout()));
-	timer->start(50);
+	timer->start(10);
 }
 
 FractalExplorer::~FractalExplorer()
 {
 	cancelActionIfNotFinished();
-	FreeAction(action);
+	FreeTask(task);
 	DestroyThreads(threads);
-	FreeRenderingParameters(render);
-	FreeRenderingParameters(initialRender);
+	FreeFractalConfig(fractalConfig);
+	FreeFractalConfig(initialFractalConfig);
 	FreeImage(fractalImage);
+	FreeFractalCache(&cache);
 	delete fractalQImage;
+}
+
+bool FractalExplorer::getFractalCacheEnabled() const
+{
+	return (pCache != NULL);
+}
+
+void FractalExplorer::useFractalCache(bool enabled)
+{
+	bool changed = (enabled == (pCache == NULL));
+	if (changed) {
+		cancelActionIfNotFinished();
+
+		if (enabled) {
+			pCache = &cache;
+		} else {
+			pCache = NULL;
+		}
+	
+		refresh();
+	}
+}
+
+int FractalExplorer::getFractalCacheSize() const
+{
+	return (int)cache.size;
+}
+
+void FractalExplorer::resizeFractalCache(int size)
+{
+	if (size < 0) {
+		size = 0;
+	}
+	int failure = ResizeCacheThreadSafe(&cache, size);
+	if (failure) {
+		emit fractalCacheSizeChanged(cache.size);
+		QMessageBox::critical(this, tr("Failed to resize cache"),
+			tr("Could not allocate memory for cache."));
+	}
+}
+
+bool FractalExplorer::getSolidGuessingEnabled() const
+{
+	return solidGuessing;
+}
+
+void FractalExplorer::setSolidGuessingEnabled(bool enabled)
+{
+	bool changed = (enabled != solidGuessing);
+	if (changed) {
+		cancelActionIfNotFinished();
+
+		solidGuessing = enabled;
+
+		refresh();
+	}
+}
+
+void FractalExplorer::setFractalConfig(const FractalConfig &fractalConfig)
+{
+	cancelActionIfNotFinished();
+
+	FractalConfig oldFractalConfig = this->fractalConfig;
+	this->fractalConfig = CopyFractalConfig(&fractalConfig);
+	if (this->fractalConfig.render.bytesPerComponent == 2) {
+		QMessageBox::critical(this, tr("Gradient color depth is 16 bits."),
+			tr("16-bits gradient will be converted to 8-bits gradient."));
+		ResetGradient(&this->fractalConfig.render,
+				Gradient8(&this->fractalConfig.render.gradient));
+	}
+	FreeFractalConfig(oldFractalConfig);
+	adjustSpan();
+
+	emit fractalChanged(fractal);
+	emit renderingParametersChanged(render);
+	refresh();
+}
+
+void FractalExplorer::setFractal(const Fractal &fractal)
+{
+	cancelActionIfNotFinished();
+
+	ResetFractal(&fractalConfig, CopyFractal(&fractal));
+	adjustSpan();
+
+	emit fractalChanged(this->fractal);
+	refresh();
+}
+
+void FractalExplorer::setRenderingParameters(const RenderingParameters &render)
+{
+	cancelActionIfNotFinished();
+
+	RenderingParameters newRender = CopyRenderingParameters(&render);
+	if (newRender.bytesPerComponent == 2) {
+		QMessageBox::critical(this, tr("Gradient color depth is 16 bits."),
+			tr("16-bits gradient will be converted to 8-bits gradient."));
+		ResetGradient(&newRender, Gradient8(&newRender.gradient));
+	}
+	ResetRenderingParameters(&fractalConfig, newRender);
+	adjustSpan();
+
+	emit renderingParametersChanged(this->render);
+	refresh();
+}
+
+void FractalExplorer::setGradient(const Gradient &gradient)
+{
+	cancelActionIfNotFinished();
+
+	if (gradient.bytesPerComponent == 2) {
+		QMessageBox::critical(this, tr("Gradient color depth is 16 bits."),
+			tr("16-bits gradient will be converted to 8-bits gradient."));
+	}
+	ResetGradient(&fractalConfig.render, Gradient8(&gradient));
+	adjustSpan();
+
+	emit renderingParametersChanged(render);
+	refresh();
 }
 
 void FractalExplorer::adjustSpan()
@@ -142,27 +291,20 @@ void FractalExplorer::adjustSpan()
 
 void FractalExplorer::restoreInitialState()
 {
-	cancelActionIfNotFinished();
-	fractalQImage->fill(0);
-
-	RenderingParameters oldRender = render;
-	fractal = CopyFractal(&initialFractal);
-
-	render = CopyRenderingParameters(&initialRender);
-	FreeRenderingParameters(oldRender);
-	adjustSpan();
-
-	emit fractalChanged(fractal);
-	emit renderingParametersChanged(render);
-	refresh();
+	setFractalConfig(initialFractalConfig);
 }
 
-Fractal &FractalExplorer::getFractal()
+const FractalConfig &FractalExplorer::getFractalConfig() const
+{
+	return fractalConfig;
+}
+
+const Fractal &FractalExplorer::getFractal() const
 {
 	return fractal;
 }
 
-RenderingParameters &FractalExplorer::getRender()
+const RenderingParameters &FractalExplorer::getRender() const
 {
 	return render;
 }
@@ -191,8 +333,8 @@ void FractalExplorer::resizeImage(uint_fast32_t width, uint_fast32_t height)
 	Image newImage, oldImage;
 	QImage *newQImage, *oldQImage;
 	newQImage = new QImage(width, height, QImage::Format_RGB32);
-
 	newQImage->fill(0);
+
 	QPainter painter(newQImage);
 	painter.setRenderHint(QPainter::SmoothPixmapTransform);
 
@@ -224,13 +366,19 @@ void FractalExplorer::resizeEvent(QResizeEvent * event)
 
 void FractalExplorer::paintEvent(QPaintEvent *event)
 {
-	(void)event;
+	UNUSED(event);
 	setFocusPolicy(Qt::StrongFocus);
 
 	if (fractalQImage != NULL) {
 		QPainter painter(this);
 		painter.setRenderHint(QPainter::SmoothPixmapTransform);
+		if (!drawingPaused) {
+			PauseTask(task);
+		}
 		painter.drawImage(fractalQImage->rect(), *fractalQImage, fractalQImage->rect());
+		if (!drawingPaused) {
+			ResumeTask(task);
+		}
 	}
 }
 
@@ -245,7 +393,7 @@ QSize FractalExplorer::sizeHint() const
 
 void FractalExplorer::reInitFractal()
 {
-	InitFractal2(&fractal, fractal.fractalFormula, fractal.p, fractal.c,
+	InitFractal(&fractal, fractal.fractalFormula, fractal.p, fractal.c,
 			fractal.centerX, fractal.centerY,
 			fractal.spanX, fractal.spanY, 
 			fractal.escapeRadius, fractal.maxIter);
@@ -266,41 +414,55 @@ void FractalExplorer::launchFractalDrawing()
 	/* Free previous action. Safe even for first launching
 	 * because action has been initialized to doNothingAction().
 	 */
-	FreeAction(action);
+	FreeTask(task);
 	redrawFractal = false;
 	lastActionType = A_FractalDrawing;
-	action = LaunchDrawFractalFast(&fractalImage, &fractal, &render,
-				DEFAULT_QUAD_INTERPOLATION_SIZE,
-				DEFAULT_COLOR_DISSIMILARITY_THRESHOLD, threads);
+	task = CreateDrawFractalTask(&fractalImage, &fractal, &render,
+				solidGuessing ? quadInterpolationSize : 1,
+				colorDissimilarityThreshold,
+				pCache, threads->N);
+	LaunchTask(task, threads);
+	if (drawingPaused) {
+		PauseTask(task);
+	}
 }
 
 /* Assumes that action is finished.*/
 void FractalExplorer::launchFractalAntiAliasing()
 {
-	FreeAction(action);
+	FreeTask(task);
 	lastActionType = A_FractalAntiAliasing;
-	action = LaunchAntiAliaseFractal(&fractalImage, &fractal, &render,
-			currentAntiAliasingSize, DEFAULT_ADAPTIVE_AAM_THRESHOLD, threads);
+	task = CreateAntiAliaseFractalTask(&fractalImage, &fractal, &render,
+			currentAntiAliasingSize, adaptiveAAMThreshold,
+			pCache, threads->N);
+	LaunchTask(task, threads);
+	if (drawingPaused) {
+		PauseTask(task);
+	}
 }
 
 int FractalExplorer::cancelActionIfNotFinished()
 {
-	int finished = ActionIsFinished(action);
+	int finished = TaskIsFinished(task);
 	if (!finished) {
-		CancelAction(action); 
-		int unused = GetActionResult(action);
-		(void)unused;
+		CancelTask(task); 
+		if (drawingPaused) {
+			ResumeTask(task);
+		}
+		int unused = GetTaskResult(task);
+		UNUSED(unused);
 	}
 	return finished;
 }
 
 void FractalExplorer::onTimeout()
 {
+	bool updateNeeded = true;
 	if (redrawFractal) {
 		cancelActionIfNotFinished();
 		launchFractalDrawing();
 	} else {
-		if (ActionIsFinished(action) && GetActionResult(action) == 0) {
+		if (TaskIsFinished(task) && GetTaskResult(task) == 0) {
 			if (lastActionType == A_FractalDrawing) {
 				currentAntiAliasingSize = minAntiAliasingSize;
 				launchFractalAntiAliasing();
@@ -310,8 +472,13 @@ void FractalExplorer::onTimeout()
 					currentAntiAliasingSize = maxAntiAliasingSize;
 				}
 				launchFractalAntiAliasing();
+			} else {
+				updateNeeded = false;
 			}
 		}
+	}
+	if (updateNeeded) {
+		update();
 	}
 }
 
@@ -320,9 +487,22 @@ int FractalExplorer::stopDrawing()
 	return cancelActionIfNotFinished();
 }
 
+void FractalExplorer::pauseDrawing()
+{
+	drawingPaused = true;
+	PauseTask(task);
+}
+
+void FractalExplorer::resumeDrawing()
+{
+	drawingPaused = false;
+	ResumeTask(task);
+}
+
 void FractalExplorer::refresh()
 {
 	redrawFractal = true;
+	update();
 }
 
 void FractalExplorer::moveFractal(double dx, double dy, bool emitFractalChanged)
@@ -608,6 +788,7 @@ void FractalExplorer::mouseMoveEvent(QMouseEvent *event)
 	} else {
 		QLabel::mouseMoveEvent(event);
 	}
+	update();
 }
 
 static inline double signl(double x)
@@ -654,6 +835,7 @@ void FractalExplorer::wheelEvent(QWheelEvent *event)
 		}
 	}
 	event->accept();
+	update();
 }
 
 void FractalExplorer::setFractalFormula(int index)
@@ -662,15 +844,36 @@ void FractalExplorer::setFractalFormula(int index)
 
 	fractal.fractalFormula = (FractalFormula)index;
 	reInitFractal();
+	emit fractalChanged(fractal);
 
 	refresh();
 }
 
-void FractalExplorer::setPParam(double value)
+void FractalExplorer::setPParam(double complex value)
 {
 	cancelActionIfNotFinished();
 
 	fractal.p = value;
+	reInitFractal();
+
+	refresh();
+}
+
+void FractalExplorer::setPParamRe(double value)
+{
+	cancelActionIfNotFinished();
+
+	fractal.p = value + I*cimagF(fractal.p);
+	reInitFractal();
+
+	refresh();
+}
+
+void FractalExplorer::setPParamIm(double value)
+{
+	cancelActionIfNotFinished();
+
+	fractal.p = crealF(fractal.p) + I*value;
 	reInitFractal();
 
 	refresh();
@@ -819,25 +1022,12 @@ void FractalExplorer::setColorOffset(double value)
 	refresh();
 }
 
-void FractalExplorer::setSpaceColor(QColor color)
+void FractalExplorer::setSpaceColor(const QColor &color)
 {
 	cancelActionIfNotFinished();
 
 	render.spaceColor = ColorFromRGB(1, (uint16_t)color.red(),
 				(uint16_t)color.green(), (uint16_t)color.blue());
-	reInitRenderingParameters();
-
-	refresh();
-}
-
-void FractalExplorer::setGradient(const Gradient &gradient)
-{
-	cancelActionIfNotFinished();
-
-	Gradient newGradient = Gradient8(&gradient);
-	Gradient oldGradient = render.gradient;
-	render.gradient = newGradient;
-	FreeGradient(oldGradient);
 	reInitRenderingParameters();
 
 	refresh();
@@ -889,8 +1079,8 @@ void FractalExplorer::setGradient(const QGradientStops &gradientStops)
 		wellFormed = 0;
 	}
 
-	/* Now gradient fractal2D gradient from well formed gradient.*/
-	FLOAT positionStop[wellFormedGradientStops.size()];
+	/* Now gradient FractalNow gradient from well formed gradient.*/
+	FLOATT positionStop[wellFormedGradientStops.size()];
 	Color colorStop[wellFormedGradientStops.size()];
 	QGradientStop currentStop;
 	for (int i = 0; i < wellFormedGradientStops.size(); ++i) {
@@ -928,6 +1118,6 @@ void FractalExplorer::contextMenuEvent(QContextMenuEvent *event)
 	menu.addAction(moveUpAction);
 	menu.addAction(moveDownAction);
 	QAction *action = menu.exec(event->globalPos());
-	(void)action;
+	UNUSED(action);
 }
 

@@ -1,5 +1,5 @@
 /*
- *  floating_point.h -- part of fractal2D
+ *  floating_point.h -- part of FractalNow
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *
@@ -35,34 +35,35 @@ extern "C" {
 #include <complex.h>
 #include <math.h>
 
+#ifndef FLOAT_PRECISION
 /**
  * \def FLOAT_PRECISION
  * \brief Specifies the precision of floating point numbers at compile time.
  *
  * \see FLOAT for more details.
  */
-#ifndef FLOAT_PRECISION
 #define FLOAT_PRECISION 1
 #endif
 
 /**
- * \def FLOAT
+ * \def FLOATT
  * \brief Floating point number type.
  *
- * Depending of FLOAT_PRECISION, FLOAT will be define either as float(0),
+ * Depending of FLOAT_PRECISION, FLOATT will be define either as float(0),
  * double(1), or long double(2).
  */
 #if FLOAT_PRECISION == 0
-	#define FLOAT float
-	#define PRIFLOAT ".*G"
-	#define SCNFLOAT "f"
-	#define FLOAT_DIG FLT_DIG
+	#define FLOATT float
+	#define PRIFLOATT ".*G"
+	#define SCNFLOATT "f"
+	#define FLOATT_DIG FLT_DIG
 	#define fabsF(x) fabsf(x)
 	#define cabsF(z) cabsf(z)
 	#define crealF(z) crealf(z)
 	#define cimagF(z) cimagf(z)
 	#define cargF(z) cargf(z)
 	#define cpowF(z,y) cpowf(z,y)
+	#define conjF(z) conjf(z)
 	#define roundF(x) roundf(x)
 	#define floorF(x) floorf(x)
 	#define powF(x,y) powf(x,y)
@@ -71,20 +72,22 @@ extern "C" {
 	#define logF(x) logf(x)
 	#define sqrtF(x) sqrtf(x)
 	#define sinF(x) sinf(x)
+	#define expF(x) expf(x)
 	#define LOGF logf
 	#define SQRTF sqrtf
 	#define EXPF expf
 #elif FLOAT_PRECISION == 1
-	#define FLOAT double
-	#define PRIFLOAT ".*lG"
-	#define SCNFLOAT "lf"
-	#define FLOAT_DIG DBL_DIG
+	#define FLOATT double
+	#define PRIFLOATT ".*lG"
+	#define SCNFLOATT "lf"
+	#define FLOATT_DIG DBL_DIG
 	#define fabsF(x) fabs(x)
 	#define cabsF(z) cabs(z)
 	#define crealF(z) creal(z)
 	#define cimagF(z) cimag(z)
 	#define cargF(z) carg(z)
 	#define cpowF(z,y) cpow(z,y)
+	#define conjF(z) conj(z)
 	#define roundF(x) round(x)
 	#define floorF(x) floor(x)
 	#define powF(x,y) pow(x,y)
@@ -93,20 +96,22 @@ extern "C" {
 	#define logF(x) log(x)
 	#define sqrtF(x) sqrt(x)
 	#define sinF(x) sin(x)
+	#define expF(x) exp(x)
 	#define LOGF log
 	#define SQRTF sqrt
 	#define EXPF exp
 #elif FLOAT_PRECISION == 2
-	#define FLOAT long double
-	#define PRIFLOAT ".*LG"
-	#define SCNFLOAT "Lf"
-	#define FLOAT_DIG LDBL_DIG
+	#define FLOATT long double
+	#define PRIFLOATT ".*LG"
+	#define SCNFLOATT "Lf"
+	#define FLOATT_DIG LDBL_DIG
 	#define fabsF(x) fabsl(x)
 	#define cabsF(z) cabsl(z)
 	#define crealF(z) creall(z)
 	#define cimagF(z) cimagl(z)
 	#define cargF(z) cargl(z)
 	#define cpowF(z,y) cpowl(z,y)
+	#define conjF(z) conjl(z)
 	#define roundF(x) roundl(x)
 	#define floorF(x) floorl(x)
 	#define powF(x,y) powl(x,y)
@@ -115,6 +120,7 @@ extern "C" {
 	#define logF(x) logl(x)
 	#define sqrtF(x) sqrtl(x)
 	#define sinF(x) sinl(x)
+	#define expF(x) expl(x)
 	#define LOGF logl
 	#define SQRTF sqrtl
 	#define EXPF expl

@@ -1,5 +1,5 @@
 /*
- *  fractal_counting_function.h -- part of fractal2D
+ *  fractal_counting_function.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -20,7 +20,7 @@
  
  /**
   * \file fractal_counting_function.h
-  * \brief Header file related to iteration count method.
+  * \brief Header file related to fractal counting functions.
   * \author Marc Pegon
   */
  
@@ -40,12 +40,10 @@ struct Fractal;
  * \brief Possible counting functions.
  *
  * There are different ways to "count" the number of iterations
- * when computing fractal :
+ * when computing fractal :\n
  * it can be either simply the number of iterations itself (which
  * is discrete), or more advanced stuff like continuous or smooth
- * iteration count.
- * Some are not even about counting but estimating distance to
- * fractal space...
+ * iteration count.\n
  */
 /**
  * \typedef CountingFunction
@@ -82,13 +80,52 @@ extern const char *countingFunctionDescStr[];
  * \typedef CountingFunctionPtr
  * \brief Counting function type.
  */
-typedef FLOAT (*CountingFunctionPtr)(const struct Fractal *fractal, uint_fast32_t N, FLOAT rN);
+typedef FLOATT (*CountingFunctionPtr)(const struct Fractal *fractal, uint_fast32_t N, FLOATT rN);
+
+/**
+ * \fn FLOATT DiscreteIterationCount(const Fractal *fractal, uint_fast32_t N, FLOATT rN)
+ * \brief Discrete iteration count.
+ *
+ * Assumes rN < escapeRadius.
+ *
+ * \param fractal Fractal.
+ * \param N Last iteration number.
+ * \param rN Norm of z for last iteration.
+ * \return Discrete iteration count.
+ */
+FLOATT DiscreteIterationCount(const struct Fractal *fractal, uint_fast32_t N, FLOATT rN);
+
+/**
+ * \fn FLOATT ContinuousIterationCount(const Fractal *fractal, uint_fast32_t N, FLOATT rN)
+ * \brief Continuous iteration count.
+ *
+ * Assumes rN < escapeRadius.
+ *
+ * \param fractal Fractal.
+ * \param N Last iteration number.
+ * \param rN Norm of z for last iteration.
+ * \return Continuous iteration count.
+ */
+FLOATT ContinuousIterationCount(const struct Fractal *fractal, uint_fast32_t N, FLOATT rN);
+
+/**
+ * \fn FLOATT SmoothIterationCount(const Fractal *fractal, uint_fast32_t N, FLOATT rN)
+ * \brief Smooth iteration count.
+ *
+ * Assumes rN < escapeRadius.
+ *
+ * \param fractal Fractal.
+ * \param N Last iteration number.
+ * \param rN Norm of z for last iteration.
+ * \return Smooth iteration count.
+ */
+FLOATT SmoothIterationCount(const struct Fractal *fractal, uint_fast32_t N, FLOATT rN);
 
 /**
  * \fn int GetCountingFunction(CountingFunction *countingFunction, const char *str)
  * \brief Get counting function from string.
  *
- * Function is case insensitive.
+ * Function is case insensitive.\n
  * Possible strings are :
  * - "discrete" for discrete iteration count
  * - "continuous" for continuous iteration count

@@ -1,5 +1,5 @@
 /*
- *  fractal_transfer_function.h -- part of fractal2D
+ *  fractal_transfer_function.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -20,7 +20,7 @@
 
  /**
   * \file fractal_transfer_function.h
-  * \brief Header file related to transfer functions.
+  * \brief Header file related to fractal transfer functions.
   * \author Marc Pegon
   */
  
@@ -45,7 +45,9 @@ extern "C" {
  * \brief Convenient typedef for enum TransferFunction.
  */
 typedef enum e_TransferFunction {
-	TF_LOG = 0,
+	TF_LOGLOG = 0,
+ /*<! Composition of two logarithms. */
+	TF_LOG,
  /*<! Logarithm. */
 	TF_CUBEROOT,
  /*<! Cube root. */
@@ -83,16 +85,16 @@ extern const char *transferFunctionDescStr[];
  * \typedef TransferFunctionPtr
  * \brief Transfer function ptr type.
  */
-typedef FLOAT (*TransferFunctionPtr)(FLOAT x);
+typedef FLOATT (*TransferFunctionPtr)(FLOATT x);
 
 /**
  * \fn int GetTransferFunction(TransferFunction *transferFunction, const char *str)
  * \brief Get transfer function enum value from string.
  *
- * Function is case insensitive.
+ * Function is case insensitive.\n
  * Possible strings are :
  * - "log" for logarithm
- * - 'cuberoot" for cube root
+ * - "cuberoot" for cube root
  * - "squareroot" for square root
  * - "identity" for identity
  * - "square" for square

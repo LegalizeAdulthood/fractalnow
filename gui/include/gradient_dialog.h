@@ -1,5 +1,5 @@
 /*
- *  gradient_dialog.h -- part of fractal2D
+ *  gradient_dialog.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -39,7 +39,7 @@ class GradientDialog : public QDialog
 	public:
 	GradientDialog(const QGradientStops &gradientStops, QWidget *parent = 0, 
 			Qt::WindowFlags f = 0);
-	QGradientStops currentGradientStops();
+	const QGradientStops &currentGradientStops() const;
 
 	private:
 	GradientEditor *gradientEditor;

@@ -1,5 +1,5 @@
 /*
- *  fractal_config_widget.h -- part of fractal2D
+ *  fractal_config_widget.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -38,10 +38,11 @@ class FractalConfigWidget : public QWidget
 	Q_OBJECT
 
 	public:
-	FractalConfigWidget(Fractal &fractal);
+	FractalConfigWidget(const Fractal &fractal);
 
 	QComboBox *fractalFormulaComboBox;
-	QDoubleSpinBox *pParamSpinBox;
+	QDoubleSpinBox *pParamReSpinBox;
+	QDoubleSpinBox *pParamImSpinBox;
 	QDoubleSpinBox *cParamReSpinBox;
 	QDoubleSpinBox *cParamImSpinBox;
 	QDoubleSpinBox *centerXSpinBox;
@@ -54,7 +55,7 @@ class FractalConfigWidget : public QWidget
 	void blockBoxesSignals(bool block);
 
 	public slots:
-	void updateBoxesValues(Fractal &fractal);
+	void updateBoxesValues(const Fractal &fractal);
 
 	private slots:
 	void updateSpaceBoxesSingleSteps();

@@ -1,5 +1,5 @@
 /*
- *  fractal_config_widget.cpp -- part of fractal2D
+ *  fractal_config_widget.cpp -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -26,17 +26,22 @@
 #include <QFormLayout>
 #include "main.h"
 
-FractalConfigWidget::FractalConfigWidget(Fractal &fractal) : QWidget()
+FractalConfigWidget::FractalConfigWidget(const Fractal &fractal) : QWidget()
 {
 	fractalFormulaComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbFractalFormulas; ++i) {
 		fractalFormulaComboBox->addItem(fractalFormulaDescStr[i]);
 	}
 
-	pParamSpinBox = new QDoubleSpinBox;
-	pParamSpinBox->setDecimals(DEFAULT_DECIMAL_NUMBER);
-	pParamSpinBox->setRange(1, std::numeric_limits<double>::max());
-	pParamSpinBox->setAccelerated(true);
+	pParamReSpinBox = new QDoubleSpinBox;
+	pParamReSpinBox->setDecimals(DEFAULT_DECIMAL_NUMBER);
+	pParamReSpinBox->setRange(0, 100);
+	pParamReSpinBox->setAccelerated(true);
+
+	pParamImSpinBox = new QDoubleSpinBox;
+	pParamImSpinBox->setDecimals(DEFAULT_DECIMAL_NUMBER);
+	pParamImSpinBox->setRange(0, 100);
+	pParamImSpinBox->setAccelerated(true);
 
 	cParamReSpinBox = new QDoubleSpinBox;
 	cParamReSpinBox->setDecimals(DEFAULT_DECIMAL_NUMBER);
@@ -74,7 +79,8 @@ FractalConfigWidget::FractalConfigWidget(Fractal &fractal) : QWidget()
 
 	QFormLayout *formLayout = new QFormLayout;
 	formLayout->addRow(tr("Fractal formula:"), fractalFormulaComboBox);
-	formLayout->addRow(tr("p:"), pParamSpinBox);
+	formLayout->addRow(tr("p (Re):"), pParamReSpinBox);
+	formLayout->addRow(tr("p (Im):"), pParamImSpinBox);
 	formLayout->addRow(tr("c (Re):"), cParamReSpinBox);
 	formLayout->addRow(tr("c (Im):"), cParamImSpinBox);
 	formLayout->addRow(tr("Center X:"), centerXSpinBox);
@@ -100,7 +106,8 @@ FractalConfigWidget::FractalConfigWidget(Fractal &fractal) : QWidget()
 void FractalConfigWidget::blockBoxesSignals(bool block)
 {
 	fractalFormulaComboBox->blockSignals(block);
-	pParamSpinBox->blockSignals(block);
+	pParamReSpinBox->blockSignals(block);
+	pParamImSpinBox->blockSignals(block);
 	cParamReSpinBox->blockSignals(block);
 	cParamImSpinBox->blockSignals(block);
 	centerXSpinBox->blockSignals(block);
@@ -110,11 +117,12 @@ void FractalConfigWidget::blockBoxesSignals(bool block)
 	maxIterationsSpinBox->blockSignals(block);
 }
 
-void FractalConfigWidget::updateBoxesValues(Fractal &fractal)
+void FractalConfigWidget::updateBoxesValues(const Fractal &fractal)
 {
 	blockBoxesSignals(true);
 	fractalFormulaComboBox->setCurrentIndex((int)fractal.fractalFormula);
-	pParamSpinBox->setValue(fractal.p);
+	pParamReSpinBox->setValue(crealF(fractal.p));
+	pParamImSpinBox->setValue(cimagF(fractal.p));
 	cParamReSpinBox->setValue(crealF(fractal.c));
 	cParamImSpinBox->setValue(cimagF(fractal.c));
 	centerXSpinBox->setValue(fractal.centerX);
@@ -122,6 +130,7 @@ void FractalConfigWidget::updateBoxesValues(Fractal &fractal)
 	spanXSpinBox->setValue(fractal.spanX);
 	bailoutRadiusSpinBox->setValue(fractal.escapeRadius);
 	maxIterationsSpinBox->setValue(fractal.maxIter);
+	updateBoxesEnabledValue();
 	updateSpaceBoxesSingleSteps();
 	updateCParamReSingleStep();
 	updateCParamImSingleStep();
@@ -168,28 +177,37 @@ void FractalConfigWidget::updateBoxesEnabledValue()
 
 	switch (formula) {
 	case FRAC_MANDELBROT:
-		pParamSpinBox->setEnabled(false);
+		pParamReSpinBox->setEnabled(false);
+		pParamImSpinBox->setEnabled(false);
 		cParamReSpinBox->setEnabled(false);
 		cParamImSpinBox->setEnabled(false);
 		break;
-	case FRAC_MANDELBROTP:
-		pParamSpinBox->setEnabled(true);
+	case FRAC_MULTIBROT:
+	case FRAC_BURNINGSHIP:
+	case FRAC_MANDELBAR:
+		pParamReSpinBox->setEnabled(true);
+		pParamImSpinBox->setEnabled(true);
 		cParamReSpinBox->setEnabled(false);
 		cParamImSpinBox->setEnabled(false);
 		break;
 	case FRAC_JULIA:
-		pParamSpinBox->setEnabled(false);
+		pParamReSpinBox->setEnabled(false);
+		pParamImSpinBox->setEnabled(false);
 		cParamReSpinBox->setEnabled(true);
 		cParamImSpinBox->setEnabled(true);
 		break;
-	case FRAC_JULIAP:
+	case FRAC_MULTIJULIA:
+	case FRAC_JULIABURNINGSHIP:
+	case FRAC_JULIABAR:
 	case FRAC_RUDY:
-		pParamSpinBox->setEnabled(true);
+		pParamReSpinBox->setEnabled(true);
+		pParamImSpinBox->setEnabled(true);
 		cParamReSpinBox->setEnabled(true);
 		cParamImSpinBox->setEnabled(true);
 		break;
 	default:
-		pParamSpinBox->setEnabled(true);
+		pParamReSpinBox->setEnabled(true);
+		pParamImSpinBox->setEnabled(true);
 		cParamReSpinBox->setEnabled(true);
 		cParamImSpinBox->setEnabled(true);
 		break;

@@ -1,5 +1,5 @@
 /*
- *  misc.c -- part of fractal2D
+ *  misc.c -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -32,11 +32,24 @@ void toLowerCase(char *str)
 void *safeMalloc(const char *name, uint_least64_t size)
 {
 	if (size > SIZE_MAX) {
-		fractal2D_alloc_error(name);
+		FractalNow_alloc_error(name);
 	}
 	void *res = malloc((size_t)size);
-	if (res == NULL) {
-		fractal2D_alloc_error(name);
+	if (size > 0 && res == NULL) {
+		FractalNow_alloc_error(name);
+	}
+
+	return res;
+}
+
+void *safeRealloc(const char *name, void *ptr, uint_least64_t size)
+{
+	if (size > SIZE_MAX) {
+		FractalNow_alloc_error(name);
+	}
+	void *res = realloc(ptr, (size_t)size);
+	if (size > 0 && res == NULL) {
+		FractalNow_alloc_error(name);
 	}
 
 	return res;
@@ -45,20 +58,24 @@ void *safeMalloc(const char *name, uint_least64_t size)
 void *safeCalloc(const char *name, uint_least64_t nmemb, uint_least64_t size)
 {
 	if (nmemb > SIZE_MAX || size > SIZE_MAX) {
-		fractal2D_alloc_error(name);
+		FractalNow_alloc_error(name);
 	}
 	void *res = calloc((size_t)nmemb, (size_t)size);
-	if (res == NULL) {
-		fractal2D_alloc_error(name);
+	if (size > 0 && res == NULL) {
+		FractalNow_alloc_error(name);
 	}
 
 	return res;
 }
 
-int isInteger(FLOAT x) {
-	FLOAT fptr, iptr;
-	fptr = modfF(x, &iptr);
+int isInteger(FLOATT complex x) {
+	if (cimagF(x) != 0) {
+		return 0;
+	} else {
+		FLOATT fptr, iptr;
+		fptr = modfF(crealF(x), &iptr);
 
-	return (fptr == 0);
+		return (fptr == 0);
+	}
 }
 

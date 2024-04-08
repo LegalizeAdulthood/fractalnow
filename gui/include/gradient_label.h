@@ -1,5 +1,5 @@
 /*
- *  gradient_label.h -- part of fractal2D
+ *  gradient_label.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *

@@ -1,5 +1,5 @@
 /*
- *  filter.c -- part of fractal2D
+ *  filter.c -- part of FractalNow
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *
@@ -25,9 +25,21 @@
 #include <signal.h>
 #include <string.h>
 
+#define HandleRequests(max_counter) \
+if (counter == max_counter) {\
+	HandlePauseRequest(threadArgHeader);\
+	cancelRequested =\
+		CancelTaskRequested(threadArgHeader);\
+	counter = 0;\
+} else {\
+	++counter;\
+}
+
 typedef struct s_ApplyFilterArguments {
+	uint_fast32_t threadId;
 	Image *dst;
-	Rectangle *dstRect;
+	uint_fast32_t nbRectangles;
+	Rectangle *rectangles;
 	const Image *src;
 	Filter *filter;
 } ApplyFilterArguments;
@@ -35,13 +47,15 @@ typedef struct s_ApplyFilterArguments {
 void FreeApplyFilterArguments(void *arg)
 {
 	ApplyFilterArguments *c_arg = (ApplyFilterArguments *)arg;
-	free(c_arg->dstRect);
-	FreeFilter(*c_arg->filter);
-	free(c_arg->filter);
+	if (c_arg->threadId == 0) {
+		free(c_arg->rectangles);
+		FreeFilter(*c_arg->filter);
+		free(c_arg->filter);
+	}
 }
 
 void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy,
-		uint_fast32_t cx, uint_fast32_t cy, FLOAT *data)
+		uint_fast32_t cx, uint_fast32_t cy, FLOATT *data)
 {
 	filter->sx = sx;
 	filter->sy = sy;
@@ -50,7 +64,7 @@ void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy,
 	filter->data = data;
 }
 
-void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOAT *data)
+void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOATT *data)
 {
 	filter->sx = sx;
 	filter->sy = sy;
@@ -62,18 +76,18 @@ void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOAT *data
 Filter CopyFilter(const Filter *filter)
 {
 	Filter res;
-	FLOAT *data = (FLOAT *)safeMalloc("filter data", filter->sx*filter->sy*sizeof(FLOAT));
-	memcpy(data, filter->data, filter->sx*filter->sy*sizeof(FLOAT));
+	FLOATT *data = (FLOATT *)safeMalloc("filter data", filter->sx*filter->sy*sizeof(FLOATT));
+	memcpy(data, filter->data, filter->sx*filter->sy*sizeof(FLOATT));
 
 	InitFilter(&res, filter->sx, filter->sy, filter->cx, filter->cy, data);
 
 	return res;
 }
 
-void CreateHorizontalGaussianFilter(Filter *filter, FLOAT sigma)
+void CreateHorizontalGaussianFilter(Filter *filter, FLOATT sigma)
 {
 	if (sigma <= 0) {
-		fractal2D_error("Sigma must be > 0.\n");
+		FractalNow_error("Sigma must be > 0.\n");
 	}
 
 	uint_fast32_t radius = floorF(3. * sigma);
@@ -82,14 +96,14 @@ void CreateHorizontalGaussianFilter(Filter *filter, FLOAT sigma)
 	filter->sy = 1;
 	filter->cx = radius;
 	filter->cy = 0;
-	filter->data = (FLOAT *)safeMalloc("filter", filter->sx*filter->sy*sizeof(FLOAT));
+	filter->data = (FLOATT *)safeMalloc("filter", filter->sx*filter->sy*sizeof(FLOATT));
 
-	FLOAT sigma2_x_2 = sigma*sigma*2;
-	FLOAT *value = filter->data;
+	FLOATT sigma2_x_2 = sigma*sigma*2;
+	FLOATT *value = filter->data;
 	int_fast64_t size = (int_fast64_t)filter->cx;
-	FLOAT sum = 0;
+	FLOATT sum = 0;
 	for (int_fast64_t i = -size; i <= size; ++i) {
-		*value = exp(-i*i/sigma2_x_2);
+		*value = expF(-i*i/sigma2_x_2);
 		sum += *(value++);
 	}
 	if (sum != 0.) {
@@ -97,19 +111,19 @@ void CreateHorizontalGaussianFilter(Filter *filter, FLOAT sigma)
 	}
 }
 
-inline void CreateHorizontalGaussianFilter2(Filter *filter, FLOAT radius)
+inline void CreateHorizontalGaussianFilter2(Filter *filter, FLOATT radius)
 {
 	if (radius <= 0) {
-		fractal2D_error("Radius must be > 0.\n");
+		FractalNow_error("Radius must be > 0.\n");
 	}
 
 	CreateHorizontalGaussianFilter(filter, radius / 3.);
 }
 
-void CreateVerticalGaussianFilter(Filter *filter, FLOAT sigma)
+void CreateVerticalGaussianFilter(Filter *filter, FLOATT sigma)
 {
 	if (sigma <= 0) {
-		fractal2D_error("Sigma must be > 0.\n");
+		FractalNow_error("Sigma must be > 0.\n");
 	}
 
 	uint_fast32_t radius = floorF(3. * sigma);
@@ -118,14 +132,14 @@ void CreateVerticalGaussianFilter(Filter *filter, FLOAT sigma)
 	filter->sy = radius*2+1;
 	filter->cx = 0;
 	filter->cy = radius;
-	filter->data = (FLOAT *)safeMalloc("filter", filter->sx*filter->sy*sizeof(FLOAT));
+	filter->data = (FLOATT *)safeMalloc("filter", filter->sx*filter->sy*sizeof(FLOATT));
 
-	FLOAT sigma2_x_2 = sigma*sigma*2;
-	FLOAT *value = filter->data;
+	FLOATT sigma2_x_2 = sigma*sigma*2;
+	FLOATT *value = filter->data;
 	int_fast64_t size = (int_fast64_t)filter->cy;
-	FLOAT sum = 0;
+	FLOATT sum = 0;
 	for (int_fast64_t i = -size; i <= size; ++i) {
-		*value = exp(-i*i/sigma2_x_2);
+		*value = expF(-i*i/sigma2_x_2);
 		sum += *(value++);
 	}
 	if (sum != 0.) {
@@ -133,19 +147,19 @@ void CreateVerticalGaussianFilter(Filter *filter, FLOAT sigma)
 	}
 }
 
-inline void CreateVerticalGaussianFilter2(Filter *filter, FLOAT radius)
+inline void CreateVerticalGaussianFilter2(Filter *filter, FLOATT radius)
 {
 	if (radius <= 0) {
-		fractal2D_error("Radius must be > 0.\n");
+		FractalNow_error("Radius must be > 0.\n");
 	}
 
 	CreateVerticalGaussianFilter(filter, radius / 3.);
 }
 
-void CreateGaussianFilter(Filter *filter, FLOAT sigma)
+void CreateGaussianFilter(Filter *filter, FLOATT sigma)
 {
 	if (sigma <= 0) {
-		fractal2D_error("Sigma must be > 0.\n");
+		FractalNow_error("Sigma must be > 0.\n");
 	}
 	uint_fast32_t radius = floorF(3. * sigma);
 
@@ -153,15 +167,15 @@ void CreateGaussianFilter(Filter *filter, FLOAT sigma)
 	filter->sy = radius*2+1;
 	filter->cx = radius;
 	filter->cy = radius;
-	filter->data = (FLOAT *)safeMalloc("filter", filter->sx*filter->sy*sizeof(FLOAT));
+	filter->data = (FLOATT *)safeMalloc("filter", filter->sx*filter->sy*sizeof(FLOATT));
 
-	FLOAT sigma2_x_2 = sigma*sigma*2;
-	FLOAT *value = filter->data;
+	FLOATT sigma2_x_2 = sigma*sigma*2;
+	FLOATT *value = filter->data;
 	int_fast64_t size = (int_fast64_t)filter->cx;
-	FLOAT sum = 0;
+	FLOATT sum = 0;
 	for (int_fast64_t i = -size; i <= size; ++i) {
 		for (int_fast64_t j = -size; j <= size; ++j) {
-			*value = exp(-(i*i+j*j)/sigma2_x_2);
+			*value = expF(-(i*i+j*j)/sigma2_x_2);
 			sum += *(value++);
 		}
 	}
@@ -170,22 +184,22 @@ void CreateGaussianFilter(Filter *filter, FLOAT sigma)
 	}
 }
 
-void CreateGaussianFilter2(Filter *filter, FLOAT radius)
+void CreateGaussianFilter2(Filter *filter, FLOATT radius)
 {
 	if (radius <= 0) {
-		fractal2D_error("Radius must be > 0.\n");
+		FractalNow_error("Radius must be > 0.\n");
 	}
 	CreateGaussianFilter(filter, radius / 3.);
 }
 
-inline FLOAT GetFilterValueUnsafe(const Filter *filter, uint_fast32_t x, uint_fast32_t y)
+inline FLOATT GetFilterValueUnsafe(const Filter *filter, uint_fast32_t x, uint_fast32_t y)
 {
 	return filter->data[x+y*filter->sx];
 }
 
-void MultiplyFilterByScalar(Filter *filter, FLOAT scalar) 
+void MultiplyFilterByScalar(Filter *filter, FLOATT scalar) 
 {
-	FLOAT *value = filter->data;
+	FLOATT *value = filter->data;
 	for (uint_fast32_t i = 0; i < filter->sx; ++i) {
 		for (uint_fast32_t j = 0; j < filter->sy; ++j) {
 			*(value++) *= scalar;
@@ -195,8 +209,8 @@ void MultiplyFilterByScalar(Filter *filter, FLOAT scalar)
 
 int NormalizeFilter(Filter *filter)
 {
-	FLOAT *value = filter->data;
-	FLOAT sum = 0;
+	FLOATT *value = filter->data;
+	FLOATT sum = 0;
 	for (uint_fast32_t i = 0; i < filter->sx; ++i) {
 		for (uint_fast32_t j = 0; j < filter->sy; ++j) {
 			sum += *(value++);
@@ -215,10 +229,10 @@ int NormalizeFilter(Filter *filter)
 Color ApplyFilterOnSinglePixel(const Image *src, uint_fast32_t x, uint_fast32_t y,
 				const Filter *filter)
 {
-	FLOAT value;
+	FLOATT value;
 	Color color;
 
-	FLOAT r, g, b;
+	FLOATT r, g, b;
 
 	r = 0;
 	g = 0;
@@ -233,6 +247,7 @@ Color ApplyFilterOnSinglePixel(const Image *src, uint_fast32_t x, uint_fast32_t 
 		}
 	}
 
+	color.bytesPerComponent = src->bytesPerComponent;
 	color.r = r;
 	color.g = g;
 	color.b = b;
@@ -243,66 +258,83 @@ Color ApplyFilterOnSinglePixel(const Image *src, uint_fast32_t x, uint_fast32_t 
 void *ApplyFilterThreadRoutine(void *arg)
 {
 	ThreadArgHeader *threadArgHeader = GetThreadArgHeader(arg);
-	volatile sig_atomic_t *cancel = threadArgHeader->cancel;
 	ApplyFilterArguments *c_arg = (ApplyFilterArguments *)GetThreadArgBody(arg);
 	Image *dst = c_arg->dst;
-	Rectangle *dstRect = c_arg->dstRect;
 	const Image *src = c_arg->src;
 	Filter *filter = c_arg->filter;
 
-	fractal2D_message(stdout, T_VERBOSE,"Applying filter from (%"PRIuFAST32",%"PRIuFAST32") to \
-(%"PRIuFAST32",%"PRIuFAST32")...\n", dstRect->x1, dstRect->y1, dstRect->x2, dstRect->y2);
+	uint_fast32_t nbRectangles = c_arg->nbRectangles;
+	Rectangle *dstRect;
+	uint_fast32_t rectHeight;
+	uint_fast32_t counter = 0;
+	int cancelRequested = CancelTaskRequested(threadArgHeader);
+	for (uint_fast32_t i = 0; i < nbRectangles && !cancelRequested; ++i) {
+		dstRect = &c_arg->rectangles[i];
+		rectHeight = dstRect->y2+1 - dstRect->y1;
 
-	uint_fast32_t dstRectHeight = dstRect->x2 - dstRect->x1 + 1;
-	for (uint_fast32_t i = dstRect->y1; i <= dstRect->y2 && !(*cancel); ++i) {
-		for (uint_fast32_t j = dstRect->x1; j <= dstRect->x2 && !(*cancel); ++j) {
-			PutPixelUnsafe(dst, j, i, ApplyFilterOnSinglePixel(src, j, i, filter));
+		for (uint_fast32_t j = dstRect->y1; j <= dstRect->y2 && !cancelRequested; ++j) {
+			SetThreadProgress(threadArgHeader, 100 * (i * rectHeight + (j-dstRect->y1)) /
+								(rectHeight * nbRectangles));
+			for (uint_fast32_t k = dstRect->x1; k <= dstRect->x2
+					&& !cancelRequested; ++k) {
+				HandleRequests(32);
+
+				PutPixelUnsafe(dst, k, j, ApplyFilterOnSinglePixel(src, k, j, filter));
+			}
 		}
-		threadArgHeader->progress = 100 * (i - dstRect->y1) / dstRectHeight;
 	}
-	threadArgHeader->progress = 100;
+	SetThreadProgress(threadArgHeader, 100);
 
-	fractal2D_message(stdout, T_VERBOSE,"Applying filter from (%"PRIuFAST32",%"PRIuFAST32") to \
-(%"PRIuFAST32",%"PRIuFAST32") : %s.\n", dstRect->x1, dstRect->y1, dstRect->x2,
-		dstRect->y2, (*cancel) ? "CANCELED" : "DONE");
+	int canceled = CancelTaskRequested(threadArgHeader);
 
-	return ((*cancel) ? PTHREAD_CANCELED : NULL);
+	return (canceled ? PTHREAD_CANCELED : NULL);
 }
 
-inline Action *LaunchApplyFilter(Image *dst, const Image *src, const Filter *filter, Threads *threads)
+char applyFilterMessage[] = "Applying filter";
+
+Task *CreateApplyFilterTask(Image *dst, const Image *src, const Filter *filter, uint_fast32_t nbThreads)
 {
 	if (src->width == 0 || src->height == 0) {
-		return DoNothingAction();
+		return DoNothingTask();
 	}
 
 	uint_fast32_t nbPixels = src->width*src->height;
-	uint_fast32_t nbThreadsNeeded = (threads->N > nbPixels) ? nbPixels : threads->N;
+	uint_fast32_t nbThreadsNeeded = nbThreads;
+	uint_fast32_t rectanglesPerThread = DEFAULT_RECTANGLES_PER_THREAD;
+	if (nbPixels <= nbThreadsNeeded) {
+		nbThreadsNeeded = nbPixels;
+		rectanglesPerThread = 1;
+	} else if (nbPixels < nbThreadsNeeded*rectanglesPerThread) {
+		rectanglesPerThread = nbPixels / nbThreadsNeeded;
+	}
+	uint_fast32_t nbRectangles = nbThreadsNeeded*rectanglesPerThread;
 
 	Rectangle *rectangle;
-	rectangle = (Rectangle *)safeMalloc("rectangles", nbThreadsNeeded * sizeof(Rectangle));
+	rectangle = (Rectangle *)safeMalloc("rectangles", nbRectangles * sizeof(Rectangle));
 	InitRectangle(&rectangle[0], 0, 0, dst->width-1, dst->height-1);
-	if (CutRectangleInN(rectangle[0], nbThreadsNeeded, rectangle)) {
-		fractal2D_error("Could not cut rectangle ((%"PRIuFAST32",%"PRIuFAST32"),\
+	if (CutRectangleInN(rectangle[0], nbRectangles, rectangle)) {
+		FractalNow_error("Could not cut rectangle ((%"PRIuFAST32",%"PRIuFAST32"),\
 (%"PRIuFAST32",%"PRIuFAST32") in %"PRIuFAST32" parts.\n", rectangle[0].x1, rectangle[0].y1,
-			rectangle[0].x2, rectangle[0].y2, nbThreadsNeeded);
+			rectangle[0].x2, rectangle[0].y2, nbRectangles);
 	}
 
 	ApplyFilterArguments *arg;
 	arg = (ApplyFilterArguments *)safeMalloc("arguments", nbThreadsNeeded *
 							sizeof(ApplyFilterArguments));
+	Filter *copyFilter = (Filter *)safeMalloc("copy filter", sizeof(Filter));
+	*copyFilter = CopyFilter(filter);
 	for (uint_fast32_t i = 0; i < nbThreadsNeeded; ++i) {
+		arg[i].threadId = i;
 		arg[i].dst = dst;
-		arg[i].dstRect = (Rectangle *)safeMalloc("rectangle", sizeof(Rectangle));
-		*(arg[i].dstRect) = CopyRectangle(&rectangle[i]);
+		arg[i].nbRectangles = rectanglesPerThread;
+		arg[i].rectangles = &rectangle[i*rectanglesPerThread];
 		arg[i].src = src;
-		arg[i].filter = (Filter *)safeMalloc("filter", sizeof(Filter));
-		*(arg[i].filter) = CopyFilter(filter);
+		arg[i].filter = copyFilter;
 	}
-	Action *res = LaunchAction("Applying filter", threads, nbThreadsNeeded, arg,
+	Task *res = CreateTask(applyFilterMessage, nbThreadsNeeded, arg,
 					sizeof(ApplyFilterArguments), ApplyFilterThreadRoutine,
 					FreeApplyFilterArguments);
 
-	free(rectangle);
 	free(arg);
 
 	return res;
@@ -310,10 +342,9 @@ inline Action *LaunchApplyFilter(Image *dst, const Image *src, const Filter *fil
 
 void ApplyFilter(Image *dst, const Image *src, const Filter *filter, Threads *threads)
 {
-	Action *action = LaunchApplyFilter(dst, src, filter, threads);
-	int unused = GetActionResult(action);
-	(void)unused;
-	FreeAction(action);
+	Task *task = CreateApplyFilterTask(dst, src, filter, threads->N);
+	int unused = ExecuteTaskBlocking(task, threads);
+	UNUSED(unused);
 }
 
 void FreeFilter(Filter filter)

@@ -1,0 +1,9 @@
+all:
+	$(call quiet-command,make -C ${LIB_DIR},"")
+	$(call quiet-command,make -C ${COMMAND_LINE_DIR},"")
+	$(call quiet-command,make -C ${GUI_DIR},"")
+
+%:
+	$(call quiet-command,make -C ${LIB_DIR} $@,"")
+	$(call quiet-command,make -C ${COMMAND_LINE_DIR} $@,"")
+	$(call quiet-command,make -C ${GUI_DIR} $@,"")

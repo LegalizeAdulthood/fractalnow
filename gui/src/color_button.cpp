@@ -1,5 +1,5 @@
 /*
- *  color_button.cpp -- part of fractal2D
+ *  color_button.cpp -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -36,12 +36,12 @@ ColorButton::ColorButton(QWidget *parent) : QPushButton(parent)
 	connect(this, SIGNAL(clicked()), this, SLOT(openColorDialog()));
 }
 
-QColor ColorButton::currentColor()
+const QColor &ColorButton::currentColor() const
 {
 	return color;
 }
 
-void ColorButton::setCurrentColor(QColor color)
+void ColorButton::setCurrentColor(const QColor &color)
 {
 	if (color != this->color) {
 		this->color = color;

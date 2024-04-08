@@ -1,5 +1,5 @@
 /*
- *  anti_aliasing.c -- part of fractal2D
+ *  anti_aliasing.c -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -44,7 +44,7 @@ AntiAliasingMethod GetAAM(const char *str)
 {
 	int len = strlen(str);
 	if (len > 255) {
-		fractal2D_error("Unknown anti-aliasing method \'%s\'.\n", str);
+		FractalNow_error("Unknown anti-aliasing method \'%s\'.\n", str);
 	}
 
 	char AAMStr[256];
@@ -60,7 +60,7 @@ AntiAliasingMethod GetAAM(const char *str)
 		}
 	}
 	if (i == nbAntiAliasingMethods) {
-		fractal2D_error("Unknown anti-aliasing method \'%s\'.\n", str);
+		FractalNow_error("Unknown anti-aliasing method \'%s\'.\n", str);
 	}
 
 	return res;

@@ -1,5 +1,5 @@
 /*
- *  anti_aliasing.h -- part of fractal2D
+ *  anti_aliasing.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -36,6 +36,10 @@ extern "C" {
 /**
  * \enum e_AntiAliasingMethod
  * \brief Possible anti-aliasing methods.
+ */
+/**
+ * \typedef AntiAliasingMethod
+ * \brief Convenient typedef for enum e_AntiAliasingMethod.
  */
 typedef enum e_AntiAliasingMethod {
 	AAM_NONE = 0, /*!< No anti-aliasing.*/

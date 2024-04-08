@@ -1,8 +1,10 @@
-Fractal file syntax :
+Fractal files describe a subset of some fractal space, as well as some parameters used for computation.
+
+Fractal file syntax:
 
 FRACTAL_FILE_FORMAT
 FRACTAL_TYPE
-[MAIN_POWER]
+[REAL_MAIN_POWER IMAG_MAIN_POWER]
 [CX CY]
 CENTER_X CENTER_Y SPAN_X SPAN_Y
 ESCAPE_RADIUS NB_ITER_MAX
@@ -10,7 +12,7 @@ ESCAPE_RADIUS NB_ITER_MAX
 Text characters can be upper-case or lower-case.
 Arguments separators can be tabs, blank spaces, carriage return.
 
-FRACTAL_FILE_FORMAT should be C072, which is the format described in this document.
+FRACTAL_FILE_FORMAT should be F075, which is the format described in this document.
 Other format values (of older versions) may still be supported though.
 
 FRACTAL_TYPE can be :
@@ -18,11 +20,17 @@ FRACTAL_TYPE can be :
  - MANDELBROTP for custom Mandelbrot (z_n = z_{n-1}^p + c, with p parameter)
  - JULIA for classic Julia (z_n = z_{n-1}^2 + c, with c parameter)
  - JULIAP for custom Julia (z_n = z_{n-1}^p + c, with c, p parameters)
+ - BURNINGSHIP for mandelbrot-type burning ship (z_n = (|real(z_{n-1}) + I*|imag(z_{n-1})|)^p + c, with p parameter)
+ - JULIABURNINGSHIP for julia-type burning ship (z_n = (|real(z_{n-1}) + I*|imag(z_{n-1})|)^p + c, with c, p parameters)
+ - MANDELBAR for mandelbar (z_n = conj(z_{n-1})^p + c, with p parameter)
+ - JULIABAR for juliabar (z_n = conj(z_{n-1})^p + c, with c, p parameters)
  - RUDY for Rudy (z_n = z_{n-1}^p + c*z + d, with c, p parameters)
 
-FOR MANDELBROTP, JULIAP, and RUDY, p parameter must be specified through MAIN_POWER value.
-For JULIA, JULIAP, and RUDY, a parameter c MUST be specified, hence the optional parameter CX and CY.
-For the other, CX and CY are of no use, so they should *not* be specified.
+FOR MANDELBROTP, JULIAP, BURNINGSHIP, JULIABURNINGSHIP, MANDELBAR, JULIABAR and RUDY, p parameter is a complex number that must be specified through REAL_MAIN_POWER and IMAG_MAIN_POWER values.
+For the others, REAL_MAIN_POWER and IMAG_MAIN_POWER are of no use, so they should *not* be specified.
+
+For JULIA, JULIAP, JULIABURNINGSHIP, JULIABAR and RUDY, a parameter c (complex number) MUST be specified, hence the optional parameters CX and CY.
+For the others, CX and CY are of no use, so they should *not* be specified.
 
 CENTER_X, CENTER_Y, SPAN_X and SPAN_Y are floating point numbers specifying the part of fractal space to draw.
 

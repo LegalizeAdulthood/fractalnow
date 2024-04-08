@@ -1,0 +1,33 @@
+FractalNow
+Version 0.7.5 (2012-04-12)
+Copyright: 2011-2012 Marc Pegon <pe.marc@free.fr>
+Homepage: http://sourceforge.net/projects/fractalnow/
+
+FractalNow is an open source, multi-platform fractal
+generator.
+It provides users with tools to generate pictures of various types of fractals
+quickly and easily.
+It is made of both a command line (FractalNow) and a graphical tool
+(QFractalNow).
+The graphical tool, based on Qt library, allows users to explore fractals
+intuitively and generate pictures.
+Both tools are entirely multi-threaded and implement advanced algorithms and
+heuristics that make computation very fast compared to most existing free
+fractal generators.
+
+License
+=======
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.

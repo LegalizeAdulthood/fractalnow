@@ -1,5 +1,5 @@
 /*
- *  main.h -- part of fractal2D
+ *  main.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -20,7 +20,7 @@
 
  /**
   * \file main.h
-  * \brief Header file related to qFractal2D program.
+  * \brief Header file related to QFractalNow program.
   * \author Marc Pegon
   */
 
@@ -28,10 +28,8 @@
 #define __MAIN_H__
 
 #define DEFAULT_MIN_ANTIALIASING_SIZE (uint_fast32_t)(3)
-#define DEFAULT_MAX_ANTIALIASING_SIZE (uint_fast32_t)(5)
+#define DEFAULT_MAX_ANTIALIASING_SIZE (uint_fast32_t)(3)
 #define DEFAULT_ANTIALIASING_SIZE_ITERATION (uint_fast32_t)(2)
-#define DEFAULT_FRACTAL_IMAGE_WIDTH (uint_fast32_t)(640)
-#define DEFAULT_FRACTAL_IMAGE_HEIGHT (uint_fast32_t)(512)
 #define DEFAULT_DECIMAL_NUMBER (int)(20)
 #define MIN_SINGLE_STEP (double)(pow(10, -DBL_DIG))
 

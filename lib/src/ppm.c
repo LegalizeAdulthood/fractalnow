@@ -1,5 +1,5 @@
 /*
- *  ppm.c -- part of fractal2D
+ *  ppm.c -- part of FractalNow
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *
@@ -29,7 +29,7 @@ int aux_ExportPPM8(const char *fileName, const Image *image)
 
 	file = fopen(fileName,"wb");
 	if (!file) {
-		fractal2D_open_werror(fileName);
+		FractalNow_open_werror(fileName);
 	}
 
 	fprintf(file,"P6\n%"PRIuFAST32" %"PRIuFAST32"\n%"PRIu8"\n",
@@ -43,7 +43,7 @@ int aux_ExportPPM8(const char *fileName, const Image *image)
 
 	end:
 	if (file && fclose(file)) {
-		fractal2D_close_errmsg(fileName);
+		FractalNow_close_errmsg(fileName);
 		res = 1;
 	}
 
@@ -57,7 +57,7 @@ int aux_ExportPPM16(const char *fileName, const Image *image)
 
 	file = fopen(fileName,"wb");
 	if (!file) {
-		fractal2D_open_werror(fileName);
+		FractalNow_open_werror(fileName);
 	}
 
 	fprintf(file,"P6\n%"PRIuFAST32" %"PRIuFAST32"\n%"PRIu16"\n",
@@ -71,7 +71,7 @@ int aux_ExportPPM16(const char *fileName, const Image *image)
 
 	end:
 	if (file && fclose(file)) {
-		fractal2D_close_errmsg(fileName);
+		FractalNow_close_errmsg(fileName);
 		res = 1;
 	}
 
@@ -83,7 +83,7 @@ int ExportPPM(const char *fileName, const Image *image)
 {
 	int res = 0;
 
-	fractal2D_message(stdout, T_NORMAL, "Exporting PPM \'%s\'...\n", fileName);
+	FractalNow_message(stdout, T_NORMAL, "Exporting PPM \'%s\'...\n", fileName);
 
 	switch (image->bytesPerComponent) {
 	case 1:
@@ -93,11 +93,12 @@ int ExportPPM(const char *fileName, const Image *image)
 		res = aux_ExportPPM16(fileName, image);
 		break;
 	default:
-		fractal2D_error("Invalid image bytes per component.\n");
+		FractalNow_error("Invalid image bytes per component.\n");
 		break;
 	}
 
-	fractal2D_message(stdout, T_NORMAL, "Exporting PPM \'%s\' : DONE.\n", fileName);
+	FractalNow_message(stdout, T_NORMAL, "Exporting PPM \'%s\' : %s.\n", fileName,
+				(res == 0) ? "DONE" : "FAILED");
 
 	return res;
 }

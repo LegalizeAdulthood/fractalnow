@@ -1,5 +1,5 @@
 /*
- *  error.c -- part of fractal2D
+ *  error.c -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -20,6 +20,6 @@
 
 #include "error.h"
 
-int fractal2D_debug = 0;
-TraceLevel fractal2D_traceLevel = T_NORMAL;
+int FractalNow_debug = 0;
+TraceLevel FractalNow_traceLevel = T_NORMAL;
 

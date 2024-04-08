@@ -1,5 +1,5 @@
 /*
- *  command_line.c -- part of fractal2D
+ *  command_line.c -- part of FractalNow
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *
@@ -42,16 +42,18 @@ int FileExists(const char *fileName)
 
 void ParseCommandLineArguments(CommandLineArguments *dst, int argc, char *argv[])
 {
-	fractal2D_traceLevel = T_NORMAL;
-	fractal2D_debug = 0;
+	FractalNow_traceLevel = T_NORMAL;
+	FractalNow_debug = 0;
 	int help = 0;
 
 	dst->quadInterpolationSize = DEFAULT_QUAD_INTERPOLATION_SIZE;
 	dst->colorDissimilarityThreshold = DEFAULT_COLOR_DISSIMILARITY_THRESHOLD;
 
 	int64_t tmp;
+	dst->fractalConfigFileName = NULL;
 	dst->fractalFileName = NULL;
 	dst->renderingFileName = NULL;
+	dst->gradientFileName = NULL;
 	dst->dstFileName = NULL;
 	dst->antiAliasingMethod = AAM_NONE;
 	dst->antiAliasingSize = -1;
@@ -62,39 +64,45 @@ void ParseCommandLineArguments(CommandLineArguments *dst, int argc, char *argv[]
 	dst->width = 0;
 	dst->height = 0;
 	int o;
-	while ((o = getopt(argc, argv, "hqvda:f:i:j:o:p:r:s:t:x:y:")) != -1) {
+	while ((o = getopt(argc, argv, "hqvda:c:f:g:i:j:o:p:r:s:t:x:y:")) != -1) {
 		switch (o) {
 		case 'h':
 			help = 1;
 			break;
 		case 'q':
-			if (fractal2D_traceLevel == T_VERBOSE) {
+			if (FractalNow_traceLevel == T_VERBOSE) {
 				invalid_use_error("-q and -v are mutually exclusive.\n");
 			}
-			fractal2D_traceLevel = T_QUIET;
+			FractalNow_traceLevel = T_QUIET;
 			break;
 		case 'v':
-			if (fractal2D_traceLevel == T_QUIET) {
+			if (FractalNow_traceLevel == T_QUIET) {
 				invalid_use_error("-q and -v are mutually exclusive.\n");
 			}
-			fractal2D_traceLevel = T_VERBOSE;
+			FractalNow_traceLevel = T_VERBOSE;
 			break;
 		case 'd':
 #ifndef DEBUG
-				fractal2D_message(stdout, T_QUIET, "Debug unavailable: fractal2D was not built in \
+				FractalNow_message(stdout, T_QUIET, "Debug unavailable: FractalNow was not built in \
 debug mode.\n");
 #else
-			fractal2D_debug = 1;
+			FractalNow_debug = 1;
 #endif
 			break;
 		case 'a':
 			dst->antiAliasingMethod = GetAAM(optarg);
+			break;
+		case 'c':
+			dst->fractalConfigFileName = optarg;
 			break;
 		case 'f':
 			dst->fractalFileName = optarg;
 			break;
 		case 'r':
 			dst->renderingFileName = optarg;
+			break;
+		case 'g':
+			dst->gradientFileName = optarg;
 			break;
 		case 'i':
 			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
@@ -118,7 +126,7 @@ debug mode.\n");
 			dst->dstFileName = optarg;
 			break;
 		case 'p':
-			if (sscanf(optarg, "%"SCNFLOAT, &dst->adaptiveAAMThreshold) < 1) {
+			if (sscanf(optarg, "%"SCNFLOATT, &dst->adaptiveAAMThreshold) < 1) {
 				invalid_use_error("Command-line argument \'%s\' is not a floating-point number.\n", optarg);
 			}
 			if (dst->adaptiveAAMThreshold < 0.) {
@@ -126,12 +134,12 @@ debug mode.\n");
 			} 
 			break;
 		case 's':
-			if (sscanf(optarg, "%"SCNFLOAT, &dst->antiAliasingSize) < 1) {
+			if (sscanf(optarg, "%"SCNFLOATT, &dst->antiAliasingSize) < 1) {
 				invalid_use_error("Command-line argument \'%s\' is not a floating-point number.\n", optarg);
 			}
 			break;
 		case 't':
-			if (sscanf(optarg, "%"SCNFLOAT, &dst->colorDissimilarityThreshold) < 1) {
+			if (sscanf(optarg, "%"SCNFLOATT, &dst->colorDissimilarityThreshold) < 1) {
 				invalid_use_error("Command-line argument \'%s\' is not a floating-point number.\n", optarg);
 			}
 			if (dst->colorDissimilarityThreshold < 0.) {
@@ -175,12 +183,14 @@ debug mode.\n");
 		exit(EXIT_SUCCESS);
 	}
 
-	if (dst->fractalFileName == NULL) {
-		invalid_use_error("No fractal file specified.\n");
-	}
+	if (dst->fractalConfigFileName == NULL) {
+		if (dst->fractalFileName == NULL) {
+			invalid_use_error("No configuration or fractal file specified.\n");
+		}
 
-	if (dst->renderingFileName == NULL) {
-		invalid_use_error("No rendering file specified.\n");
+		if (dst->renderingFileName == NULL) {
+			invalid_use_error("No configuration or rendering file specified.\n");
+		}
 	}
 
 	if (dst->dstFileName == NULL) {
@@ -188,7 +198,7 @@ debug mode.\n");
 	}
 
 	if (!widthSpecified && !heightSpecified) {
-		invalid_use_error("At least output image width or height must be specified.\n");
+		invalid_use_error("At least width or height must be specified.\n");
 	}
 
 	switch (dst->antiAliasingMethod) {
@@ -247,12 +257,20 @@ must be > 1.\n");
 		break;
 	}
 	
-	if (!FileExists(dst->fractalFileName)) {
-		fractal2D_existence_error(dst->fractalFileName);
+	if (dst->fractalConfigFileName != NULL && !FileExists(dst->fractalConfigFileName)) {
+		FractalNow_existence_error(dst->fractalConfigFileName);
 	}
 
-	if (!FileExists(dst->renderingFileName)) {
-		fractal2D_existence_error(dst->renderingFileName);
+	if (dst->fractalFileName != NULL && !FileExists(dst->fractalFileName)) {
+		FractalNow_existence_error(dst->fractalFileName);
+	}
+
+	if (dst->renderingFileName != NULL && !FileExists(dst->renderingFileName)) {
+		FractalNow_existence_error(dst->renderingFileName);
+	}
+
+	if (dst->gradientFileName != NULL && !FileExists(dst->gradientFileName)) {
+		FractalNow_existence_error(dst->gradientFileName);
 	}
 }
 

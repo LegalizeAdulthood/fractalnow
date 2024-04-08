@@ -1,5 +1,5 @@
 /*
- *  main_window.h -- part of fractal2D
+ *  main_window.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -33,15 +33,21 @@
 #include "image.h"
 
 #include "command_line.h"
+#include "export_fractal_image_dialog.h"
 #include "fractal_config_widget.h"
 #include "fractal_explorer.h"
 #include "fractal_rendering_widget.h"
 
+#include <QCheckBox>
 #include <QCloseEvent>
 #include <QDesktopServices>
 #include <QDoubleSpinBox>
+#include <QDropEvent>
 #include <QMainWindow>
 #include <QSpinBox>
+
+#define DEFAULT_EXPLORER_WIDTH (uint)(640)
+#define DEFAULT_EXPLORER_HEIGHT (uint)(512)
 
 class MainWindow : public QMainWindow
 {
@@ -49,25 +55,64 @@ class MainWindow : public QMainWindow
 
 	public:
 	MainWindow(int argc, char *argv[]);
+	~MainWindow();
 
 	private:
-	uint_fast32_t fractalExplorerNbThreads;
-	uint_fast32_t exportImageNbThreads;
+	enum FileType { UNKNOWN_FILE=0, CONFIG_FILE,
+		FRACTAL_FILE, RENDER_FILE, GRADIENT_FILE };
+
+	ExportFractalImageDialog *exportFractalImageDialog;
+	QDockWidget *fractalDock, *renderDock, *otherDock;
+	QToolBar *toolBar;
 	FractalExplorer *fractalExplorer;
 	FractalConfigWidget *fractalConfigWidget;
 	FractalRenderingWidget *fractalRenderingWidget;
 	QSpinBox *preferredImageWidthSpinBox;
 	QSpinBox *preferredImageHeightSpinBox;
+	QCheckBox *useCacheCheckBox;
+	QSpinBox *cacheSizeSpinBox;
+	QCheckBox *solidGuessingCheckBox;
 	QAction *adaptExplorerToWindowAction;
-	QWidget *centralWidget;
+	uint_fast32_t fractalExplorerNbThreads;
+	uint_fast32_t exportImageNbThreads;
+	bool adaptExplorerSize;
+	uint lastPreferredExplorerWidth, lastPreferredExplorerHeight;
+	uint lastWindowWidth, lastWindowHeight;
+	QString imageDir;
+	QString configDir;
+	QString gradientDir;
+	bool useCache;
+	int cacheSize;
+	bool solidGuessing;
+	QAction *switchFullScreenAction;
+
+	enum FileType getFileType(const char *fileName);
+	void saveSettings();
+	void loadSettings();
+	void loadFile(const char *fileName);
+	void loadConfigFile(const char *fileName);
+	void loadFractalFile(const char *fileName);
+	void loadRenderingFile(const char *fileName);
+	void loadGradientFile(const char *fileName);
+	void openFile(QString fileName);
+	void dragEnterEvent(QDragEnterEvent *event);
+	void dropEvent(QDropEvent *event);
 
 	private slots:
+	void delayedInit();
 	void aboutQt();
-	void aboutQFractal2D();
+	void aboutQFractalNow();
 	void adaptExplorerToWindow(bool checked);
 	void exportImage();
+	void openConfigFile();
+	void saveConfigFile();
+	void openGradientFile();
+	void saveGradientFile();
 	void onPreferredImageWidthChanged();
 	void onPreferredImageHeightChanged();
+	void onCacheSizeChanged();
+	void switchFullScreenMode(bool checked);
+	void escapeFullScreen();
 };
 
 #endif

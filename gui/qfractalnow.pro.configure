@@ -1,0 +1,69 @@
+TEMPLATE = app
+TARGET = $${TARGET_NAME}
+RESOURCES = $${TARGET_NAME}.qrc
+RCC_DIR = rcc/
+win32:RC_FILE = $${TARGET_NAME}.rc
+macx:ICON = icons/$${TARGET_NAME}.icns
+unix:ICON = icons/$${TARGET_NAME}.svg
+OBJECTS_DIR = objs/
+MOC_DIR = mocs/
+DESTDIR = bin/
+
+FRACTALLIBPATH = ../lib
+DEPENDPATH += . include src
+INCLUDEPATH += . include $${FRACTALLIBPATH}/include
+LIBS += -L$${FRACTALLIBPATH}/bin -l$${FRACTAL2D_LIB} -lpthread
+DEFINES += __STDC_LIMIT_MACROS __STDC_FORMAT_MACROS $${SPINLOCK_DEFINE}
+QMAKE_LFLAGS += $${STATIC_FLAG}
+CONFIG += warn_on qt
+CONFIG -= debug_and_release
+
+!isEmpty(FLOAT_PRECISION) {
+	DEFINES += FLOAT_PRECISION=$${FLOAT_PRECISION}
+}
+!isEmpty(DEBUG) {
+	DEFINES += DEBUG
+	CONFIG -= release
+	CONFIG += debug console
+} else {
+	CONFIG -= debug
+	CONFIG += release
+}
+
+# Input
+HEADERS += \
+	include/color_button.h \
+	include/command_line.h \
+	include/export_fractal_image_dialog.h \
+	include/fractal_config_widget.h \
+	include/fractal_explorer.h \
+	include/fractal_rendering_widget.h \
+	include/gradient_box.h \
+	include/gradient_dialog.h \
+	include/gradient_editor.h \
+	include/gradient_label.h \
+	include/help.h \
+	include/hoverpoints.h \
+	include/main_window.h \
+	include/main.h \
+	include/shade_widget.h \
+	include/task_progress_dialog.h
+
+SOURCES += \
+	src/color_button.cpp \
+	src/command_line.cpp \
+	src/export_fractal_image_dialog.cpp \
+	src/fractal_explorer.cpp \
+	src/fractal_config_widget.cpp \
+	src/fractal_rendering_widget.cpp \
+	src/gradient_box.cpp \
+	src/gradient_dialog.cpp \
+	src/gradient_editor.cpp \
+	src/gradient_label.cpp \
+	src/help.cpp \
+	src/hoverpoints.cpp \
+	src/main_window.cpp \
+	src/main.cpp \
+	src/shade_widget.cpp \
+	src/task_progress_dialog.cpp
+

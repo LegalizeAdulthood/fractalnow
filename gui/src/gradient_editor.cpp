@@ -3,7 +3,7 @@
 ** Copyright (C) 2011 Nokia Corporation and/or its subsidiary(-ies).
 ** All rights reserved.
 ** Contact: Nokia Corporation (qt-info@nokia.com)
-** Modified by Marc Pegon to make it part of fractal2D.
+** Modified by Marc Pegon to make it part of FractalNow.
 **
 ** This file is part of the demonstration applications of the Qt Toolkit.
 **

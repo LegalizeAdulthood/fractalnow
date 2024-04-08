@@ -1,5 +1,5 @@
 /*
- *  fractal_addend_function.c -- part of fractal2D
+ *  fractal_addend_function.c -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -42,7 +42,7 @@ int GetAddendFunction(AddendFunction *addendFunction, const char *str)
 	int res = 0;
 	int len = strlen(str);
 	if (len > 255) {
-		fractal2D_werror("Unknown addend function \'%s\'.\n", str);
+		FractalNow_werror("Unknown addend function \'%s\'.\n", str);
 	}
 
 	char AFStr[256];
@@ -57,7 +57,7 @@ int GetAddendFunction(AddendFunction *addendFunction, const char *str)
 		}
 	}
 	if (i == nbAddendFunctions) {
-		fractal2D_werror("Unknown addend function \'%s\'.\n", str);
+		FractalNow_werror("Unknown addend function \'%s\'.\n", str);
 	}
 
 	end:

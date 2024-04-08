@@ -1,0 +1,4 @@
+?package(fractalnow):needs="X11" section="Applications/Science/Mathematics"\
+title="QFractalNow"\
+description="Fast, advanced fractal generator."\
+command="/usr/bin/qfractalnow -q" icon="/usr/share/pixmaps/qfractalnow.xpm"

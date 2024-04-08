@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=QFractalNow
+GenericName=Fractal Generator
+Comment=Fractal images generator
+Icon=qfractalnow
+Exec=qfractalnow -q
+Categories=Qt;Education;Science;Math;
+Terminal=false
