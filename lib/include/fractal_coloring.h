@@ -76,7 +76,7 @@ extern const char *ColoringMethodStr[];
 extern const char *ColoringMethodDescStr[];
 
 /**
- * \fn ColoringMethod GetColoringMethod(const char *str)
+ * \fn int GetColoringMethod(ColoringMethod *coloringMethod, const char *str)
  *
  * Function is case insensitive.
  * Possible strings are :
@@ -84,10 +84,11 @@ extern const char *ColoringMethodDescStr[];
  * - "average" for CM_AVERAGE
  * Exit with error in case of failure.
  *
+ * \param coloringMethod Coloring method destination.
  * \param str String specifying coloring method.
- * \return Corresponding coloring method.
+ * \return 0 in case of success, 1 in case of failure.
  */
-ColoringMethod GetColoringMethod(const char *str);
+int GetColoringMethod(ColoringMethod *coloringMethod, const char *str);
 
 /**
  * \enum e_InterpolationMethod
@@ -132,7 +133,7 @@ extern const char *InterpolationMethodStr[];
 extern const char *InterpolationMethodDescStr[];
 
 /**
- * \fn InterpolationMethod GetInterpolationMethod(const char *str) * \brief Get interpolation method from string.
+ * \fn int GetInterpolationMethod(InterpolationMethod *interpolationMethod, const char *str)
  *
  * Function is case insensitive.
  * Possible strings are :
@@ -141,10 +142,11 @@ extern const char *InterpolationMethodDescStr[];
  * - "spline" for spline interpolation (five average sums)
  * Exit with error in case of failure.
  *
+ * \param interpolationMethod Interpolation method destination.
  * \param str String specifying interpolation function.
- * \return Corresponding interpolation method.
+ * \return 0 in case of success, 1 in case of failure.
  */
-InterpolationMethod GetInterpolationMethod(const char *str);
+int GetInterpolationMethod(InterpolationMethod *interpolationMethod, const char *str);
 
 /* Function assumes that y >= 1 and compute x^y. */
 static inline FLOAT iPowF(FLOAT x, uint_fast32_t y)

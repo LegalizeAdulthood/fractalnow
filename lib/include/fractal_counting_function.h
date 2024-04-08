@@ -79,10 +79,10 @@ extern const char *CountingFunctionDescStr[];
  * \typedef CountingFunctionPtr
  * \brief Counting function type.
  */
-typedef FLOAT (*CountingFunctionPtr)(struct s_Fractal *fractal, uint_fast32_t N, FLOAT rN);
+typedef FLOAT (*CountingFunctionPtr)(const struct s_Fractal *fractal, uint_fast32_t N, FLOAT rN);
 
 /**
- * \fn CountingFunction GetCountingFunction(const char *str)
+ * \fn int GetCountingFunction(CountingFunction *countingFunction, const char *str)
  * \brief Get counting function from string.
  *
  * Function is case insensitive.
@@ -92,10 +92,11 @@ typedef FLOAT (*CountingFunctionPtr)(struct s_Fractal *fractal, uint_fast32_t N,
  * - "smooth" for smooth iteration count
  * Exit with error in case of failure.
  *
+ * \param countingFunction Counting function destination.
  * \param str String specifying counting function.
- * \return Corresponding counting function.
+ * \return 0 in case of success, 1 in case of failure.
  */
-CountingFunction GetCountingFunction(const char *str);
+int GetCountingFunction(CountingFunction *countingFunction, const char *str);
 
 /**
  * \fn CountingFunctionPtr GetCountingFunctionPtr(CountingFunction countingFunction)

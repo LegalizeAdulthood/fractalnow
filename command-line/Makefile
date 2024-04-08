@@ -16,7 +16,7 @@ CFLAGS       += -DFLOAT_PRECISION=$(FLOAT_PRECISION)
 endif
 
 ifdef DEBUG
-	CFLAGS += -Werror -O0
+	CFLAGS += -Werror -O0 -g -DDEBUG
 else
 	CFLAGS += -O2
 endif
@@ -49,10 +49,10 @@ $(OBJDIR)/%.o:${SRCDIR}/%.c
 	${CC} ${CPPFLAGS} ${CFLAGS} -c $< -o $@
 
 clean:
-	$(call quiet-command, rm -f $(PROG) *~, "  CLEAN    (PROG)")
 	$(call quiet-command, rm -f ${DEPENDENCY_FILE}, "  CLEAN    (DEPENDENCY DATABASE)")
 	$(call quiet-command, rm -f $(OBJECTS) , "  CLEAN    (OBJECTS)")
 
 distclean: clean
-	$(call quiet-command, rm -fr $(OBJDIR), "  DISTCLEAN    ")
+	$(call quiet-command, rm -f $(PROG) *~, "  CLEAN    (PROG)")
+	$(call quiet-command, rm -fr $(OBJDIR), "  CLEAN    (OBJDIR)")
 

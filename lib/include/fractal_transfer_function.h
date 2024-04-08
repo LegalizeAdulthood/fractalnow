@@ -82,7 +82,7 @@ extern const char *TransferFunctionDescStr[];
 typedef FLOAT (*TransferFunctionPtr)(FLOAT x);
 
 /**
- * \fn TransferFunction GetTransferFunction(const char *str)
+ * \fn int GetTransferFunction(TransferFunction *transferFunction, const char *str)
  * \brief Get transfer function enum value from string.
  *
  * Function is case insensitive.
@@ -96,10 +96,11 @@ typedef FLOAT (*TransferFunctionPtr)(FLOAT x);
  * - "exp" for exponential
  * Exit with error in case of failure.
  *
+ * \param transferFunction Transfer function destination.
  * \param str String specifying transfer function.
- * \return Corresponding transfer function.
+ * \return 0 in case of success, 1 in case of failure.
  */
-TransferFunction GetTransferFunction(const char *str);
+int GetTransferFunction(TransferFunction *transferFunction, const char *str);
 
 /**
  * \fn TransferFunctionPtr GetTransferFunctionPtr(TransferFunction transferFunction)

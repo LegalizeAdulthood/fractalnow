@@ -31,6 +31,7 @@
 extern "C" {
 #endif
 
+#include "floating_point.h"
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>
@@ -78,6 +79,8 @@ extern uint_fast32_t nbThreads;
 #define safePThreadCondBroadcast(cond) {if((errno=pthread_cond_broadcast(cond))!=0){perror(THREAD_COND_BROADCAST_ERROR);pthread_exit(THREAD_ENDED_WITH_ERROR);}}
 #define safePThreadCondDestroy(cond) {if((errno=pthread_cond_destroy(cond))!=0){perror(THREAD_COND_DESTROY_ERROR);pthread_exit(THREAD_ENDED_WITH_ERROR);}}
 
+struct s_InternalThreadArg;
+
 /**
  * \struct s_Action
  * \brief Action created when launching simultaneous threads.
@@ -112,8 +115,8 @@ extern uint_fast32_t nbThreads;
  * It is up to the thread routine to take into account cancelling
  * request and finish early.
  * The request is sent through the argument passed to the routine :
- * the first sizeof(sig_atomic_t *) bytes store a pointer to
- * a sig_atomic_t which changes to 1 when a cancelation request is made.
+ * the first sizeof(InternalThreadArg *) bytes store a pointer to
+ * a structure which contains data for cancelation request & progress.
  * The remaining part of the argument is the 'real' argument (of size
  * s_elem) that was passed to LaunchThreads.
  *   
@@ -131,6 +134,8 @@ typedef struct s_Action {
  /*!< Number of threads.*/
  	pthread_t *thread;
  /*!< Threads array.*/
+	struct s_InternalThreadArg *internalArgs;
+ /*!< Internal part of thread arguments (cancel and progress handling).*/
  	void *args;
  /*!< Array of args passed to thread routine.*/
 	size_t s_elem;
@@ -140,6 +145,17 @@ typedef struct s_Action {
 	char *message;
  /*!< Action message to print at launch and when it finished.*/
 } Action;
+
+/**
+ * \struct s_InternalThreadArg
+ * \brief Internal part of thread argument.
+ */
+typedef struct s_InternalThreadArg {
+	sig_atomic_t *cancel;
+ /*!< Used by thread to receive cancelation request.*/
+	sig_atomic_t progress;
+ /*!< Should be maintained up-to-date by thread to give an hint on its progress (value between 0 and 100).*/
+} InternalThreadArg;
 
 /**
  * \fn Action *DoNothingAction()
@@ -152,16 +168,15 @@ typedef struct s_Action {
 Action *DoNothingAction();
 
 /**
- * \fn Action *LaunchThreads(const char *message, uint_fast32_t N, void *args, size_t s_elem, void *(*routine)(void *), void (*freeArg)(void *))
+ * \fn Action *LaunchThreads(const char *message, uint_fast32_t N, const void *args, size_t s_elem, void *(*routine)(void *), void (*freeArg)(void *))
  * \brief Create several threads..
  *
  * args is copied.
  * Note that arguments passed to the thread routine are not
  * exactly those passed to the function :
- * A pointer to a sig_atomic_t is added at the beginning of the
- * argument, which should be used to handle cancelation requests.
- * The sig_atomic_t pointed by it is changed to 1 if a cancelation
- * request was made.
+ * A pointer to a InternalThreadArg is added at the beginning of the
+ * argument, which should be used to handle cancelation requests and
+ * action progress.
  * The remaining bytes are the 'real' argument.
  * Free argument routine will be called for each argument when action
  * finished to free its data (can be NULL if arguments contain
@@ -175,7 +190,7 @@ Action *DoNothingAction();
  * \param freeArg Routine to free each argument.
  * \return Corresponding newly-allocated action.
  */
-Action *LaunchThreads(const char *message, uint_fast32_t N, void *args, size_t s_elem,
+Action *LaunchThreads(const char *message, uint_fast32_t N, const void *args, size_t s_elem,
 			void *(*routine)(void *), void (*freeArg)(void *));
 
 /**
@@ -192,7 +207,7 @@ Action *LaunchThreads(const char *message, uint_fast32_t N, void *args, size_t s
 int WaitForFinished(Action *action);
 
 /**
- * \fn int LaunchThreadsAndWaitForFinished(const char *message, uint_fast32_t N, void *args, size_t s_elem, void *(*routine)(void *), void (*freeArg)(void *))
+ * \fn int LaunchThreadsAndWaitForFinished(const char *message, uint_fast32_t N, const void *args, size_t s_elem, void *(*routine)(void *), void (*freeArg)(void *))
  * \brief Create several threads and wait for them to end.
  *
  * args array is copied. If it was dynamically allocated by
@@ -200,8 +215,9 @@ int WaitForFinished(Action *action);
  * after launching threads, since it is copied).
  * Note that arguments passed to the thread routine are not
  * exactly those passed to the function :
- * A pointer to a sig_atomic_t is added at the beginning of the
- * argument, which should be used to handle cancel requests.
+ * A pointer to a InternalThreadArg is added at the beginning
+ * of the argument, which should be used to handle cancel
+ * requests and action progress.
  * The sig_atomic_t pointed by it is changed to 1 if a cancel
  * request was made.
  * The remaining bytes are the 'real' argument.
@@ -216,7 +232,7 @@ int WaitForFinished(Action *action);
  * \param freeArg Routine to free each argument.
  * \return 0 if action finished normally, 1 if it was canceled.
  */
-int LaunchThreadsAndWaitForFinished(const char *message, uint_fast32_t N, void *args, size_t s_elem,
+int LaunchThreadsAndWaitForFinished(const char *message, uint_fast32_t N, const void *args, size_t s_elem,
 					void *(*routine)(void *), void (*freeArg)(void *));
 
 /**
@@ -232,6 +248,17 @@ int LaunchThreadsAndWaitForFinished(const char *message, uint_fast32_t N, void *
  * \param action Action to send cancelation request to.
  */
 void CancelAction(Action *action);
+
+/**
+ * \fn FLOAT GetActionProgress(const Action *action)
+ * \brief Get action progress.
+ *
+ * Progress is a value between 0 (just begun) and 1 (done).
+ *
+ * \param action Action subject to request.
+ * \return Action progress.
+ */
+FLOAT GetActionProgress(const Action *action);
 
 /**
  * \fn int CancelActionAndWaitForFinished(Action *action)
@@ -252,6 +279,24 @@ int CancelActionAndWaitForFinished(Action *action);
  * \param action Action to be freed.
  */
 void FreeAction(Action action);
+
+/**
+ * \fn InternalThreadArg *getInternalThreadArg(const void *arg)
+ * \brief Get internal part of thread argument.
+ *
+ * \param arg Argument passed to thread routine.
+ * \return Internal part of thread argument.
+ */
+InternalThreadArg *getInternalThreadArg(const void *arg);
+
+/**
+ * \fn void *getUserThreadArg(const void *arg)
+ * \brief Get user-part of thread argument.
+ *
+ * \param arg Argument passed to thread routine.
+ * \return User-part of thread argument (i.e. pointer to argument passed by user when launching threads).
+ */
+void *getUserThreadArg(const void *arg);
 
 #ifdef __cplusplus
 }

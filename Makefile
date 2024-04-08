@@ -24,6 +24,12 @@ clean:
 	$(call quiet-command,make -C ${COMMAND_LINE_DIR} clean,"")
 	$(call quiet-command,cd ${GUI_DIR} && qmake ${QMAKEFLAG},"  GENERATING GUI MAKEFILE")
 	$(call quiet-command,make -C ${GUI_DIR} clean,"")
+
+distclean:
+	$(call quiet-command,make -C ${LIB_DIR} distclean,"")
+	$(call quiet-command,make -C ${COMMAND_LINE_DIR} distclean,"")
+	$(call quiet-command,cd ${GUI_DIR} && qmake ${QMAKEFLAG},"  GENERATING GUI MAKEFILE")
+	$(call quiet-command,make -C ${GUI_DIR} distclean,"")
 	rm -f fractal2D qfractal2D
 
 %:

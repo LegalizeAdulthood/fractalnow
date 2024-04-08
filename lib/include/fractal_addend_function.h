@@ -80,7 +80,7 @@ extern const char *AddendFunctionStr[];
 extern const char *AddendFunctionDescStr[];
 
 /**
- * \fn AddendFunction GetAddendFunction(const char *str)
+ * \fn int GetAddendFunction(AddendFunction *addendFunction, const char *str)
  * \brief Get addend function from string.
  *
  * Function is case insensitive.
@@ -88,10 +88,11 @@ extern const char *AddendFunctionDescStr[];
  * - "triangleinequality" for triangle inequality
  * Exit with error in case of failure.
  *
+ * \param addendFunction AddendFunction destination.
  * \param str String specifying addend function.
- * \return Corresponding addend function.
+ * \return 0 in case of success, 1 in case of failure.
  */
-AddendFunction GetAddendFunction(const char *str);
+int GetAddendFunction(AddendFunction *addendFunction, const char *str);
 
 /******************AF_TRIANGLEINEQUALITY******************/
 #define LOOP_INIT_AF_TRIANGLEINEQUALITY(size) \

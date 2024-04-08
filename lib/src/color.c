@@ -25,7 +25,7 @@
 Color ColorFromRGB(uint8_t bytesPerComponent, uint16_t r, uint16_t g, uint16_t b)
 {
 	if (bytesPerComponent != 1 && bytesPerComponent != 2) {
-		error("Invalid bytes per component.\n");
+		fractal2D_error("Invalid bytes per component.\n");
 	}
 	Color res;
 	res.bytesPerComponent = bytesPerComponent;
@@ -58,6 +58,47 @@ inline Color ColorFromUint64(uint64_t color)
 	return res;
 }
 
+Color Color16(Color color)
+{
+	Color res;
+
+	if (color.bytesPerComponent == 2) {
+		res = color;
+	} else {
+		res.bytesPerComponent = 2;
+		res.r = roundF(color.r * UINT16_MAX / UINT8_MAX);
+		res.g = roundF(color.g * UINT16_MAX / UINT8_MAX);
+		res.b = roundF(color.b * UINT16_MAX / UINT8_MAX);
+	}
+
+	return res;
+}
+
+Color Color8(Color color)
+{
+	Color res;
+
+	if (color.bytesPerComponent == 1) {
+		res = color;
+	} else {
+		res.bytesPerComponent = 1;
+		res.r = roundF(color.r * UINT8_MAX / UINT16_MAX);
+		if ((color.r % (UINT8_MAX+1)) >= (UINT8_MAX+1) / 2) {
+			++res.r;
+		}
+		res.g = roundF(color.g * UINT8_MAX / UINT16_MAX);
+		if ((color.g % (UINT8_MAX+1)) >= (UINT8_MAX+1) / 2) {
+			++res.g;
+		}
+		res.b = roundF(color.b * UINT8_MAX / UINT16_MAX);
+		if ((color.b % (UINT8_MAX+1)) >= (UINT8_MAX+1) / 2) {
+			++res.b;
+		}
+	}
+
+	return res;
+}
+
 Color MixColors(Color C1, FLOAT weight1, Color C2, FLOAT weight2)
 {
 	Color res;
@@ -84,14 +125,14 @@ inline FLOAT ColorManhattanDistance(Color C1, Color C2)
 		res = sum / (FLOAT)(3*UINT16_MAX);
 		break;
 	default:
-		error("Invalid bytes per component.\n");
+		fractal2D_error("Invalid bytes per component.\n");
 		break;
 	}
 
 	return res;
 }
 
-inline FLOAT QuadAvgDissimilarity(Color C[4])
+inline FLOAT QuadAvgDissimilarity(const Color C[4])
 {
 	Color avg;
 	avg.r = (C[0].r + C[1].r + C[2].r + C[3].r) / 4;
@@ -103,7 +144,7 @@ inline FLOAT QuadAvgDissimilarity(Color C[4])
 		ColorManhattanDistance(C[3],avg)) / 4;
 }
 
-inline Color QuadLinearInterpolation(Color C[4], FLOAT x, FLOAT y)
+inline Color QuadLinearInterpolation(const Color C[4], FLOAT x, FLOAT y)
 {
 	Color res;
 	res.bytesPerComponent = C[0].bytesPerComponent;

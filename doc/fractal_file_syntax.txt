@@ -1,5 +1,6 @@
 Fractal file syntax :
 
+FRACTAL_FILE_FORMAT
 FRACTAL_TYPE
 [MAIN_POWER]
 [CX CY]
@@ -8,6 +9,10 @@ ESCAPE_RADIUS NB_ITER_MAX
 
 Text characters can be upper-case or lower-case.
 Arguments separators can be tabs, blank spaces, carriage return.
+
+FRACTAL_FILE_FORMAT should be C072, which is the format described in this document.
+Other format values (of older versions) may still be supported though.
+
 FRACTAL_TYPE can be :
  - MANDELBROT for classic Mandelbrot (z_n = z_{n-1}^2 + c)
  - MANDELBROTP for custom Mandelbrot (z_n = z_{n-1}^p + c, with p parameter)

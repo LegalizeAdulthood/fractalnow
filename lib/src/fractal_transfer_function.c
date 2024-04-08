@@ -82,30 +82,31 @@ const char *TransferFunctionDescStr[] = {
 
 uint_fast32_t nbTransferFunctions = sizeof(TransferFunctionStr) / sizeof(char *);
 
-TransferFunction GetTransferFunction(const char *str)
+int GetTransferFunction(TransferFunction *transferFunction, const char *str)
 {
+	int res = 0;
 	size_t len = strlen(str);
 
 	if (len > 255) {
-		error("Unknown transfer function \'%s\'.\n", str);
+		fractal2D_werror("Unknown transfer function \'%s\'.\n", str);
 	}
 
 	char TFStr[256];
 	strcpy(TFStr, str);
 	toLowerCase(TFStr);
-	TransferFunction res;
 
 	uint_fast32_t i;
 	for (i = 0; i < nbTransferFunctions; ++i) {
 		if (strcmp(TFStr, TransferFunctionStr[i]) == 0) {
-			res = (TransferFunction)i;
+			*(transferFunction) = (TransferFunction)i;
 			break;
 		}
 	}
 	if (i == nbTransferFunctions) {
-		error("Unknown transfer function \'%s\'.\n", str);
+		fractal2D_werror("Unknown transfer function \'%s\'.\n", str);
 	}
 
+	end:
 	return res;
 }
 

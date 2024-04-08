@@ -32,11 +32,11 @@ void toLowerCase(char *str)
 void *safeMalloc(const char *name, uint_least64_t size)
 {
 	if (size > SIZE_MAX) {
-		alloc_error(name);
+		fractal2D_alloc_error(name);
 	}
 	void *res = malloc((size_t)size);
 	if (res == NULL) {
-		alloc_error(name);
+		fractal2D_alloc_error(name);
 	}
 
 	return res;
@@ -45,11 +45,11 @@ void *safeMalloc(const char *name, uint_least64_t size)
 void *safeCalloc(const char *name, uint_least64_t nmemb, uint_least64_t size)
 {
 	if (nmemb > SIZE_MAX || size > SIZE_MAX) {
-		alloc_error(name);
+		fractal2D_alloc_error(name);
 	}
 	void *res = calloc((size_t)nmemb, (size_t)size);
 	if (res == NULL) {
-		alloc_error(name);
+		fractal2D_alloc_error(name);
 	}
 
 	return res;

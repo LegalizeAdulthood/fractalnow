@@ -41,15 +41,15 @@ const char *FractalFormulaDescStr[] = {
 
 uint_fast32_t nbFractalFormulas = sizeof(FractalFormulaStr) / sizeof(char *);
 
-FractalFormula GetFractalFormula(const char *str)
+int GetFractalFormula(FractalFormula *fractalFormula, const char *str)
 {
+	int res = 0;
 	size_t len = strlen(str);
 
 	if (len > 255) {
-		error("Unknown fractal formula \'%s\'.\n", str);
+		fractal2D_werror("Unknown fractal formula \'%s\'.\n", str);
 	}
 
-	FractalFormula res;
 	char FFStr[256];
 	strcpy(FFStr, str);
 	toLowerCase(FFStr);
@@ -57,15 +57,16 @@ FractalFormula GetFractalFormula(const char *str)
 	uint_fast32_t i;
 	for (i = 0; i < nbFractalFormulas; ++i) {
 		if (strcmp(FFStr, FractalFormulaStr[i]) == 0) {
-			res = (FractalFormula)i;
+			*fractalFormula = (FractalFormula)i;
 			break;
 		}
 	}
 
 	if (i == nbFractalFormulas) {
-		error("Unknown fractal formula \'%s\'.\n", str);
+		fractal2D_werror("Unknown fractal formula \'%s\'.\n", str);
 	}
 
+	end:
 	return res;
 }
 

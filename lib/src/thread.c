@@ -41,7 +41,7 @@ Action *DoNothingAction()
 	return res;
 }
 
-inline Action *LaunchThreads(const char *message, uint_fast32_t N, void *args, size_t s_elem,
+inline Action *LaunchThreads(const char *message, uint_fast32_t N, const void *args, size_t s_elem,
 			void *(*routine)(void *), void (*freeArg)(void *))
 {
 	if (N == 0) {
@@ -52,27 +52,33 @@ inline Action *LaunchThreads(const char *message, uint_fast32_t N, void *args, s
 	res->is_do_nothing = 0;
 	res->done = 0;
 	res->return_value = -1;
+	res->cancel = 0;
+	res->internalArgs = (InternalThreadArg *)safeMalloc("internal thread arguments",
+					N*sizeof(InternalThreadArg));
+
 	size_t message_len = strlen(message);
 	res->message = (char *)safeMalloc("message", (message_len+1)*sizeof(char));
 	strcpy(res->message, message);
 
-	res->cancel = 0;
         pthread_t *thread;
 	thread = (pthread_t *)safeMalloc("threads", N * sizeof(pthread_t)); 
-	res->args = safeMalloc("thread args", N * (s_elem + sizeof(sig_atomic_t *)));
+	res->args = safeMalloc("thread args", N * (s_elem + sizeof(InternalThreadArg *)));
 
-	info(T_NORMAL, "%s...\n", res->message);
+	fractal2D_message(stdout, T_NORMAL, "%s...\n", res->message);
 
 	uint8_t *res_args = (uint8_t *)res->args;
 	uint8_t *c_args = (uint8_t *)args;
 	for (uint_fast32_t i = 0; i < N; ++i) {
-		*((sig_atomic_t **)res_args) = &res->cancel;
-		memcpy(res_args+sizeof(sig_atomic_t *), c_args, s_elem);
+		res->internalArgs[i].cancel = &res->cancel;
+		res->internalArgs[i].progress = 0;
+
+		*((InternalThreadArg **)res_args) = &res->internalArgs[i];
+		memcpy(res_args+sizeof(InternalThreadArg *), c_args, s_elem);
 
                 safePThreadCreate(&(thread[i]),NULL,routine,res_args);
 
 		c_args += s_elem;
-		res_args += s_elem+sizeof(sig_atomic_t *);
+		res_args += s_elem+sizeof(InternalThreadArg *);
 	}
 
 	res->N = N;
@@ -102,25 +108,25 @@ inline int WaitForFinished(Action *action)
 	}
 
 	void *status;
-	uint8_t *c_arg = (uint8_t *)(action->args) + sizeof(sig_atomic_t *);
+	uint8_t *c_arg = (uint8_t *)(action->args) + sizeof(InternalThreadArg *);
 	for (uint_fast32_t i = 0; i < action->N; ++i) {
 		safePThreadJoin(action->thread[i], &status);
 
 		if (status != NULL && status != PTHREAD_CANCELED) {
-			error("Thread ended because of an error.\n");
+			fractal2D_error("Thread ended because of an error.\n");
 		}
-		c_arg += action->s_elem + sizeof(sig_atomic_t *);
+		c_arg += action->s_elem + sizeof(InternalThreadArg *);
 	}
 
 	int res = action->cancel;
-	info(T_NORMAL, "%s : %s.\n", action->message, (res == 0) ? "DONE" : "CANCELED");
+	fractal2D_message(stdout, T_NORMAL, "%s : %s.\n", action->message, (res == 0) ? "DONE" : "CANCELED");
 	action->return_value = res;
 	action->done = 1;
 
 	return res;
 }
 
-int LaunchThreadsAndWaitForFinished(const char *message, uint_fast32_t N, void *args, size_t s_elem,
+int LaunchThreadsAndWaitForFinished(const char *message, uint_fast32_t N, const void *args, size_t s_elem,
 					void *(*routine)(void *), void (*freeArg)(void *))
 {
 	Action *action = LaunchThreads(message, N, args, s_elem, routine, freeArg);
@@ -137,23 +143,50 @@ int CancelActionAndWaitForFinished(Action *action)
 	return WaitForFinished(action);
 }
 
+FLOAT GetActionProgress(const Action *action)
+{
+	FLOAT res;
+	if (action->is_do_nothing || action->done) {
+		res = 1;
+	} else {
+		res = 0;
+		for (uint_fast32_t i = 0; i < action->N; ++i) {
+			res += action->internalArgs[i].progress;
+		}
+		res /= 100 * action->N;
+	}
+
+	return res;
+}
+
 inline void FreeAction(Action action)
 {
 	if (action.is_do_nothing) {
 		return;
 	}
 	if (!action.done) {
-		error("Trying to free non-finished action.\n");
+		fractal2D_error("Trying to free non-finished action.\n");
 	}
 
-	uint8_t *c_arg = (uint8_t *)(action.args) + sizeof(sig_atomic_t *);
+	uint8_t *c_arg = (uint8_t *)(action.args) + sizeof(InternalThreadArg *);
 	for (uint_fast32_t i = 0; i < action.N; ++i) {
 		action.freeArg(c_arg);
-		c_arg += action.s_elem + sizeof(sig_atomic_t *);
+		c_arg += action.s_elem + sizeof(InternalThreadArg *);
 	}
 
 	free(action.thread);
+	free(action.internalArgs);
 	free(action.args);
 	free(action.message);
+}
+
+InternalThreadArg *getInternalThreadArg(const void *arg)
+{
+	return *((InternalThreadArg **)arg);
+}
+
+void *getUserThreadArg(const void *arg)
+{
+	return ((uint8_t *)(arg)+sizeof(InternalThreadArg *));
 }
 

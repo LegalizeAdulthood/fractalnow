@@ -35,11 +35,7 @@ extern "C" {
 void DisplayHelp();
 
 #define invalid_use_error(...) \
-        if (debug) { \
-            printf("[%s: %s, l.%d] ", __FILE__, __func__, __LINE__); \
-        } \
-        printf("Invalid use : "); \
-	printf(__VA_ARGS__); \
+	fractal2D_message(stderr, T_QUIET, __VA_ARGS__);\
 	DisplayHelp(); \
         exit(EXIT_FAILURE)
 

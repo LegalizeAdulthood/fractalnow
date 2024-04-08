@@ -34,9 +34,13 @@ int main(int argc, char *argv[]) {
 	ParseCommandLineArguments(&arg, argc, argv);
 
 	Fractal fractal;
-	ReadFractalFile(&fractal, arg.fractalFileName);
+	if (ReadFractalFile(&fractal, arg.fractalFileName)) {
+		fractal2D_error("Failed to read fractal file.\n");
+	}
 	RenderingParameters render;
-	ReadRenderingFile(&render, arg.renderingFileName);
+	if (ReadRenderingFile(&render, arg.renderingFileName)) {
+		fractal2D_error("Failed to read rendering file.\n");
+	}
 
 	uint_fast32_t width = arg.width;
 	uint_fast32_t height = arg.height;
@@ -76,7 +80,7 @@ int main(int argc, char *argv[]) {
 		AntiAliaseFractal(&fractalImg, &fractal, &render, arg.antiAliasingSize, arg.adaptiveAAMThreshold);
 		break;
 	default:
-		error("Unknown anti-aliasing method.\n");
+		fractal2D_error("Unknown anti-aliasing method.\n");
 		break;
 	}
 
@@ -85,7 +89,7 @@ int main(int argc, char *argv[]) {
 	FreeRenderingParameters(render);
 	FreeImage(fractalImg);
 
-	info(T_NORMAL,"All done.\n");
+	fractal2D_message(stdout, T_NORMAL, "All done.\n");
 
 	exit(EXIT_SUCCESS);
 }

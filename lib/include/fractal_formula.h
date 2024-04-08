@@ -70,7 +70,7 @@ extern const char *FractalFormulaStr[];
 extern const char *FractalFormulaDescStr[];
 
 /**
- * \fn FractalFormula GetFractalFormula(const char *str)
+ * \fn int GetFractalFormula(FractalFormula *fractalFormula, const char *str)
  * \brief Get fractal formula from string.
  *
  * Function is case insensitive.
@@ -83,10 +83,11 @@ extern const char *FractalFormulaDescStr[];
  * 
  * Exit with error in case of failure (unknown fractal type).
  *
+ * \param fractalFormula Fractal formula destination.
  * \param str String specifying fractal formula.
- * \return Corresponding fractal formula.
+ * \return 0 in case of success, 1 in case of failure.
  */
-FractalFormula GetFractalFormula(const char *str);
+int GetFractalFormula(FractalFormula *fractalFormula, const char *str);
 
 /* Function assumes that y >= 1 and computes x^y. */
 static inline FLOAT complex cipowF(FLOAT complex x, uint_fast32_t y)

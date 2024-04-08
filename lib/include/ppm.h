@@ -35,13 +35,13 @@ extern "C" {
 #include  <stdint.h>
 
 /**
- * \fn void ExportPPM(char *fileName, Image *image)
+ * \fn void ExportPPM(const char *fileName, const Image *image)
  * \brief Export image as PPM;
  *
  * \param fileName Name of the PPM file to export the image in.
  * \param image Pointer to image structure to export.
  */
-void ExportPPM(char *fileName, Image *image);
+void ExportPPM(const char *fileName, const Image *image);
 
 #ifdef __cplusplus
 }

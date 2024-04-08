@@ -19,7 +19,6 @@
  */
  
 #include "rectangle.h"
-#include "error.h"
 #include "misc.h"
 #include <stdlib.h>
 
@@ -31,10 +30,10 @@ inline void InitRectangle(Rectangle *rectangle, uint_fast32_t x1, uint_fast32_t 
 	rectangle->y2 = y2;
 }
 
-Rectangle *CopyRectangle(Rectangle *rectangle)
+Rectangle CopyRectangle(const Rectangle *rectangle)
 {
-	Rectangle *res = (Rectangle *)safeMalloc("rectangle", sizeof(Rectangle));
-	InitRectangle(res, rectangle->x1, rectangle->y1, rectangle->x2, rectangle->y2);
+	Rectangle res;
+	InitRectangle(&res, rectangle->x1, rectangle->y1, rectangle->x2, rectangle->y2);
 	return res;
 }
 

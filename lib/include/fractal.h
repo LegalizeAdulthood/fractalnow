@@ -170,16 +170,26 @@ void InitFractal2(Fractal *fractal, FractalFormula fractalFormula, FLOAT p, FLOA
 		FLOAT escapeRadius, uint_fast32_t maxIter);
 
 /**
- * \fn void ReadFractalFile(Fractal *fractal, const char *fileName)
+ * \fn Fractal CopyFractal(const Fractal *fractal)
+ * \brief Copy fractal.
+ *
+ * \param fractal Pointer to fractal to copy.
+ * \return Copy of fractal.
+ */
+Fractal CopyFractal(const Fractal *fractal);
+
+/**
+ * \fn int ReadFractalFile(Fractal *fractal, const char *fileName)
  * \brief Read and parse a fractal file, and create the according fractal.
  *
  * \param fractal Pointer to the fractal structure to create.
  * \param fileName Fractal file name.
+ * \return 0 in case of success, 1 in case of failure.
  */
-void ReadFractalFile(Fractal *fractal, const char *fileName);
+int ReadFractalFile(Fractal *fractal, const char *fileName);
 
 /**
- * \fn Color ComputeFractalColor(Fractal *fractal, RenderingParameters *render, FLOAT complex z);
+ * \fn Color ComputeFractalColor(const Fractal *fractal, const RenderingParameters *render, FLOAT complex z);
  * \brief Compute some particular point of fractal.
  *
  * Function will compute the RGB color at given point according
@@ -190,10 +200,10 @@ void ReadFractalFile(Fractal *fractal, const char *fileName);
  * \param z Point in the complex plan to compute.
  * @return Color of fractal at specified point.
  */
-Color ComputeFractalColor(Fractal *fractal, RenderingParameters *render, FLOAT complex z);
+Color ComputeFractalColor(const Fractal *fractal, const RenderingParameters *render, FLOAT complex z);
 
 /**
- * \fn void DrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render, uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold)
+ * \fn void DrawFractalFast(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold)
  * \brief Draw fractal in a fast, approximate way.
  *
  * Image width and height must be >= 2 (does nothing otherwise).
@@ -215,11 +225,11 @@ Color ComputeFractalColor(Fractal *fractal, RenderingParameters *render, FLOAT c
  * \param quadInterpolationSize Maximum quad size for interpolation.
  * \param interpolationThreshold Dissimilarity threshold for interpolation.
  */
-void DrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render,
+void DrawFractalFast(Image *image, const Fractal *fractal, const RenderingParameters *render,
 			uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold);
 
 /**
- * \fn Action *LaunchDrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render, uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold)
+ * \fn Action *LaunchDrawFractalFast(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold)
  * \brief Launch fractal drawing but does not wait for termination.
  *
  * Image width and height must be >= 2 (does nothing otherwise).
@@ -232,11 +242,11 @@ void DrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render
  * \param interpolationThreshold Dissimilarity threshold for interpolation.
  * \return Corresponding newly-allocated action.
  */
-Action *LaunchDrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render,
+Action *LaunchDrawFractalFast(Image *image, const Fractal *fractal, const RenderingParameters *render,
 			uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold);
 
 /**
- * \fn void DrawFractal(Image *image, Fractal *fractal, RenderingParameters *render)
+ * \fn void DrawFractal(Image *image, const Fractal *fractal, const RenderingParameters *render)
  * \brief Draw fractal in a (slow) non-approximate way.
  *
  * Image width and height must be >= 2 (does nothing otherwise).
@@ -248,10 +258,10 @@ Action *LaunchDrawFractalFast(Image *image, Fractal *fractal, RenderingParameter
  * \param fractal Fractal subset to compute.
  * \param render Rendering parameters.
  */
-void DrawFractal(Image *image, Fractal *fractal, RenderingParameters *render);
+void DrawFractal(Image *image, const Fractal *fractal, const RenderingParameters *render);
 
 /**
- * \fn void AntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *render, uint_fast32_t antiAliasingSize, FLOAT threshold)
+ * \fn void AntiAliaseFractal(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t antiAliasingSize, FLOAT threshold)
  * \brief AntiAliase fractal image.
  *
  * Image width and height must be >= 2 (does nothing otherwise).
@@ -275,11 +285,11 @@ void DrawFractal(Image *image, Fractal *fractal, RenderingParameters *render);
  * \param antiAliasingSize Anti-aliasing size.
  * \param threshold Dissimilarity threshold to determine pixels to recompute.
  */
-void AntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *render,
+void AntiAliaseFractal(Image *image, const Fractal *fractal, const RenderingParameters *render,
 			uint_fast32_t antiAliasingSize, FLOAT threshold);
 
 /**
- * \fn Action LaunchAntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *render, uint_fast32_t antiAliasingSize, FLOAT threshold)
+ * \fn Action LaunchAntiAliaseFractal(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t antiAliasingSize, FLOAT threshold)
  * \brief Launch fractal image anti-aliasing, but does not wait for termination.
  *
  * Image width and height must be >= 2 (does nothing otherwise).
@@ -293,7 +303,7 @@ void AntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *rend
  * \param threshold Dissimilarity threshold to determine pixels to recompute.
  * \return Corresponding newly-allocated action.
  */
-Action *LaunchAntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *render,
+Action *LaunchAntiAliaseFractal(Image *image, const Fractal *fractal, const RenderingParameters *render,
 			uint_fast32_t antiAliasingSize, FLOAT threshold);
 
 #ifdef __cplusplus

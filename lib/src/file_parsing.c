@@ -73,7 +73,7 @@ int readColor(FILE *file, int_fast8_t bytesPerComponent, Color *dst)
 		*dst = ColorFromUint64((uint64_t)color64);
 		break;
 	default:
-		error("Invalid bytes per component.\n");
+		fractal2D_error("Invalid bytes per component.\n");
 		break;
 	}
 
@@ -83,7 +83,7 @@ int readColor(FILE *file, int_fast8_t bytesPerComponent, Color *dst)
 inline void safeReadString(FILE *file, const char *fileName, char *dst)
 {
 	if (readString(file, dst) < 1) {
-		read_error(fileName);
+		fractal2D_read_error(fileName);
 	}
 }
 
@@ -92,7 +92,7 @@ inline uint32_t safeReadUint32(FILE *file, const char *fileName)
 	uint32_t res;
 
 	if (readUint32(file, &res) < 1) {
-		read_error(fileName);
+		fractal2D_read_error(fileName);
 	}
 	return res;
 }
@@ -102,7 +102,7 @@ inline FLOAT safeReadFLOAT(FILE *file, const char *fileName)
 	FLOAT res;
 
 	if (readFLOAT(file, &res) < 1) {
-		read_error(fileName);
+		fractal2D_read_error(fileName);
 	}
 	return res;
 }
@@ -112,7 +112,7 @@ inline Color safeReadColor(FILE *file, const char *fileName, int_fast8_t bytesPe
 	Color res;
 
 	if (readColor(file, bytesPerComponent, &res) < 1) {
-		read_error(fileName);
+		fractal2D_read_error(fileName);
 	}
 	return res;
 }

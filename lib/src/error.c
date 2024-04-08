@@ -20,6 +20,6 @@
 
 #include "error.h"
 
-int debug = 0;
-int traceLevel = T_NORMAL;
+int fractal2D_debug = 0;
+TraceLevel fractal2D_traceLevel = T_NORMAL;
 

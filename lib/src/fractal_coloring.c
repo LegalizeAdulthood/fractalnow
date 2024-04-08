@@ -35,29 +35,30 @@ const char *ColoringMethodDescStr[] = {
 
 uint_fast32_t nbColoringMethods = sizeof(ColoringMethodStr) / sizeof(char *);
 
-ColoringMethod GetColoringMethod(const char *str)
+int GetColoringMethod(ColoringMethod *coloringMethod, const char *str)
 {
+	int res = 0;
 	int len = strlen(str);
 	if (len > 255) {
-		error("Unknown coloring method \'%s\'.\n", str);
+		fractal2D_werror("Unknown coloring method \'%s\'.\n", str);
 	}
 
 	char CMStr[256];
 	strcpy(CMStr, str);
 	toLowerCase(CMStr);
-	ColoringMethod res;
 
 	uint_fast32_t i;
 	for (i = 0; i < nbColoringMethods; ++i) {
 		if (strcmp(CMStr, ColoringMethodStr[i]) == 0) {
-			res = (ColoringMethod)i;
+			*coloringMethod = (ColoringMethod)i;
 			break;
 		}
 	}
 	if (i == nbColoringMethods) {
-		error("Unknown coloring method \'%s\'.\n", str);
+		fractal2D_werror("Unknown coloring method \'%s\'.\n", str);
 	}
 
+	end:
 	return res;
 }
 
@@ -75,30 +76,30 @@ const char *InterpolationMethodDescStr[] = {
 
 uint_fast32_t nbInterpolationMethods = sizeof(InterpolationMethodStr) / sizeof(char *);
 
-InterpolationMethod GetInterpolationMethod(const char *str)
+int GetInterpolationMethod(InterpolationMethod *interpolationMethod, const char *str)
 {
+	int res = 0;
 	int len = strlen(str);
 	if (len > 255) {
-		error("Unknown interpolation method \'%s\'.\n", str);
+		fractal2D_werror("Unknown interpolation method \'%s\'.\n", str);
 	}
 
 	char IMStr[256];
 	strcpy(IMStr, str);
 	toLowerCase(IMStr);
-	InterpolationMethod res;
 
 	uint_fast32_t i;
 	for (i = 0; i < nbInterpolationMethods; ++i) {
 		if (strcmp(IMStr, InterpolationMethodStr[i]) == 0) {
-			res = (InterpolationMethod)i;
+			*interpolationMethod = (InterpolationMethod)i;
 			break;
 		}
 	}
 	if (i == nbInterpolationMethods) {
-		error("Unknown interpolation method \'%s\'.\n", str);
+		fractal2D_werror("Unknown interpolation method \'%s\'.\n", str);
 	}
 
-
+	end:
 	return res;
 }
 

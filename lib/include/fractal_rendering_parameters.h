@@ -73,9 +73,9 @@ typedef struct s_RenderingParameters {
 
  /* For internal use.*/
 	FLOAT realMultiplier;
- /*< Real multiplier (normalized according to gradient size).*/
+ /*!< Real multiplier (normalized according to gradient size).*/
 	FLOAT realOffset;
- /*< Real offset (normalized according to gradient size).*/
+ /*!< Real offset (normalized according to gradient size).*/
 } RenderingParameters;
 
 /**
@@ -105,13 +105,23 @@ void InitRenderingParameters(RenderingParameters *param, uint_fast8_t bytesPerCo
 				FLOAT multiplier, FLOAT offset, Gradient gradient);
 
 /**
- * \fn void ReadRenderingFile(RenderingParameters *param, const char *fileName)
+ * \fn RenderingParameters CopyRenderingParameters(const RenderingParameters *render)
+ * \brief Copy rendering parameters.
+ *
+ * \param render Pointer to rendering parameters to copy.
+ * \return Copy of rendering parameters.
+ */
+RenderingParameters CopyRenderingParameters(const RenderingParameters *param);
+
+/**
+ * \fn int ReadRenderingFile(RenderingParameters *param, const char *fileName)
  * \brief Read and parse fractal rendering parameters from file.
  *
  * \param param Pointer to the structure to store rendering parameters.
  * \param fileName Name of file containing rendering parameters.
+ * \return 0 in case of success, 1 in case of failure.
  */
-void ReadRenderingFile(RenderingParameters *param, const char *fileName);
+int ReadRenderingFile(RenderingParameters *param, const char *fileName);
 
 /**
  * \fn void FreeRenderingParameters(RenderingParameters param)

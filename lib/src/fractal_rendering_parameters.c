@@ -22,6 +22,8 @@
 #include "error.h"
 #include "file_parsing.h"
 #include "misc.h"
+#include <ctype.h>
+#include <string.h>
 
 inline void InitRenderingParameters(RenderingParameters *param, uint_fast8_t bytesPerComponent, Color spaceColor,
 				CountingFunction countingFunction, ColoringMethod coloringMethod,
@@ -46,44 +48,81 @@ inline void InitRenderingParameters(RenderingParameters *param, uint_fast8_t byt
 	param->gradient = gradient;
 }
 
-void ReadRenderingFile(RenderingParameters *param, const char *fileName)
+RenderingParameters CopyRenderingParameters(const RenderingParameters *param)
 {
-	info(T_NORMAL, "Reading rendering file...\n");
+	RenderingParameters res = *param;
+	res.gradient = CopyGradient(&param->gradient);
 
+	return res;
+}
+
+char *supportedRenderingFileFormat[] = {
+	(char *)"r072"
+};
+
+int ReadRenderingFile(RenderingParameters *param, const char *fileName)
+{
+	fractal2D_message(stdout, T_NORMAL, "Reading rendering file...\n");
+
+	int res = 0;
 	FILE *file;
 
 	file=fopen(fileName,"r");
 	if (!file) {
-		open_error(fileName);
+		fractal2D_open_werror(fileName);
 	}
 	
+	char str[256];
+	if (readString(file, str) < 1) {
+		fractal2D_read_werror(fileName);
+	}
+	if (strlen(str) != 4 || tolower(str[0]) != 'r') {
+		fractal2D_werror("Invalid rendering file (could not read format).\n");
+	}
+	toLowerCase(str);
+	if (strcmp(str, supportedRenderingFileFormat[0]) != 0) {
+		fractal2D_werror("Unsupported rendering file format '%s'.\n", str);
+	}
+
 	uint_fast8_t bytesPerComponent;
 	Color spaceColor;
 	CountingFunction countingFunction;
 	ColoringMethod coloringMethod;
 	AddendFunction addendFunction;
-	uint_fast32_t stripeDensity;
+	uint32_t stripeDensity;
 	InterpolationMethod interpolationMethod;
 	TransferFunction transferFunction;
 	FLOAT multiplier;
 	FLOAT offset;
 	Gradient gradient;
 
-	uint_fast32_t bytesPerComponent32 = safeReadUint32(file, fileName);
+	uint32_t bytesPerComponent32;
+	if (readUint32(file, &bytesPerComponent32) < 1) {
+		fractal2D_read_werror(fileName);
+	}
 	if (bytesPerComponent32 == 1 || bytesPerComponent32 == 2) {
 		bytesPerComponent = (uint_fast8_t)bytesPerComponent32;
 	} else {
-		error("Invalid rendering file ! bytes per components must be 1 or 2.\n");
+		fractal2D_werror("Invalid rendering file : bytes per components must be 1 or 2.\n");
 	}
 
-	spaceColor = safeReadColor(file, fileName, bytesPerComponent);
+	if (readColor(file, bytesPerComponent, &spaceColor) < 1) {
+		fractal2D_read_werror(fileName);
+	}
 
-	char str[256];
-	safeReadString(file, fileName, str);
-	countingFunction = GetCountingFunction(str);
+	if (readString(file, str) < 1) {
+		fractal2D_read_werror(fileName);
+	}
+	if (GetCountingFunction(&countingFunction, str)) {
+		fractal2D_werror("Invalid rendering file : could not get counting function.\n");
+	}
 
-	safeReadString(file, fileName, str);
-	coloringMethod = GetColoringMethod(str);
+	if (readString(file, str) < 1) {
+		fractal2D_read_werror(fileName);
+	}
+	if (GetColoringMethod(&coloringMethod, str)) {
+		fractal2D_werror("Invalid rendering file : could not get coloring method.\n");
+	}
 
 	/* Just to be sure these are initialized, because they are always needed (and thus read). */
 	interpolationMethod = IM_NONE;
@@ -91,33 +130,51 @@ void ReadRenderingFile(RenderingParameters *param, const char *fileName)
 	stripeDensity = 1;
 
 	if (coloringMethod == CM_AVERAGE) {
-		safeReadString(file, fileName, str);
-		addendFunction = GetAddendFunction(str);
-		if (addendFunction == AF_STRIPE) {
-			stripeDensity = safeReadUint32(file, fileName);
+		if (readString(file, str) < 1) {
+			fractal2D_read_werror(fileName);
 		}
-		safeReadString(file, fileName, str);
-		interpolationMethod = GetInterpolationMethod(str);
+		if (GetAddendFunction(&addendFunction, str)) {
+			fractal2D_werror("Invalid rendering file : could not get addend function.\n");
+		}
+		if (addendFunction == AF_STRIPE) {
+			if (readUint32(file, &stripeDensity) < 1) {
+				fractal2D_read_werror(fileName);
+			}
+		}
+		if (readString(file, str) < 1) {
+			fractal2D_read_werror(fileName);
+		}
+		if (GetInterpolationMethod(&interpolationMethod, str)) {
+			fractal2D_werror("Invalid rendering file : could not get interpolation method.\n");
+		}
 	}
 
-	safeReadString(file, fileName, str);
-	transferFunction = GetTransferFunction(str);
+	if (readString(file, str) < 1) {
+		fractal2D_read_werror(fileName);
+	}
+	if (GetTransferFunction(&transferFunction, str)) {
+		fractal2D_werror("Invalid rendering file : could not get transfer function.\n");
+	}
 
-	multiplier = safeReadFLOAT(file, fileName);
-	offset = safeReadFLOAT(file, fileName);
+	if (readFLOAT(file, &multiplier) < 1) {
+		fractal2D_read_werror(fileName);
+	}
+	if (readFLOAT(file, &offset) < 1) {
+		fractal2D_read_werror(fileName);
+	}
 
 	Color color[256];
 	uint_fast32_t nbColors=0;
-	int res;
-	while ((res = readColor(file, bytesPerComponent, &color[nbColors])) != EOF) {
-		if (res < 1) {
-			read_error(fileName);
+	int nbread;
+	while ((nbread = readColor(file, bytesPerComponent, &color[nbColors])) != EOF) {
+		if (nbread < 1) {
+			fractal2D_read_werror(fileName);
 		}
 		nbColors++;
 	}
 
 	if (nbColors < 2) {
-		error("Invalid rendering file : number of colors must be between 2 and 256.\n");
+		fractal2D_werror("Invalid rendering file : number of colors must be between 2 and 256.\n");
 	}
 
 	GenerateGradient(&gradient, color, nbColors, DEFAULT_GRADIENT_TRANSITIONS);
@@ -126,11 +183,14 @@ void ReadRenderingFile(RenderingParameters *param, const char *fileName)
 				addendFunction, stripeDensity, interpolationMethod, transferFunction,
 				multiplier, offset, gradient);
 
-	if (fclose(file)) {
-		close_error(fileName);
+	end:
+	if (file) {
+		res |= fclose(file);
 	}
 
-	info(T_NORMAL, "Reading rendering file : DONE\n");
+	fractal2D_message(stdout, T_NORMAL, "Reading rendering file : %s.\n", (res == 0) ? "DONE" : "FAILED");
+
+	return res;
 }
 
 void FreeRenderingParameters(RenderingParameters param)

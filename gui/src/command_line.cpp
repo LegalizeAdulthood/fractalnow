@@ -25,6 +25,7 @@
 #include "thread.h"
 #include <getopt.h>
 #include <inttypes.h>
+#include <QApplication>
 
 int FileExists(const char *fileName)
 {
@@ -40,8 +41,8 @@ int FileExists(const char *fileName)
 
 CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 {
-	traceLevel = T_NORMAL;
-	debug = 0;
+	fractal2D_traceLevel = T_NORMAL;
+	fractal2D_debug = 0;
 	int help = 0;
 
 	int64_t tmp;
@@ -51,7 +52,6 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 	int maxAntiAliasingSizeSpecified = 0;
 	int antiAliasingSizeIterationSpecified = 0;
 
-	int widthSpecified = 0, heightSpecified = 0;
 	width = 0;
 	height = 0;
 	int o;
@@ -61,19 +61,24 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 			help = 1;
 			break;
 		case 'q':
-			if (traceLevel == T_VERBOSE) {
+			if (fractal2D_traceLevel == T_VERBOSE) {
 				invalid_use_error("-q and -v are excluse.\n");
 			}
-			traceLevel = T_QUIET;
+			fractal2D_traceLevel = T_QUIET;
 			break;
 		case 'v':
-			if (traceLevel == T_QUIET) {
+			if (fractal2D_traceLevel == T_QUIET) {
 				invalid_use_error("-q and -v are excluse.\n");
 			}
-			traceLevel = T_VERBOSE;
+			fractal2D_traceLevel = T_VERBOSE;
 			break;
 		case 'd':
-			debug = 1;
+#ifndef DEBUG
+				fractal2D_message(stdout, T_QUIET, "Debug unavailable: %s was not built in \
+debug mode.\n", QApplication::applicationName().toStdString().c_str());
+#else
+			fractal2D_debug = 1;
+#endif
 			break;
 		case 'c':
 			fractalFileName = optarg;
@@ -130,7 +135,6 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 				invalid_use_error("Output image width must be >= 2.\n");
 			} else {
 				width = (uint_fast32_t)tmp;
-				widthSpecified = 1;
 			}
 			break;
 		case 'y':
@@ -141,7 +145,6 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 				invalid_use_error("Output image height must be >= 2.\n");
 			} else {
 				height = (uint_fast32_t)tmp;
-				heightSpecified = 1;
 			}
 			break;
 		default:
@@ -160,16 +163,9 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 	}
 
 	if (!antiAliasingSizeIterationSpecified) {
-		antiAliasingSizeIteration = 1;
+		antiAliasingSizeIteration = DEFAULT_ANTIALIASING_SIZE_ITERATION;
 	}
 		
-	if (!widthSpecified && !heightSpecified) {
-		width = DEFAULT_FRACTAL_IMAGE_WIDTH;
-	}
-	if (widthSpecified && heightSpecified) {
-		invalid_use_error("Width and height cannot be specified simultaneously.\n");
-	}
-
 	if (!minAntiAliasingSizeSpecified) {
 		minAntiAliasingSize = DEFAULT_MIN_ANTIALIASING_SIZE;
 	}
@@ -182,10 +178,10 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 	}
 	
 	if (fractalFileName != NULL && !FileExists(fractalFileName)) {
-		existence_error(fractalFileName);
+		fractal2D_existence_error(fractalFileName);
 	}
 
 	if (renderingFileName != NULL && !FileExists(renderingFileName)) {
-		existence_error(renderingFileName);
+		fractal2D_existence_error(renderingFileName);
 	}
 }

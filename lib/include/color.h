@@ -92,6 +92,28 @@ Color ColorFromUint32(uint32_t color);
 Color ColorFromUint64(uint64_t color);
 
 /**
+ * \fn Color Color16(Color color)
+ * \brief Convert color to 16 bits color.
+ *
+ * Simple copy if color bytes per component is already 2.
+ *
+ * \param color Color to be converted.
+ * \return 16 bits color.
+ */
+Color Color16(Color color);
+
+/**
+ * \fn Color Color8(Color color)
+ * \brief Convert color to 8 bits color.
+ *
+ * Simple copy if color bytes per component is already 1.
+ *
+ * \param color Color to be converted.
+ * \return 8 bits color.
+ */
+Color Color8(Color color);
+
+/**
  * \fn Color MixColors(Color C1, FLOAT weight1, Color C2, FLOAT weight2)
  * \brief Mix two weighted colors.
  *
@@ -120,7 +142,7 @@ Color MixColors(Color C1, FLOAT weight1, Color C2, FLOAT weight2);
 FLOAT ColorManhattanDistance(Color C1, Color C2);
 
 /**
- * \fn FLOAT QuadAvgDissimilarity(Color C[4])
+ * \fn FLOAT QuadAvgDissimilarity(const Color C[4])
  * \brief Compute average dissimilarity of a quadrilateral given its corner colors.
  *
  * Result is normalized (between 0 and 1).
@@ -128,10 +150,10 @@ FLOAT ColorManhattanDistance(Color C1, Color C2);
  * \param C Point to colors at the four corners.
  * \return Quadrilateral average anhattan dissimilarity.
  */
-FLOAT QuadAvgDissimilarity(Color C[4]);
+FLOAT QuadAvgDissimilarity(const Color C[4]);
 
 /**
- * \fn Color QuadLinearInterpolation(Color C[4], FLOAT x, FLOAT y)
+ * \fn Color QuadLinearInterpolation(const Color C[4], FLOAT x, FLOAT y)
  * \brief Interpolate linearly some color of a quadrilateral.
  *
  * Interpolate color at point (x,y) according to its corner colors.
@@ -143,7 +165,7 @@ FLOAT QuadAvgDissimilarity(Color C[4]);
  * \param y Y (relative) coordinate of quad point to interpolate.
  * \return Linearly interpolated color at point (x,y) of quadrilateral.
  */
-Color QuadLinearInterpolation(Color C[4], FLOAT x, FLOAT y);
+Color QuadLinearInterpolation(const Color C[4], FLOAT x, FLOAT y);
 
 #ifdef __cplusplus
 }

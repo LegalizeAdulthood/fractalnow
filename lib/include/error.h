@@ -34,33 +34,101 @@ extern "C" {
 #include <stdlib.h>
 #include <stdio.h>
 
-enum {T_QUIET = 0, T_NORMAL, T_VERBOSE};
+/**
+ * \enum e_TraceLevel
+ * \brief Trace level type.
+ *
+ * Users should understand the difference between application current
+ * trace level, and messages trace levels.
+ * Using fractal2D_message macro, a message is printed if and only
+ * application current trace level is greater (>=) than message trace
+ * level.
+ *
+ * For example :
+ * - Messages with T_NORMAL trace level will be printed if application
+ *   current trace level is T_NORMAL or T_VERBOSE.
+ * - Messages with T_VERBOSE trace level will be printed only if
+ *   application current trace level is T_VERBOSE.
+ *
+ * Note that error messages trace level is T_QUIET, i.e. are always
+ * printed, except when application current trace level is
+ * T_QUIET_ERROR.
+ * 
+ */
+typedef enum e_TraceLevel {
+	T_QUIET_ERROR = 0,
+ /*<! Quiet errors trace level.*/
+	T_QUIET,
+ /*<! Quiet trace level.*/
+	T_NORMAL,
+ /*<! Normal trace level.*/
+	T_VERBOSE
+ /*<! Verbose trace level.*/
+} TraceLevel;
 
-extern int debug;
-extern int traceLevel;
+/**
+ * \var fractal2D_debug
+ * \brief Specifies whether or not debug messages should be printed.
+ *
+ * 1 if debug messages should be printed (for errors), 0 otherwise.
+ * This variable has an effect only if library was built in debug mode.
+ *
+ * \see debug_enabled()
+ */
+extern int fractal2D_debug;
 
-#define info(msg_trace,...) \
-        if (msg_trace <= traceLevel) { \
-            if (debug) { \
-                printf("[%s: %s, l.%d] ", __FILE__, __func__, __LINE__); \
-            } \
-            printf(__VA_ARGS__); \
+/**
+ * \var fractal2D_traceLevel
+ * \brief Specifies application current trace level.
+ */
+extern TraceLevel fractal2D_traceLevel;
+
+#ifdef DEBUG
+#define fractal2D_debug_prefix(output) \
+    if (fractal2D_debug) { \
+	fprintf(output,"[%s: %s, l.%d] ", __FILE__, __func__, __LINE__); \
+    }
+#else
+#define fractal2D_debug_prefix(output) (void)NULL;
+#endif
+
+/**
+ * \def fractal2D_message(output, msg_trace,...)
+ * \brief Print message depending on trace level.
+ *
+ * Message is printed if and only application current trace level
+ * is greater (>=) than message trace level.
+ */
+#define fractal2D_message(output, msg_trace,...) \
+        if (msg_trace <= fractal2D_traceLevel) { \
+            fractal2D_debug_prefix(output); \
+            fprintf(output, __VA_ARGS__); \
         }
 
-#define error(...) \
-        if (debug) { \
-            printf("[%s: %s, l.%d] ", __FILE__, __func__, __LINE__); \
-        } \
-        printf(__VA_ARGS__); \
+#define fractal2D_error(...) \
+	fractal2D_message(stderr, T_QUIET, __VA_ARGS__);\
         exit(EXIT_FAILURE)
 
+#define fractal2D_werror(...) \
+	fractal2D_message(stderr, T_QUIET, __VA_ARGS__);\
+	res = 1; \
+	goto end;
+
 // Common errors
-#define read_error(fileName) error("Error occured when reading file \'%s\'.\n", fileName)
-#define write_error(fileName) error("Error occured when writing in file \'%s\'.\n", fileName)
-#define open_error(fileName) error("Error occured when opening file \'%s\'.\n", fileName)
-#define existence_error(fileName) error("Error: \'%s\' does not exist.\n", fileName)
-#define close_error(fileName) error("Error occured when closing file \'%s\'.\n", fileName)
-#define alloc_error(s) error("Error occured when allocating memory for %s.\n", s)
+#define fractal2D_read_error(fileName) fractal2D_error("Error occured when reading file \'%s\'.\n", fileName)
+#define fractal2D_write_error(fileName) fractal2D_error("Error occured when writing in file \'%s\'.\n", fileName)
+#define fractal2D_open_error(fileName) fractal2D_error("Error occured when opening file \'%s\'.\n", fileName)
+#define fractal2D_existence_error(fileName) fractal2D_error("Error: \'%s\' does not exist.\n", fileName)
+#define fractal2D_close_error(fileName) fractal2D_error("Error occured when closing file \'%s\'.\n", fileName)
+#define fractal2D_alloc_error(s) fractal2D_error("Error occured when allocating memory for %s.\n", s)
+
+// Weak error
+#define fractal2D_read_werror(fileName) fractal2D_werror("Error occured when reading file \'%s\'.\n", fileName)
+#define fractal2D_write_werror(fileName) fractal2D_werror("Error occured when writing in file \'%s\'.\n", fileName)
+#define fractal2D_open_werror(fileName) fractal2D_werror("Error occured when opening file \'%s\'.\n", fileName)
+#define fractal2D_existence_werror(fileName) fractal2D_werror("Error: \'%s\' does not exist.\n", fileName)
+#define fractal2D_close_werror(fileName) fractal2D_werror("Error occured when closing file \'%s\'.\n", fileName)
+#define fractal2D_alloc_werror(s) fractal2D_werror("Error occured when allocating memory for %s.\n", s)
 
 #ifdef __cplusplus
 }

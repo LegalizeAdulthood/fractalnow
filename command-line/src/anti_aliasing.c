@@ -44,7 +44,7 @@ AntiAliasingMethod GetAAM(const char *str)
 {
 	int len = strlen(str);
 	if (len > 255) {
-		error("Unknown anti-aliasing method \'%s\'.\n", str);
+		fractal2D_error("Unknown anti-aliasing method \'%s\'.\n", str);
 	}
 
 	char AAMStr[256];
@@ -60,7 +60,7 @@ AntiAliasingMethod GetAAM(const char *str)
 		}
 	}
 	if (i == nbAntiAliasingMethods) {
-		error("Unknown anti-aliasing method \'%s\'.\n", str);
+		fractal2D_error("Unknown anti-aliasing method \'%s\'.\n", str);
 	}
 
 	return res;

@@ -18,14 +18,16 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
  
+#include "fractal2D.h"
 #include "main.h"
 #include "main_window.h"
 #include <QApplication>
-#include <QPushButton>
  
 int main(int argc, char *argv[])
 {
 	QApplication::setGraphicsSystem(QString("raster"));
+	QApplication::setApplicationName("qFractal2D");
+	QApplication::setApplicationVersion(QString(fractal2D_VersionNumber()));
 	QApplication app(argc, argv);
 
 	MainWindow mainWindow(argc, argv);

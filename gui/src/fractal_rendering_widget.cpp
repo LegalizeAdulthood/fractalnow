@@ -25,65 +25,56 @@
 #include "fractal_transfer_function.h"
 #include <stdint.h>
 #include <limits>
-#include <QGridLayout>
+#include <QFormLayout>
 #include <QLabel>
 
 FractalRenderingWidget::FractalRenderingWidget(RenderingParameters &render) : QWidget()
 {
-	QLabel *countingFunctionLabel = new QLabel(tr("Counting function:"));
 	countingFunctionComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbCountingFunctions; ++i) {
 		countingFunctionComboBox->addItem(CountingFunctionDescStr[i]);
 	}
 	countingFunctionComboBox->setCurrentIndex((int)render.countingFunction);
 
-	QLabel *coloringMethodLabel = new QLabel(tr("Coloring method:"));
 	coloringMethodComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbColoringMethods; ++i) {
 		coloringMethodComboBox->addItem(ColoringMethodDescStr[i]);
 	}
 	coloringMethodComboBox->setCurrentIndex((int)render.coloringMethod);
 
-	QLabel *addendFunctionLabel = new QLabel(tr("Addend function:"));
 	addendFunctionComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbAddendFunctions; ++i) {
 		addendFunctionComboBox->addItem(AddendFunctionDescStr[i]);
 	}
 	addendFunctionComboBox->setCurrentIndex((int)render.addendFunction);
 
-	QLabel *stripeDensityLabel = new QLabel(tr("Stripe density:"));
 	stripeDensitySpinBox = new QSpinBox;
 	stripeDensitySpinBox->setRange(1, std::numeric_limits<int>::max());
 	stripeDensitySpinBox->setValue((int)render.stripeDensity);
 	stripeDensitySpinBox->setAccelerated(true);
 
-	QLabel *interpolationMethodLabel = new QLabel(tr("Interpolation method:"));
 	interpolationMethodComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbInterpolationMethods; ++i) {
 		interpolationMethodComboBox->addItem(InterpolationMethodDescStr[i]);
 	}
 	interpolationMethodComboBox->setCurrentIndex((int)render.interpolationMethod);
 
-	QLabel *transferFunctionLabel = new QLabel(tr("Transfer function:"));
 	transferFunctionComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbTransferFunctions; ++i) {
 		transferFunctionComboBox->addItem(TransferFunctionDescStr[i]);
 	}
 	transferFunctionComboBox->setCurrentIndex((int)render.transferFunction);
 
-	QLabel *spaceColorLabel = new QLabel(tr("Space color:"));
 	spaceColorButton = new ColorButton;
 	spaceColorButton->setCurrentColor(QColor(render.spaceColor.r, render.spaceColor.g,
 					render.spaceColor.b));
 
-	QLabel *colorScalingLabel = new QLabel(tr("Color scaling:"));
 	colorScalingSpinBox = new QDoubleSpinBox;
 	colorScalingSpinBox->setDecimals(8);
 	colorScalingSpinBox->setRange(0, std::numeric_limits<double>::max());
 	colorScalingSpinBox->setValue(render.multiplier);
 	colorScalingSpinBox->setAccelerated(true);
 
-	QLabel *colorOffsetLabel = new QLabel(tr("Color offset:"));
 	colorOffsetSpinBox = new QDoubleSpinBox;
 	colorOffsetSpinBox->setDecimals(6);
 	colorOffsetSpinBox->setRange(0, 1);
@@ -91,37 +82,17 @@ FractalRenderingWidget::FractalRenderingWidget(RenderingParameters &render) : QW
 	colorOffsetSpinBox->setValue(render.offset);
 	colorOffsetSpinBox->setAccelerated(true);
 
-	QGridLayout *gridLayout = new QGridLayout;
-	gridLayout->addWidget(countingFunctionLabel, 0, 0);
-	gridLayout->addWidget(countingFunctionComboBox, 0, 1);
-
-	gridLayout->addWidget(coloringMethodLabel, 1, 0);
-	gridLayout->addWidget(coloringMethodComboBox, 1, 1);
-
-	gridLayout->addWidget(addendFunctionLabel, 2, 0);
-	gridLayout->addWidget(addendFunctionComboBox, 2, 1);
-
-	gridLayout->addWidget(stripeDensityLabel, 3, 0);
-	gridLayout->addWidget(stripeDensitySpinBox, 3, 1);
-
-	gridLayout->addWidget(interpolationMethodLabel, 4, 0);
-	gridLayout->addWidget(interpolationMethodComboBox, 4, 1);
-
-	gridLayout->addWidget(transferFunctionLabel, 5, 0);
-	gridLayout->addWidget(transferFunctionComboBox, 5, 1);
-
-	gridLayout->addWidget(colorScalingLabel, 6, 0);
-	gridLayout->addWidget(colorScalingSpinBox, 6, 1);
-
-	gridLayout->addWidget(colorOffsetLabel, 7, 0);
-	gridLayout->addWidget(colorOffsetSpinBox, 7, 1);
-
-	gridLayout->addWidget(spaceColorLabel, 8, 0);
-	gridLayout->addWidget(spaceColorButton, 8, 1);
-
-	gridLayout->setColumnStretch(1, 1);
-	gridLayout->setRowStretch(9, 1);
-	this->setLayout(gridLayout);
+	QFormLayout *formLayout = new QFormLayout;
+	formLayout->addRow(tr("Counting function:"), countingFunctionComboBox);
+	formLayout->addRow(tr("Coloring method:"), coloringMethodComboBox);
+	formLayout->addRow(tr("Addend function:"), addendFunctionComboBox);
+	formLayout->addRow(tr("Stripe density:"), stripeDensitySpinBox);
+	formLayout->addRow(tr("Interpolation method:"), interpolationMethodComboBox);
+	formLayout->addRow(tr("Transfer function:"), transferFunctionComboBox);
+	formLayout->addRow(tr("Color scaling:"), colorScalingSpinBox);
+	formLayout->addRow(tr("Color offset:"), colorOffsetSpinBox);
+	formLayout->addRow(tr("Space color:"), spaceColorButton);
+	this->setLayout(formLayout);
 
 	updateBoxesEnabledValue();
 	updateColorScalingSingleStep();

@@ -19,7 +19,7 @@
  */
  
  /**
-  * \file help.h
+  * \file main_window.h
   * \brief Header file introducing MainWindow class.
   *
   * \author Marc Pegon
@@ -36,20 +36,34 @@
 #include "image.h"
 #include "fractal_explorer.h"
 #include <QCloseEvent>
+#include <QDesktopServices>
 #include <QDoubleSpinBox>
 #include <QMainWindow>
+#include <QSpinBox>
 
 class MainWindow : public QMainWindow
 {
+	Q_OBJECT
+
 	public:
 	MainWindow(int argc, char *argv[]);
 
 	private:
-	void closeEvent(QCloseEvent * event);
-
 	FractalExplorer *fractalExplorer;
 	FractalConfigWidget *fractalConfigWidget;
 	FractalRenderingWidget *fractalRenderingWidget;
+	QSpinBox *preferredImageWidthSpinBox;
+	QSpinBox *preferredImageHeightSpinBox;
+	QAction *adaptExplorerToWindowAction;
+	QWidget *centralWidget;
+
+	private slots:
+	void aboutQt();
+	void aboutQFractal2D();
+	void adaptExplorerToWindow(bool checked);
+	void exportImage();
+	void onPreferredImageWidthChanged();
+	void onPreferredImageHeightChanged();
 };
 
 #endif

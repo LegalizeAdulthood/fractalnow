@@ -61,13 +61,13 @@ typedef struct s_Rectangle {
 void InitRectangle(Rectangle *rectangle, uint_fast32_t x1, uint_fast32_t y1, uint_fast32_t x2, uint_fast32_t y2);
 
 /**
- * \fn Rectangle *CopyRectangle(Rectangle *rectangle)
+ * \fn Rectangle CopyRectangle(const Rectangle *rectangle)
  * \brief Copy rectangle.
  *
  * \param rectangle Pointer to rectangle to copy.
- * \return Copy of rectangle argument.
+ * \return Copy of rectangle.
  */
-Rectangle *CopyRectangle(Rectangle *rectangle);
+Rectangle CopyRectangle(const Rectangle *rectangle);
 
 /**
  * \fn int CutRectangleInHalf(Rectangle rectangle, Rectangle *out1, Rectangle *out2)

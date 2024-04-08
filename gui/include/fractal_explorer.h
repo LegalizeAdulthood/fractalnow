@@ -45,15 +45,23 @@ class FractalExplorer : public QLabel
 	 
 	public:
 	FractalExplorer(const Fractal &fractal, const RenderingParameters &render,
-					uint_fast32_t width, uint_fast32_t height,
-					uint_fast32_t minAntiAliasingSize,
-					uint_fast32_t maxAntiAliasingSize,
-					uint_fast32_t antiAliasingSizeIteration);
+				uint_fast32_t width, uint_fast32_t height,
+				uint_fast32_t minAntiAliasingSize,
+				uint_fast32_t maxAntiAliasingSize,
+				uint_fast32_t antiAliasingSizeIteration,
+				QWidget *parent = 0, Qt::WindowFlags f = 0);
+
+	Fractal &getFractal();
+	RenderingParameters &getRender();
 	void launchFractalDrawing();
 	void launchFractalAntiAliasing();
-	void cancelActionIfNotFinished();
+	void resizeImage(uint_fast32_t width, uint_fast32_t height);
+	QSize sizeHint() const;
 	~FractalExplorer();
 
+	QAction *restoreInitialStateAction;
+	QAction *stopDrawingAction;
+	QAction *refreshAction;
 	QAction *zoomInAction;
 	QAction *zoomOutAction;
 	QAction *moveLeftAction;
@@ -61,20 +69,35 @@ class FractalExplorer : public QLabel
 	QAction *moveUpAction;
 	QAction *moveDownAction;
 
+	public slots:
+	void restoreInitialState();
+	void refresh();
+	int stopDrawing(); // return 1 if drawing was not active anyway
+	void zoomInFractal();
+	void zoomOutFractal();
+	void moveUpFractal();
+	void moveDownFractal();
+	void moveLeftFractal();
+	void moveRightFractal();
+
 	private:
 	void paintEvent(QPaintEvent *event);
-	QSize sizeHint() const;
-	QSize minimumSizeHint() const;
-	void reInitFractal();
-	void reInitRenderingParameters();
-	void moveFractal(double dx, double dy, bool emitFractalChanged = false);
-	void zoomInFractal(double newSpanX, double zoomCenterX, double zoomCenterY, bool emitFractalChanged = false);
-	void zoomOutFractal(double newSpanX, double zoomCenterX, double zoomCenterY, bool emitFractalChanged = false);
-
+	void resizeEvent(QResizeEvent * event);
 	void mousePressEvent(QMouseEvent *event);
 	void mouseReleaseEvent(QMouseEvent *event);
 	void mouseMoveEvent(QMouseEvent *event);
 	void wheelEvent(QWheelEvent *event);
+	void contextMenuEvent(QContextMenuEvent *event);
+
+	int cancelActionIfNotFinished();
+	void adjustSpan();
+	void reInitFractal();
+	void reInitRenderingParameters();
+	void moveFractal(double dx, double dy, bool emitFractalChanged = false);
+	void zoomInFractal(double newSpanX, double zoomCenterX, double zoomCenterY,
+				bool emitFractalChanged = false);
+	void zoomOutFractal(double newSpanX, double zoomCenterX, double zoomCenterY,
+				bool emitFractalChanged = false);
 
 	double currentAntiAliasingSize;
 	bool movingFractalDeferred;
@@ -85,9 +108,9 @@ class FractalExplorer : public QLabel
 	QPointF mousePosOnPress;
 	QImage imageCopyOnPress;
 
-	private:
-	Fractal fractal;
-	RenderingParameters render;
+	uint_fast32_t initialWidth, initialHeight;
+	Fractal fractal, initialFractal;
+	RenderingParameters render, initialRender;
 	uint_fast32_t minAntiAliasingSize;
 	uint_fast32_t maxAntiAliasingSize;
 	uint_fast32_t antiAliasingSizeIteration;
@@ -124,12 +147,6 @@ class FractalExplorer : public QLabel
 	void wakeUpIfAsleep();
 	void onFractalDrawingFinished();
 	void onFractalAntiAliasingFinished();
-	void zoomInFractal();
-	void zoomOutFractal();
-	void moveUpFractal();
-	void moveDownFractal();
-	void moveLeftFractal();
-	void moveRightFractal();
 
 	signals:
 	void wakeUpSignal();

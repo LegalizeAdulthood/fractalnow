@@ -1,11 +1,15 @@
 Rendering file syntax :
 
+RENDERING_FILE_FORMAT
 BYTES_PER_COMPONENT
 SPACE_COLOR
 COUNTING_ALGORITHM
 COLORING_METHOD [ADDEND_FUNCTION [STRIPE_DENSITY] INTERPOLATION_METHOD]
 COLOR_SCALING COLOR_OFFSET NB_TRANSITIONS
 Color1 ... ColorN
+
+RENDERING_FILE_FORMAT should be R072, which is the format described in this document.
+Other format values (of older versions) may still be supported though.
 
 BYTES_PER_COMPONENT specifies the number of bytes per component used for colors. It can be :
  - 1 for RGB8 (8 bits per component)

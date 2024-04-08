@@ -93,16 +93,16 @@ void CreateImage2(Image *image, uint8_t *data, uint_fast32_t width, uint_fast32_
 			uint_fast8_t bytesPerComponent);
 
 /**
- * \fn Image *CopyImage(Image *image)
+ * \fn Image CopyImage(const Image *image)
  * \brief Copy image.
  *
  * \param image Pointer to image to be copied.
- * \return Newly allocated copy of image.
+ * \return Copy of image.
  */
-Image *CopyImage(Image *image);
+Image CopyImage(const Image *image);
 
 /**
- * \fn uint8_t *ImageToBytesArray(Image *image)
+ * \fn uint8_t *ImageToBytesArray(const Image *image)
  * \brief Convert image to bytes array.
  *
  * For RGB8 images : the returned bytes array is the sequence r1 g1 b1 r2 g2 b2, etc.,
@@ -117,10 +117,10 @@ Image *CopyImage(Image *image);
  * \param image Image to convert to bytes array.
  * \return Copy of image data.
  */
-uint8_t *ImageToBytesArray(Image *image);
+uint8_t *ImageToBytesArray(const Image *image);
 
 /**
- * \fn Color iGetPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y)
+ * \fn Color iGetPixelUnsafe(const Image *image, uint_fast32_t x, uint_fast32_t y)
  * \brief Get some pixel of image.
  *
  * Get pixel (x,y) of image.
@@ -132,10 +132,10 @@ uint8_t *ImageToBytesArray(Image *image);
  * \param y Y pixel coordinate.
  * \return Color at position (x,y) of image.
  */
-Color iGetPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y);
+Color iGetPixelUnsafe(const Image *image, uint_fast32_t x, uint_fast32_t y);
 
 /**
- * \fn Color iGetPixel(Image *image, int_fast64_t x, int_fast64_t y)
+ * \fn Color iGetPixel(const Image *image, int_fast64_t x, int_fast64_t y)
  * \brief Get some pixel of image.
  *
  * Get pixel (x,y) of image.
@@ -147,7 +147,7 @@ Color iGetPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y);
  * \param y Y pixel coordinate.
  * \return Color at position (x,y) of image.
  */
-Color iGetPixel(Image *image, int_fast64_t x, int_fast64_t y);
+Color iGetPixel(const Image *image, int_fast64_t x, int_fast64_t y);
 
 /**
  * \fn void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color color)
@@ -167,7 +167,7 @@ Color iGetPixel(Image *image, int_fast64_t x, int_fast64_t y);
 void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color color);
 
 /**
- * \fn void ApplyGaussianBlur(Image *dst, Image *src, FLOAT radius)
+ * \fn void ApplyGaussianBlur(Image *dst, const Image *src, FLOAT radius)
  * \brief Apply gaussian blur on image.
  *
  * This function does no work in place.
@@ -178,38 +178,48 @@ void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color color)
  * \param src Pointer to source image (to apply blur on).
  * \param radius Gaussian blur radius.
  */
-void ApplyGaussianBlur(Image *dst, Image *src, FLOAT radius);
+void ApplyGaussianBlur(Image *dst, const Image *src, FLOAT radius);
 
 /**
- * \fn Action *LaunchApplyGaussianBlur(Image *dst, Image *src, FLOAT radius)
- * \brief Launch apply gaussian blur action, but does not wait for termination.
+ * \fn Action *LaunchApplyHorizontalGaussianBlur(Image *dst, const Image *src, FLOAT radius)
+ * \brief Launch apply horizontal gaussian blur action, but does not wait for termination.
  *
  * Action returned can be used to wait for termination or cancel gaussian blur applying.
- * A square gaussian filter is applied, so the computational cost is quadratic,
- * unlike ApplyGaussianBlur function.
  *
  * \param dst Pointer to already created destination image.
  * \param src Pointer to source image (to apply blur on).
  * \param radius Gaussian blur radius.
  * \return Corresponding newly-allocated action.
  */
-Action *LaunchApplyGaussianBlur(Image *dst, Image *src, FLOAT radius);
+Action *LaunchApplyHorizontalGaussianBlur(Image *dst, const Image *src, FLOAT radius);
 
 /**
- * \fn void DownscaleImage(Image *dst, Image *src)
+ * \fn Action *LaunchApplyVerticalGaussianBlur(Image *dst, const Image *src, FLOAT radius)
+ * \brief Launch apply vertical gaussian blur action, but does not wait for termination.
+ *
+ * Action returned can be used to wait for termination or cancel gaussian blur applying.
+ *
+ * \param dst Pointer to already created destination image.
+ * \param src Pointer to source image (to apply blur on).
+ * \param radius Gaussian blur radius.
+ * \return Corresponding newly-allocated action.
+ */
+Action *LaunchApplyVerticalGaussianBlur(Image *dst, const Image *src, FLOAT radius);
+
+/**
+ * \fn void DownscaleImage(Image *dst, const Image *src)
  * \brief Downscale image.
  *
- * This function does no work in place.
  * Destination image must already have been created, and its size
  * (both with and height) must be greater than that of the source.
  *
  * \param dst Pointer to already created destination image.
  * \param src Pointer to source image (to be downscaled).
  */
-void DownscaleImage(Image *dst, Image *src);
+void DownscaleImage(Image *dst, const Image *src);
 
 /**
- * \fn Action *LaunchDownscaleImage(Image *dst, Image *src)
+ * \fn Action *LaunchDownscaleImage(Image *dst, const Image *src)
  * \brief Launch image downscaling, but does not wait for termination.
  *
  * Action returned can be used to wait for termination or cancel image downscaling.
@@ -218,7 +228,7 @@ void DownscaleImage(Image *dst, Image *src);
  * \param src Pointer to source image (to be downscaled).
  * \return Corresponding (newly-allocated) action.
  */
-Action *LaunchDownscaleImage(Image *dst, Image *src);
+Action *LaunchDownscaleImage(Image *dst, const Image *src);
 
 /**
  * \fn void FreeImage(Image image)

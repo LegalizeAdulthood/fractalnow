@@ -20,16 +20,18 @@
 
  /**
   * \file main.h
-  * \brief Header file related to qfractal2D program.
+  * \brief Header file related to qFractal2D program.
   * \author Marc Pegon
   */
 
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
-#define DEFAULT_MIN_ANTIALIASING_SIZE (uint_fast32_t)(2)
-#define DEFAULT_MAX_ANTIALIASING_SIZE (uint_fast32_t)(3)
-#define DEFAULT_FRACTAL_IMAGE_WIDTH (uint_fast32_t)(500)
+#define DEFAULT_MIN_ANTIALIASING_SIZE (uint_fast32_t)(3)
+#define DEFAULT_MAX_ANTIALIASING_SIZE (uint_fast32_t)(5)
+#define DEFAULT_ANTIALIASING_SIZE_ITERATION (uint_fast32_t)(2)
+#define DEFAULT_FRACTAL_IMAGE_WIDTH (uint_fast32_t)(640)
+#define DEFAULT_FRACTAL_IMAGE_HEIGHT (uint_fast32_t)(512)
 #define DEFAULT_DECIMAL_NUMBER (int)(20)
 #define MIN_SINGLE_STEP (double)(pow(10, -DBL_DIG))
 

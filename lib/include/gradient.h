@@ -34,6 +34,10 @@ extern "C" {
 #include "color.h"
 #include <stdint.h>
 
+/**
+ * \def DEFAULT_GRADIENT_TRANSITIONS ((uint_fast32_t(UINT16_MAX+1)
+ * \brief Default number of transitions between two colors used for gradient.
+ */
 #define DEFAULT_GRADIENT_TRANSITIONS (uint_fast32_t)(UINT16_MAX+1)
 
 /**
@@ -48,6 +52,12 @@ typedef struct s_Gradient {
  /*!< Gradient size (total number of colors).*/
 	Color *data;
  /*!< Gradient data.*/
+	Color *originalColor;
+ /*!< Copy of colors used when building gradient (used for conversion if needed).*/
+	uint_fast32_t originalColorSize;
+ /*!< originalColor array size.*/
+	uint_fast32_t N;
+ /*!< Number of transitions used to generate gradient for originalColor array.*/
 } Gradient;
 
 /**
@@ -68,7 +78,38 @@ typedef struct s_Gradient {
 void GenerateGradient(Gradient *gradient, Color *color, uint_fast32_t size, uint_fast32_t N);
 
 /**
- * \fn Color GetGradientColor(Gradient *gradient, uint_fast64_t index)
+ * \fn Gradient CopyGradient(const Gradient *gradient)
+ * \brief Copy gradient.
+ *
+ * \param gradient Pointer to gradient to copy.
+ * \return Copy of gradient.
+ */
+Gradient CopyGradient(const Gradient *gradient);
+
+/**
+ * \fn Gradient Gradient16(const Gradient *gradient)
+ * \brief Convert gradient to 16 bits gradient.
+ *
+ * Simple copy if gradient colors depth is already 16.
+ *
+ * \param gradient Pointer to gradient to be converted.
+ * \return Newly-allocated 16 bits gradient.
+ */
+Gradient Gradient16(const Gradient *gradient);
+
+/**
+ * \fn Gradient Gradient8(const Gradient *gradient)
+ * \brief Convert gradient to 8 bits gradient.
+ *
+ * Simple copy if gradient colors depth is already 8.
+ *
+ * \param gradient Pointer to gradient to be converted.
+ * \return Newly-allocated 8 bits gradient.
+ */
+Gradient Gradient8(const Gradient *gradient);
+
+/**
+ * \fn Color GetGradientColor(const Gradient *gradient, uint_fast64_t index)
  * \brief Get a color in the gradient.
  *
  * Get the color in gradient at position index mod gradient_size
@@ -77,7 +118,7 @@ void GenerateGradient(Gradient *gradient, Color *color, uint_fast32_t size, uint
  * \param index (mod.) Index of the color to get.
  * \return Color in gradient at position (index mod gradient_size).
  */
-Color GetGradientColor(Gradient *gradient, uint_fast64_t index);
+Color GetGradientColor(const Gradient *gradient, uint_fast64_t index);
 
 /**
  * \fn void FreeGradient(Gradient gradient)

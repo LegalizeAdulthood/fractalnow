@@ -42,8 +42,8 @@ int FileExists(const char *fileName)
 
 void ParseCommandLineArguments(CommandLineArguments *dst, int argc, char *argv[])
 {
-	traceLevel = T_NORMAL;
-	debug = 0;
+	fractal2D_traceLevel = T_NORMAL;
+	fractal2D_debug = 0;
 	int help = 0;
 
 	dst->quadInterpolationSize = DEFAULT_QUAD_INTERPOLATION_SIZE;
@@ -67,19 +67,24 @@ void ParseCommandLineArguments(CommandLineArguments *dst, int argc, char *argv[]
 			help = 1;
 			break;
 		case 'q':
-			if (traceLevel == T_VERBOSE) {
+			if (fractal2D_traceLevel == T_VERBOSE) {
 				invalid_use_error("-q and -v are mutually exclusive.\n");
 			}
-			traceLevel = T_QUIET;
+			fractal2D_traceLevel = T_QUIET;
 			break;
 		case 'v':
-			if (traceLevel == T_QUIET) {
+			if (fractal2D_traceLevel == T_QUIET) {
 				invalid_use_error("-q and -v are mutually exclusive.\n");
 			}
-			traceLevel = T_VERBOSE;
+			fractal2D_traceLevel = T_VERBOSE;
 			break;
 		case 'd':
-			debug = 1;
+#ifndef DEBUG
+				fractal2D_message(stdout, T_QUIET, "Debug unavailable: fractal2D was not built in \
+debug mode.\n");
+#else
+			fractal2D_debug = 1;
+#endif
 			break;
 		case 'a':
 			dst->antiAliasingMethod = GetAAM(optarg);
@@ -244,11 +249,11 @@ must be > 1.\n");
 	}
 	
 	if (!FileExists(dst->fractalFileName)) {
-		existence_error(dst->fractalFileName);
+		fractal2D_existence_error(dst->fractalFileName);
 	}
 
 	if (!FileExists(dst->renderingFileName)) {
-		existence_error(dst->renderingFileName);
+		fractal2D_existence_error(dst->renderingFileName);
 	}
 }
 

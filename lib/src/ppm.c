@@ -22,12 +22,12 @@
 #include "error.h"
 #include <inttypes.h>
 
-void aux_ExportPPM8(char *fileName, Image *image) {
+void aux_ExportPPM8(const char *fileName, const Image *image) {
 	FILE *file;
 
 	file = fopen(fileName,"w");
 	if (!file) {
-		open_error(fileName);
+		fractal2D_open_error(fileName);
 	}
 
 	fprintf(file,"P6\n%"PRIuFAST32" %"PRIuFAST32"\n%"PRIu8"\n",
@@ -40,16 +40,16 @@ void aux_ExportPPM8(char *fileName, Image *image) {
 	}
 
 	if (fclose(file)) {
-		close_error(fileName);
+		fractal2D_close_error(fileName);
 	}
 }
 
-void aux_ExportPPM16(char *fileName, Image *image) {
+void aux_ExportPPM16(const char *fileName, const Image *image) {
 	FILE *file;
 
 	file = fopen(fileName,"w");
 	if (!file) {
-		open_error(fileName);
+		fractal2D_open_error(fileName);
 	}
 
 	fprintf(file,"P6\n%"PRIuFAST32" %"PRIuFAST32"\n%"PRIu16"\n",
@@ -62,14 +62,14 @@ void aux_ExportPPM16(char *fileName, Image *image) {
 	}
 
 	if (fclose(file)) {
-		close_error(fileName);
+		fractal2D_close_error(fileName);
 	}
 
 }
 
-void ExportPPM(char *fileName, Image *image)
+void ExportPPM(const char *fileName, const Image *image)
 {
-	info(T_NORMAL, "Exporting PPM \'%s\'...\n", fileName);
+	fractal2D_message(stdout, T_NORMAL, "Exporting PPM \'%s\'...\n", fileName);
 
 	switch (image->bytesPerComponent) {
 	case 1:
@@ -79,10 +79,10 @@ void ExportPPM(char *fileName, Image *image)
 		aux_ExportPPM16(fileName, image);
 		break;
 	default:
-		error("Invalid image bytes per component.\n");
+		fractal2D_error("Invalid image bytes per component.\n");
 		break;
 	}
 
-	info(T_NORMAL, "Exporting PPM \'%s\' : DONE.\n", fileName);
+	fractal2D_message(stdout, T_NORMAL, "Exporting PPM \'%s\' : DONE.\n", fileName);
 }
 

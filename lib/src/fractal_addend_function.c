@@ -37,28 +37,29 @@ const char *AddendFunctionDescStr[] = {
 
 uint_fast32_t nbAddendFunctions = sizeof(AddendFunctionStr) / sizeof(char *);
 
-AddendFunction GetAddendFunction(const char *str)
+int GetAddendFunction(AddendFunction *addendFunction, const char *str)
 {
+	int res = 0;
 	int len = strlen(str);
 	if (len > 255) {
-		error("Unknown addend function \'%s\'.\n", str);
+		fractal2D_werror("Unknown addend function \'%s\'.\n", str);
 	}
 
 	char AFStr[256];
 	strcpy(AFStr, str);
 	toLowerCase(AFStr);
-	AddendFunction res;
 
 	uint_fast32_t i;
 	for (i = 0; i < nbAddendFunctions; ++i) {
 		if (strcmp(AFStr, AddendFunctionStr[i]) == 0) {
-			res = (AddendFunction)i;
+			*addendFunction = (AddendFunction)i;
 			break;
 		}
 	}
 	if (i == nbAddendFunctions) {
-		error("Unknown addend function \'%s\'.\n", str);
+		fractal2D_werror("Unknown addend function \'%s\'.\n", str);
 	}
 
+	end:
 	return res;
 }

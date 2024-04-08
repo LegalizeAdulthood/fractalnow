@@ -21,6 +21,7 @@
 #include "gradient.h"
 #include "error.h"
 #include "misc.h"
+#include <string.h>
 
 void aux_GenerateGradient(Gradient *gradient, uint_fast64_t ind_tab, Color C1, Color C2, uint_fast32_t N)
 {
@@ -36,20 +37,74 @@ void aux_GenerateGradient(Gradient *gradient, uint_fast64_t ind_tab, Color C1, C
 
 void GenerateGradient(Gradient *gradient, Color *color, uint_fast32_t size, uint_fast32_t N)
 {
-	info(T_NORMAL,"Generating gradient...\n");
+	fractal2D_message(stdout, T_NORMAL,"Generating gradient...\n");
 	
-	gradient->data = (Color *)safeMalloc("gradient", N*(size-1)*sizeof(Color));
+	gradient->originalColor = (Color *)safeMalloc("gradient color copy", size*sizeof(Color));
+	memcpy(gradient->originalColor, color, size*sizeof(Color));
+	gradient->originalColorSize = size;
+	gradient->N = N;
 
+	gradient->data = (Color *)safeMalloc("gradient data", N*(size-1)*sizeof(Color));
 	for (uint_fast64_t i=0; i<size-1; i++) {
 		aux_GenerateGradient(gradient, i*N, color[i], color[i+1],N);
 	}
 
 	gradient->size = (size-1)*N;
 
-	info(T_NORMAL,"Generating gradient : DONE.\n");
+	fractal2D_message(stdout, T_NORMAL,"Generating gradient : DONE.\n");
 }
 
-inline Color GetGradientColor(Gradient *gradient, uint_fast64_t index)
+Gradient CopyGradient(const Gradient *gradient)
+{
+	Gradient res;
+	res.data = (Color *)safeMalloc("gradient copy data", gradient->size*sizeof(Color));
+	memcpy(res.data, gradient->data, gradient->size*sizeof(Color));
+	res.size = gradient->size;
+	res.originalColor = (Color *)safeMalloc("gradient colo copy data", gradient->originalColorSize*sizeof(Color));
+	memcpy(res.originalColor, gradient->originalColor, gradient->originalColorSize*sizeof(Color));
+	res.originalColorSize = gradient->originalColorSize;
+	res.N = gradient->N;
+
+	return res;
+}
+
+Gradient Gradient16(const Gradient *gradient)
+{
+	Gradient res;
+	if (gradient->originalColor[0].bytesPerComponent == 2) {
+		res = CopyGradient(gradient);
+	} else {
+		Color *tmp = (Color *)safeMalloc("16 bits gradient color copy", gradient->originalColorSize*sizeof(Color));
+		for (uint_fast32_t i = 0; i < gradient->originalColorSize; ++i) {
+			tmp[i] = Color16(gradient->originalColor[i]);
+		}
+
+		GenerateGradient(&res, tmp, gradient->originalColorSize,  gradient->N);
+		free(tmp);
+	}
+
+	return res;
+}
+
+Gradient Gradient8(const Gradient *gradient)
+{
+	Gradient res;
+	if (gradient->originalColor[0].bytesPerComponent == 1) {
+		res = CopyGradient(gradient);
+	} else {
+		Color *tmp = (Color *)safeMalloc("8 bits gradient color copy", gradient->originalColorSize*sizeof(Color));
+		for (uint_fast32_t i = 0; i < gradient->originalColorSize; ++i) {
+			tmp[i] = Color8(gradient->originalColor[i]);
+		}
+
+		GenerateGradient(&res, tmp, gradient->originalColorSize,  gradient->N);
+		free(tmp);
+	}
+
+	return res;
+}
+
+inline Color GetGradientColor(const Gradient *gradient, uint_fast64_t index)
 {
 	return gradient->data[index % gradient->size];
 }
@@ -57,4 +112,6 @@ inline Color GetGradientColor(Gradient *gradient, uint_fast64_t index)
 void FreeGradient(Gradient gradient)
 {
 	free(gradient.data);
+	free(gradient.originalColor);
 }
+

@@ -68,7 +68,8 @@ typedef struct s_Filter
  * \param cy Y coordinate of filter's center.
  * \param data Filter data (NOT copied, and will be freed when the filter is freed).
  */
-void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, uint_fast32_t cx, uint_fast32_t cy, FLOAT *data);
+void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, uint_fast32_t cx, uint_fast32_t cy,
+		FLOAT *data);
 
 /**
  * \fn void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOAT *data)
@@ -86,13 +87,13 @@ void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, uint_fast32_
 void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOAT *data);
 
 /**
- * \fn Filter *CopyFilter(Filter *filter)
+ * \fn Filter CopyFilter(const Filter *filter)
  * \brief Copy filter.
  *
  * \param filter Pointer to filter to copy.
- * \return Copy of filter argument.
+ * \return Copy of filter.
  */
-Filter *CopyFilter(Filter *filter);
+Filter CopyFilter(const Filter *filter);
 
 /**
  * \fn void CreateHorizontalGaussianFilter(Filter *filter, FLOAT sigma)
@@ -159,7 +160,7 @@ void CreateGaussianFilter(Filter *filter, FLOAT sigma);
 void CreateGaussianFilter2(Filter *filter, FLOAT radius);
 
 /**
- * \fn FLOAT GetFilterValueUnsafe(Filter *filter, uint_fast32_t x, uint_fast32_t y)
+ * \fn FLOAT GetFilterValueUnsafe(const Filter *filter, uint_fast32_t x, uint_fast32_t y)
  * \brief Get some particular value of filter.
  *
  * Get value of filter at row x, column y. Warning, this function is
@@ -171,7 +172,7 @@ void CreateGaussianFilter2(Filter *filter, FLOAT radius);
  * \param y Column of the filter value.
  * \return Value at position (x,y) of filter.
  */
-FLOAT GetFilterValueUnsafe(Filter *filter, uint_fast32_t x, uint_fast32_t y);
+FLOAT GetFilterValueUnsafe(const Filter *filter, uint_fast32_t x, uint_fast32_t y);
 
 /**
  * \fn void MultiplyFilterByScalar(Filter *filter, FLOAT scalar)
@@ -198,10 +199,9 @@ void MultiplyFilterByScalar(Filter *filter, FLOAT scalar);
 int NormalizeFilter(Filter *filter);
 
 /**
- * \fn Color ApplyFilterOnSinglePixel(Image *src, uint_fast32_t x, uint_fast32_t y, Filter *filter)
+ * \fn Color ApplyFilterOnSinglePixel(const Image *src, uint_fast32_t x, uint_fast32_t y, const Filter *filter)
  * \brief Apply a filter on the single pixel of an image.
  *
- * The image will NOT be modified.
  * This function IS safe (pixels outside of the image will be
  * duplicates of the pixels at the sides of it).
  *
@@ -211,10 +211,10 @@ int NormalizeFilter(Filter *filter);
  * \param filter Filter we apply on the image.
  * @return Result of the application of the filter on pixel (x,y) of the image.
  */
-Color ApplyFilterOnSinglePixel(Image *src, uint_fast32_t x, uint_fast32_t y, Filter *filter);
+Color ApplyFilterOnSinglePixel(const Image *src, uint_fast32_t x, uint_fast32_t y, const Filter *filter);
 
 /**
- * \fn void ApplyFilter(Image *dst, Image *src, Filter *filter)
+ * \fn void ApplyFilter(Image *dst, const Image *src, const Filter *filter)
  * \brief Apply filter on image.
  *
  * This function does not work in place.
@@ -225,10 +225,10 @@ Color ApplyFilterOnSinglePixel(Image *src, uint_fast32_t x, uint_fast32_t y, Fil
  * \param src Source image.
  * \param filter Filter to apply.
  */
-void ApplyFilter(Image *dst, Image *src, Filter *filter);
+void ApplyFilter(Image *dst, const Image *src, const Filter *filter);
 
 /**
- * \fn Action *LaunchApplyFilter(Image *dst, Image *src, Filter *filter)
+ * \fn Action *LaunchApplyFilter(Image *dst, const Image *src, const Filter *filter)
  * \brief Launch apply filter action, but does not wait for termination.
  *
  * Action returned can be used to wait for termination or cancel filter applying.
@@ -238,7 +238,7 @@ void ApplyFilter(Image *dst, Image *src, Filter *filter);
  * \param filter Filter to apply.
  * \return Corresponding newly-allocated action.
  */
-Action *LaunchApplyFilter(Image *dst, Image *src, Filter *filter);
+Action *LaunchApplyFilter(Image *dst, const Image *src, const Filter *filter);
 
 /**
  * \fn void FreeFilter(Filter filter)

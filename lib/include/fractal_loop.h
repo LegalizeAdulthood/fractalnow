@@ -81,7 +81,8 @@ struct s_RenderingParameters;
  * \see fractal_addend_function.h
  * \see fractal_interpolation_method.h
  */
-typedef FLOAT (*FractalLoop)(Fractal *fractal, struct s_RenderingParameters *render, FLOAT complex pixel);
+typedef FLOAT (*FractalLoop)(const Fractal *fractal, const struct s_RenderingParameters *render,
+				FLOAT complex pixel);
 
 /**
  * \fn FractalLoop GetFractalLoop(FractalFormula fractalFormula, int p_is_integer, ColoringMethod coloringMethod, AddendFunction addendFunction, InterpolationMethod interpolationMethod)

@@ -21,13 +21,14 @@
 #include "help.h"
 #include "floating_point.h"
 #include "fractal.h"
+#include "fractal2D.h"
 #include "thread.h"
 #include <stdio.h>
 #include <inttypes.h>
 
 void DisplayHelp()
 {
-	printf("\nDraw some fractal subset :\n\
+	printf("fractal2D v%s - Generate 2D fractal images.\n\
 Usage : fractal2D [-h] \n  \
 or \n\
 fractal2D [-q|-v] [-d] [-j <NbThreads>] -c <FractalFile> -r \
@@ -36,9 +37,11 @@ fractal2D [-q|-v] [-d] [-j <NbThreads>] -c <FractalFile> -r \
 [-i <QuadSize>] [-t <Threshold>]\n\n  \
 -h : Prints this help.\n  \
 -q : Quiet mode.\n  \
--v : Verbose mode.\n  \
--d : Debug mode.\n  \
--j <NbThreads> : Specify the number of threads to compute image \
+-v : Verbose mode.\n  "
+#ifdef DEBUG
+"-d : Debug mode.\n  "
+#endif
+"-j <NbThreads> : Specify the number of threads to compute image \
 (%"PRIuFAST32" by default).\n  \
 -c <FractalFile> : Specify the fractal config file, used for \
 computing fractal. See fractal file syntax below.\n  \
@@ -73,6 +76,7 @@ dissimilar values at its corners will be computed (as opposed \
 to interpolated). Value must be greater than 0. Note that when \
 oversampling factor is specified, this is used to compute \
 the high resolution image, before downscaling.\n",
+	fractal2D_VersionNumber(),
 	DEFAULT_NB_THREADS,
 	FLOAT_DIG, DEFAULT_ADAPTIVE_AAM_THRESHOLD,
 	DEFAULT_QUAD_INTERPOLATION_SIZE,

@@ -34,7 +34,7 @@ static inline FLOAT cnorm2F(FLOAT complex z) {
 
 #define BUILD_FRACTAL_LOOP_FUNCTION(formula,ptype,coloring,addend,interpolation) \
 FLOAT FractalLoop##formula##ptype##coloring##addend##interpolation( \
-	Fractal *fractal, RenderingParameters *render, FLOAT complex pixel) \
+	const Fractal *fractal, const RenderingParameters *render, FLOAT complex pixel) \
 {\
 	FLOAT complex z, c;\
 	FLOAT res = 0;\
@@ -87,7 +87,10 @@ FractalLoop GetFractalLoop(FractalFormula fractalFormula, int p_is_integer, Colo
 {
 	MACRO_BUILD_FRACTALS
 
-	error("Could not get fractal loop function from parameters.\n");
+	/* This should never happen, because fractal loops are built by macros for all possible
+	 * values of each parameter.
+	 */
+	fractal2D_error("Could not get fractal loop function from parameters.\n");
 
 	return NULL;
 }

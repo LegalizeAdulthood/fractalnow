@@ -19,17 +19,19 @@
  */
  
 #include "help.h"
+#include "fractal2D.h"
 #include "floating_point.h"
 #include "main.h"
 #include "thread.h"
 #include <inttypes.h>
 
- void Help::Print()
- {
-	printf("\nDraw some fractal subset :\n\
+void Help::Print()
+{
+	printf("qfractal2D v%s - Explore \
+2D fractals.\n\
 Usage : qfractal2D [-h] \n  \
 or \n\
-fractal2D [-q|-v] [-d] [-j <NbThreads>] [-c <FractalFile>] [-r \
+qfractal2D [-q|-v] [-d] [-j <NbThreads>] [-c <FractalFile>] [-r \
 <RenderingFile>] [-x <Width> | -y <Height>] [-m <MinAAMSize> \
 -M <MaxAAMSize>] \n\n  \
 -h : Prints this help.\n  \
@@ -53,9 +55,10 @@ integer strictly greater than 1.\n  \
 -M <MinAAMSize> : Specify maximum size of adaptive \
 anti-aliasing (%"PRIuFAST32" by default). Must be an \
 integer strictly greater than 1.\n",
+	fractal2D_VersionNumber(),
 	DEFAULT_NB_THREADS,
 	DEFAULT_FRACTAL_IMAGE_WIDTH,
 	DEFAULT_MIN_ANTIALIASING_SIZE,
 	DEFAULT_MAX_ANTIALIASING_SIZE);
- }
+}
 

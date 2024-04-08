@@ -3,6 +3,7 @@ INCLUDEDIR= include
 OBJDIR    = objs
 ARCHIVE   = libfractal2D.a
 DEPENDENCY_FILE=${OBJDIR}/makefile.dep
+VERSION_NUMBER = 0.7.2
 
 UNAME := $(shell uname)
 
@@ -14,11 +15,14 @@ ARFLAGS = -r -c -s
 
 CFLAGS    = -std=c99 -pedantic -Wall -Wextra
 ifdef FLOAT_PRECISION
-CFLAGS   += -DFLOAT_PRECISION=$(FLOAT_PRECISION)
+CFLAGS   += -DFLOAT_PRECISION=${FLOAT_PRECISION}
+endif
+ifdef VERSION_NUMBER
+CFLAGS   += -DVERSION_NUMBER=${VERSION_NUMBER}
 endif
 
 ifdef DEBUG
-	CFLAGS += -Werror -O0
+	CFLAGS += -Werror -O0 -g -DDEBUG
 else
 	CFLAGS += -O2 -ffast-math
 endif
@@ -38,6 +42,7 @@ OBJECTS = \
 	$(OBJDIR)/color.o \
 	$(OBJDIR)/file_parsing.o \
 	$(OBJDIR)/filter.o \
+	$(OBJDIR)/fractal2D.o \
 	$(OBJDIR)/fractal.o \
 	$(OBJDIR)/gradient.o \
 	$(OBJDIR)/image.o \
@@ -64,10 +69,10 @@ $(OBJDIR)/%.o:${SRCDIR}/%.c
 	${CC} ${CPPFLAGS} ${CFLAGS} -c $< -o $@
 
 clean:
-	$(call quiet-command, rm -f $(ARCHIVE) *~, "  CLEAN    (ARCHIVE)")
 	$(call quiet-command, rm -f ${DEPENDENCY_FILE}, "  CLEAN    (DEPENDENCY DATABASE)")
 	$(call quiet-command, rm -f $(OBJECTS) , "  CLEAN    (OBJECTS)")
 
 distclean: clean
-	$(call quiet-command, rm -fr $(OBJDIR), "  DISTCLEAN    ")
+	$(call quiet-command, rm -f $(ARCHIVE) *~, "  CLEAN    (ARCHIVE)")
+	$(call quiet-command, rm -fr $(OBJDIR), "  CLEAN    (OBJDIR)")
 
