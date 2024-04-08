@@ -31,6 +31,15 @@ const char *AntiAliasingMethodStr[] = {
 	(char *)"adaptive"
 };
 
+const char *AntiAliasingMethodDescStr[] = {
+	(char *)"None",
+	(char *)"Gaussian blur",
+	(char *)"Oversampling",
+	(char *)"Adaptive"
+};
+
+uint_fast32_t nbAntiAliasingMethods = sizeof(AntiAliasingMethodStr) / sizeof(char *);
+
 AntiAliasingMethod GetAAM(const char *str)
 {
 	int len = strlen(str);
@@ -44,14 +53,13 @@ AntiAliasingMethod GetAAM(const char *str)
 	AntiAliasingMethod res;
 
 	uint_fast32_t i;
-	uint_fast32_t nb_elem = sizeof(AntiAliasingMethodStr) / sizeof(char *);
-	for (i = 0; i < nb_elem; ++i) {
+	for (i = 0; i < nbAntiAliasingMethods; ++i) {
 		if (strcmp(AAMStr, AntiAliasingMethodStr[i]) == 0) {
 			res = (AntiAliasingMethod)i;
 			break;
 		}
 	}
-	if (i == nb_elem) {
+	if (i == nbAntiAliasingMethods) {
 		error("Unknown anti-aliasing method \'%s\'.\n", str);
 	}
 

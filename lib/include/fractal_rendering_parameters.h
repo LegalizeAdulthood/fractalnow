@@ -49,7 +49,9 @@ typedef struct s_RenderingParameters {
 	Color spaceColor;
  /*!< The color for fractal space.*/
 	CountingFunction countingFunction;
- /*!< Fractal counting function.*/
+ /*!< Fractal counting function enum value.*/
+	CountingFunctionPtr countingFunctionPtr;
+ /*!< Fractal counting function ptr.*/
 	ColoringMethod coloringMethod;
  /*!< Fractal coloring method.*/
 	AddendFunction addendFunction;
@@ -59,7 +61,9 @@ typedef struct s_RenderingParameters {
 	InterpolationMethod interpolationMethod;
  /*!< Fractal interpolation method (used only for CM_AVERAGE coloring method).*/
 	TransferFunction transferFunction;
- /*!< Fractal transfer function (to make the values fit the gradient better).*/
+ /*!< Fractal transfer function enum value (to make the values fit the gradient better).*/
+	TransferFunctionPtr transferFunctionPtr;
+ /*!< Transfer function ptr.*/
 	FLOAT multiplier;
  /*!< Value with which fractal values will be multiplied (to make the values fit the gradient better).*/
 	FLOAT offset;
@@ -69,7 +73,7 @@ typedef struct s_RenderingParameters {
 } RenderingParameters;
 
 /**
- * \fn void InitRenderingParameters(RenderingParameters *param, uint_fast8_t bytesPerComponent, Color spaceColor, CountingFunction countingFunction, ColoringMethod coloringMethod, AddendFunction addendFunction, InterpolationMethod interpolationMethod, TransferFunction transferFunction, FLOAT multiplier, FLOAT offset, Gradient gradient)
+ * \fn void InitRenderingParameters(RenderingParameters *param, uint_fast8_t bytesPerComponent, Color spaceColor, CountingFunction countingFunction, ColoringMethod coloringMethod, AddendFunction addendFunction, uint_fast32_t stripeDensity, InterpolationMethod interpolationMethod, TransferFunction transferFunction, FLOAT multiplier, FLOAT offset, Gradient gradient)
  * \brief Initialize rendering parameters.
  *
  * Bytes per component *must* agree with space color and gradient colors :

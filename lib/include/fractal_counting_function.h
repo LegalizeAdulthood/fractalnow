@@ -37,7 +37,7 @@ struct s_Fractal;
 
 /**
  * \typedef CountingFunction
- * \brief Counting function type.
+ * \brief Possible counting functions.
  *
  * There are different ways to "count" the number of iterations
  * when computing fractal :
@@ -48,19 +48,38 @@ struct s_Fractal;
  * fractal space...
  * 
  */
-typedef FLOAT (*CountingFunction)(struct s_Fractal *fractal, uint_fast32_t N, FLOAT rN);
+typedef enum e_CountingFunction {
+	CF_DISCRETE = 0,
+ /*<! Discrete iteration count. */
+	CF_CONTINUOUS,
+ /*<! Continuous iteration count. */
+	CF_SMOOTH
+ /*<! Smooth iteration count. */
+} CountingFunction;
 
 /**
- * \var CountingFunctionsArray
- * \brief Array of implemented counting functions.
+ * \var nbCountingFunctions
+ * \brief Number of counting functions.
  */
-extern const CountingFunction CountingFunctionsArray[];
+extern uint_fast32_t nbCountingFunctions;
 
 /**
  * \var CountingFunctionStr
  * \brief Strings of counting functions.
  */
 extern const char *CountingFunctionStr[];
+
+/**
+ * \var CountingFunctionDescStr
+ * \brief More descriptive strings for counting functions.
+ */
+extern const char *CountingFunctionDescStr[];
+
+/**
+ * \typedef CountingFunctionPtr
+ * \brief Counting function type.
+ */
+typedef FLOAT (*CountingFunctionPtr)(struct s_Fractal *fractal, uint_fast32_t N, FLOAT rN);
 
 /**
  * \fn CountingFunction GetCountingFunction(const char *str)
@@ -77,6 +96,15 @@ extern const char *CountingFunctionStr[];
  * \return Corresponding counting function.
  */
 CountingFunction GetCountingFunction(const char *str);
+
+/**
+ * \fn CountingFunctionPtr GetCountingFunctionPtr(CountingFunction countingFunction)
+ * \brief Get counting function ptr from counting function enum value.
+ *
+ * \param countingFunction Counting function enum value.
+ * \return Corresponding counting function ptr.
+ */
+CountingFunctionPtr GetCountingFunctionPtr(CountingFunction countingFunction);
 
 #ifdef __cplusplus
 }

@@ -29,6 +29,14 @@ const char *AddendFunctionStr[] = {
 	(char *)"stripe"
 };
 
+const char *AddendFunctionDescStr[] = {
+	(char *)"Triangle inequality",
+	(char *)"Curvature",
+	(char *)"Stripe"
+};
+
+uint_fast32_t nbAddendFunctions = sizeof(AddendFunctionStr) / sizeof(char *);
+
 AddendFunction GetAddendFunction(const char *str)
 {
 	int len = strlen(str);
@@ -42,14 +50,13 @@ AddendFunction GetAddendFunction(const char *str)
 	AddendFunction res;
 
 	uint_fast32_t i;
-	uint_fast32_t nb_elem = sizeof(AddendFunctionStr) / sizeof(char *);
-	for (i = 0; i < nb_elem; ++i) {
+	for (i = 0; i < nbAddendFunctions; ++i) {
 		if (strcmp(AFStr, AddendFunctionStr[i]) == 0) {
 			res = (AddendFunction)i;
 			break;
 		}
 	}
-	if (i == nb_elem) {
+	if (i == nbAddendFunctions) {
 		error("Unknown addend function \'%s\'.\n", str);
 	}
 

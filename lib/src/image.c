@@ -27,52 +27,122 @@
 #include <stdlib.h>
 #include <string.h>
 
-void CreateImage(Image *image, uint_fast32_t width, uint_fast32_t height, uint_fast8_t bytesPerComponent)
+inline void CreateImage(Image *image, uint_fast32_t width, uint_fast32_t height, uint_fast8_t bytesPerComponent)
 {
 	if (bytesPerComponent != 1 && bytesPerComponent != 2) {
 		error("Invalid bytes per component. Only 1 and 2 are allowed.\n");
 	}
-	image->data = (uint8_t *)safeCalloc("image data", width*height, 3*bytesPerComponent);
+	if (width == 0 || height == 0) {
+		image->data = NULL;
+	} else {
+		image->data = (uint8_t *)safeCalloc("image data", width*height, 4*bytesPerComponent);
+	}
+	image->data_is_external = 0;
 	image->width = width;
 	image->height = height;
 	image->bytesPerComponent = bytesPerComponent;
 }
 
-static inline void ImageRGB8ToBytesArray(uint8_t *array, Image *image)
+void CreateImage2(Image *image, uint8_t *data, uint_fast32_t width, uint_fast32_t height,
+			uint_fast8_t bytesPerComponent)
 {
-	memcpy(array, image->data, image->width*image->height*3*image->bytesPerComponent);
+	if (bytesPerComponent != 1 && bytesPerComponent != 2) {
+		error("Invalid bytes per component. Only 1 and 2 are allowed.\n");
+	}
+	image->data = data;
+	image->data_is_external = 1;
+	image->width = width;
+	image->height = height;
+	image->bytesPerComponent = bytesPerComponent;
 }
 
-static inline void ImageRGB16ToBytesArray(uint8_t *array, Image *image)
+Image *CopyImage(Image *image)
 {
-	uint8_t *p_array = array;
-	uint16_t *data = (uint16_t *)image->data;
+	Image *res = (Image *)safeMalloc("image copy", sizeof(Image));
+	CreateImage(res, image->width, image->height, image->bytesPerComponent);
+	memcpy(res->data, image->data, image->width*image->height*4*image->bytesPerComponent);
 
+	return res;
+}
+
+static inline uint8_t *ImageRGB8ToBytesArray(Image *image)
+{
+	if (image->width == 0 || image->height == 0) {
+		return NULL;
+	}
+
+	uint8_t *res = (uint8_t *)safeCalloc("image bytes array", image->width*image->height,
+						3*image->bytesPerComponent);
+
+	uint32_t *p_data32 = (uint32_t *)image->data;
+	uint32_t data32;
+	uint8_t *p_res = res;
 	for (uint_fast32_t i = 0; i < image->height; ++i) {
 		for (uint_fast32_t j = 0; j < image->width; ++j) {
-			for (int k = 0; k < 3; ++k) {
-				*(p_array++) = (uint8_t)((*data) >> 8);
-				*(p_array++) = (uint8_t)((*data) & 0xFF);
-				++data;
-			}
+			data32 = *p_data32;
+			*(p_res++) = GET_R8(data32);
+			*(p_res++) = GET_G8(data32);
+			*(p_res++) = GET_B8(data32);
+			++p_data32;
 		}
 	}
+
+	return res;
 }
 
-void ImageToBytesArray(uint8_t *array, Image *image)
+static inline uint8_t *ImageRGB16ToBytesArray(Image *image)
 {
+	if (image->width == 0 || image->height == 0) {
+		return NULL;
+	}
+
+	uint8_t *res = (uint8_t *)safeCalloc("image bytes array", image->width*image->height,
+						3*image->bytesPerComponent);
+
+	uint64_t *p_data64 = (uint64_t *)image->data;
+	uint64_t data64;
+	uint16_t r, g, b;
+	uint8_t *p_res = res;
+	for (uint_fast32_t i = 0; i < image->height; ++i) {
+		for (uint_fast32_t j = 0; j < image->width; ++j) {
+			data64 = *p_data64;
+			/* We want the components in the order RGB, so we need to extract
+			 * them from uint64_t (the machine can be MSB first, or LSB first..)
+			 */
+			r = GET_R16(data64);
+			g = GET_G16(data64);
+			b = GET_B16(data64);
+			/* Then we want for each component the most significant byte first.*/
+			*(p_res++) = r >> 8;
+			*(p_res++) = r & 0xFF;
+			*(p_res++) = g >> 8;
+			*(p_res++) = g & 0xFF;
+			*(p_res++) = b >> 8;
+			*(p_res++) = b & 0xFF;
+			++p_data64;
+		}
+	}
+
+	return res;
+}
+
+uint8_t *ImageToBytesArray(Image *image)
+{
+	uint8_t *res;
 	switch(image->bytesPerComponent) {
 	case 1:
-		ImageRGB8ToBytesArray(array, image);
+		res = ImageRGB8ToBytesArray(image);
 		break;
 	case 2:
-		ImageRGB16ToBytesArray(array, image);
+		res = ImageRGB16ToBytesArray(image);
 		break;
 	default:
 		error("Invalid bytes per component (%"PRIuFAST8").\n",
 			image->bytesPerComponent);
 		break;
 	}
+
+	return res;
 }
 
 typedef enum {
@@ -85,18 +155,18 @@ inline Color iGetPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y) {
 	switch (res.bytesPerComponent) {
 	case 1:
 		{
-		uint8_t *data = image->data + (y*image->width+x)*3;
-		res.r = *(data++);
-		res.g = *(data++);
-		res.b = *(data++);
+		uint32_t data32 = *((uint32_t *)(image->data) + y*image->width+x);
+		res.r = GET_R8(data32);
+		res.g = GET_G8(data32);
+		res.b = GET_B8(data32);
 		break;
 		}
 	case 2:
 		{
-		uint16_t *data = (uint16_t *)(image->data + (y*image->width+x)*6);
-		res.r = *(data++);
-		res.g = *(data++);
-		res.b = *(data++);
+		uint64_t data64 = *((uint64_t *)(image->data) + y*image->width+x);
+		res.r = GET_R16(data64);
+		res.g = GET_G16(data64);
+		res.b = GET_B16(data64);
 		}
 		break;
 	default:
@@ -140,7 +210,18 @@ Region iGetImageRegion(Image *image, int_fast64_t x, int_fast64_t y)
 	return region;
 }
 
+Color blackColorRGB8 = {1, 0, 0, 0};
+Color blackColorRGB16 = {2, 0, 0, 0};
+
 Color iGetPixel(Image *image, int_fast64_t x, int_fast64_t y) {
+	if (image->width == 0 || image->height == 0) {
+		if (image->bytesPerComponent == 1) {
+			return blackColorRGB8;
+		} else {
+			return blackColorRGB16;
+		}
+	}
+
 	Region region = iGetImageRegion(image, x, y);
 	Color res;
 
@@ -185,18 +266,14 @@ inline void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color
 	switch (image->bytesPerComponent) {
 	case 1:
 		{
-		uint8_t *data = image->data + (y*image->width+x)*3;
-		*(data++) = color.r;
-		*(data++) = color.g;
-		*(data++) = color.b;
+		uint32_t *data32 = (uint32_t *)(image->data) + y*image->width+x;
+		*data32 = RGB8_TO_UINT32(color.r, color.g, color.b);//0xFF000000 + (color.r << 16) + (color.g << 8) + color.b;
 		break;
 		}
 	case 2:
 		{
-		uint16_t *data = (uint16_t *)(image->data + (y*image->width+x)*6);
-		*(data++) = color.r;
-		*(data++) = color.g;
-		*(data++) = color.b;
+		uint64_t *data64 = (uint64_t *)(image->data) + y*image->width+x;
+		*data64 = RGB16_TO_UINT64(color.r, color.g, color.b);//0xFFFF000000000000 + ((uint64_t)(color.r) << 32) + ((uint64_t)(color.g) << 16) + (uint64_t)(color.b);
 		}
 		break;
 	default:
@@ -207,8 +284,6 @@ inline void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color
 
 Action LaunchApplyGaussianBlur(Image *dst, Image *src, FLOAT radius)
 {
-	info(T_NORMAL,"Applying gaussian blur...\n");
-
 	Filter gaussianFilter;
 	CreateGaussianFilter(&gaussianFilter, radius);
 
@@ -221,8 +296,6 @@ Action LaunchApplyGaussianBlur(Image *dst, Image *src, FLOAT radius)
 
 void ApplyGaussianBlur(Image *dst, Image *src, FLOAT radius)
 {
-	info(T_NORMAL,"Applying gaussian blur...\n");
-
 	Filter horizFilter, vertFilter;
 	CreateHorizontalGaussianFilter2(&horizFilter, radius);
 	CreateVerticalGaussianFilter2(&vertFilter, radius);
@@ -301,13 +374,8 @@ void *DownscaleImageThreadRoutine(void *arg)
 
 inline Action LaunchDownscaleImage(Image *dst, Image *src)
 {
-	info(T_NORMAL,"Downscaling image...\n");
-
-	if (dst->width == 0 || dst->height == 0) {
-		error("Dst image for downscaling is empty.\n");
-	}
-	if (src->width == 0 || src->height == 0) {
-		error("Src image for downscaling is empty.\n");
+	if (src->width == 0 || src->height == 0 || dst->width == 0 || dst->height == 0) {
+		return DoNothingAction();
 	}
 	if (dst->width > src->width || dst->height > src->height) {
 		error("Downscaling to a bigger image makes no sense.\n");
@@ -345,7 +413,7 @@ in %"PRIuFAST32" parts.\n", rectangle[0].x1, rectangle[0].y1, rectangle[0].x2, r
 		arg[i].horizontalGaussianFilter = CopyFilter(&horizontalGaussianFilter);
 		arg[i].verticalGaussianFilter = CopyFilter(&verticalGaussianFilter);
 	}
-	Action res = LaunchThreads(realNbThreads, arg, sizeof(DownscaleImageArguments),
+	Action res = LaunchThreads("Downscaling image", realNbThreads, arg, sizeof(DownscaleImageArguments),
 					DownscaleImageThreadRoutine, FreeDownscaleImageArguments);
 
 	free(rectangle);
@@ -359,12 +427,15 @@ in %"PRIuFAST32" parts.\n", rectangle[0].x1, rectangle[0].y1, rectangle[0].x2, r
 void DownscaleImage(Image *dst, Image *src)
 {
 	Action action = LaunchDownscaleImage(dst, src);
-	int canceled = WaitForActionTermination(action);
-
-	info(T_NORMAL,"Downscaling image : %s.\n", canceled ? "CANCELED" : "DONE");
+	int unused = WaitForActionTermination(action);
+	(void)unused;
+	FreeAction(action);
 }
 
 void FreeImage(Image *image)
 {
-	free(image->data);
+	if (image->width != 0 && image->height != 0
+		&& !image->data_is_external) {
+		free(image->data);
+	}
 }

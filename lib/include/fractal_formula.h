@@ -52,10 +52,22 @@ typedef enum e_FractalFormula {
 } FractalFormula;
 
 /**
+ * \var nbFractalFormulas
+ * \brief Number of fractal formulas.
+ */
+extern uint_fast32_t nbFractalFormulas;
+
+/**
  * \var FractalFormulaStr
  * \brief Strings of fractal formulas.
  */
 extern const char *FractalFormulaStr[];
+
+/**
+ * \var FractalFormulaDescStr
+ * \brief More descriptive strings for fractal formulas.
+ */
+extern const char *FractalFormulaDescStr[];
 
 /**
  * \fn FractalFormula GetFractalFormula(const char *str)

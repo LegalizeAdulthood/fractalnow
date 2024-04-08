@@ -1,5 +1,5 @@
 /*
- *  main.cpp -- part of fractal2D
+ *  fractal_rendering_widget.h -- part of fractal2D
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -17,19 +17,37 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
- 
-#include "main.h"
-#include "main_window.h"
-#include <QApplication>
-#include <QPushButton>
- 
-int main(int argc, char *argv[])
+
+ /**
+  * \file fractal_config_widget.h
+  * \brief Header file introducing FractalRenderingWidget class.
+  *
+  * \author Marc Pegon
+  */
+
+#ifndef __FRACTAL_RENDERING_WIDGET_H__
+#define __FRACTAL_RENDERING_WIDGET_H__
+
+#include "fractal_rendering_parameters.h"
+#include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QWidget>
+
+class FractalRenderingWidget : public QWidget
 {
-	QApplication app(argc, argv);
+	Q_OBJECT
 
-	MainWindow mainWindow(argc, argv);
-	mainWindow.show();
+	public:
+	FractalRenderingWidget(RenderingParameters &render);
 
-	return app.exec();
-}
+	QComboBox *countingFunctionComboBox;
+	QComboBox *coloringMethodComboBox;
+	QComboBox *addendFunctionComboBox;
+	QSpinBox *stripeDensitySpinBox;
+	QComboBox *interpolationMethodComboBox;
+	QComboBox *transferFunctionComboBox;
+	QDoubleSpinBox *colorScalingSpinBox;
+	QDoubleSpinBox *colorOffsetSpinBox;
+};
 
+#endif

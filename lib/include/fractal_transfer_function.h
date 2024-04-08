@@ -32,21 +32,37 @@ extern "C" {
 #endif
 
 #include "floating_point.h"
+#include <stdint.h>
 
 /**
  * \typedef TransferFunction
- * \brief Transfer function type to map fractal values to colors correctly.
+ * \brief Possible transfer functions.
  *
- * Possible transfer function are logarithm, cube root, square root,
- * zero, identity, square, cube, and exponential.
+ * \Transfer function are used to map fractal values to colors correctly.
+ *
  */
-typedef FLOAT (*TransferFunction)(FLOAT x);
+typedef enum e_TransferFunction {
+	TF_LOG = 0,
+ /*<! Logarithm. */
+	TF_CUBEROOT,
+ /*<! Cube root. */
+	TF_SQUAREROOT,
+ /*<! Square root. */
+	TF_IDENTITY,
+ /*<! Identity. */
+	TF_SQUARE,
+ /*<! Square. */
+	TF_CUBE,
+ /*<! Cube. */
+	TF_EXP
+ /*<! Exponential. */
+} TransferFunction;
 
 /**
- * \var TransferFunctionsArray
- * \brief Array of implemented counting functions.
+ * \var nbTransferFunctions
+ * \brief Number of transfer functions.
  */
-extern const TransferFunction TransferFunctionsArray[];
+extern uint_fast32_t nbTransferFunctions;
 
 /**
  * \var TransferFunctionStr
@@ -55,15 +71,26 @@ extern const TransferFunction TransferFunctionsArray[];
 extern const char *TransferFunctionStr[];
 
 /**
+ * \var TransferFunctionDescStr
+ * \brief More descriptive strings for fractal addend functions.
+ */
+extern const char *TransferFunctionDescStr[];
+
+/**
+ * \typedef TransferFunctionPtr
+ * \brief Transfer function ptr type.
+ */
+typedef FLOAT (*TransferFunctionPtr)(FLOAT x);
+
+/**
  * \fn TransferFunction GetTransferFunction(const char *str)
- * \brief Get transfer function from string.
+ * \brief Get transfer function enum value from string.
  *
  * Function is case insensitive.
  * Possible strings are :
  * - "log" for logarithm
  * - 'cuberoot" for cube root
  * - "squareroot" for square root
- * - "zero" for zero
  * - "identity" for identity
  * - "square" for square
  * - "cube" for cube
@@ -74,6 +101,15 @@ extern const char *TransferFunctionStr[];
  * \return Corresponding transfer function.
  */
 TransferFunction GetTransferFunction(const char *str);
+
+/**
+ * \fn TransferFunctionPtr GetTransferFunctionPtr(TransferFunction transferFunction)
+ * \brief Get transfer function ptr from transfer function enum value.
+ *
+ * \param transferFunction Transfer function enum value.
+ * \return Corresponding transfer function ptr.
+ */
+TransferFunctionPtr GetTransferFunctionPtr(TransferFunction transferFunction);
 
 #ifdef __cplusplus
 }

@@ -18,6 +18,13 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
  
+ /**
+  * \file help.h
+  * \brief Header file introducing Help class.
+  *
+  * \author Marc Pegon
+  */
+
 #ifndef __HELP_H__
 #define __HELP_H__
 

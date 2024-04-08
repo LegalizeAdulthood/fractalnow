@@ -37,10 +37,12 @@ extern "C" {
 #define GET_R8(x) ((x >> 16) & 0xFF)
 #define GET_G8(x) ((x >> 8) & 0xFF)
 #define GET_B8(x) (x & 0xFF)
+#define RGB8_TO_UINT32(r,g,b) (0xFF000000+((uint32_t)(r)<<16)+((uint32_t)(g)<<8)+(uint32_t)b)
 
 #define GET_R16(x) ((x >> 32) & 0xFFFF)
 #define GET_G16(x) ((x >> 16) & 0xFFFF)
 #define GET_B16(x) (x & 0xFFFF)
+#define RGB16_TO_UINT64(r,g,b) (0xFFFF000000000000+((uint64_t)(r)<<32)+((uint64_t)(g)<<16)+(uint64_t)b)
 
 /**
  * \struct s_Color

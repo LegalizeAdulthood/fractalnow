@@ -28,6 +28,13 @@ const char *ColoringMethodStr[] = {
 	(char *)"average"
 };
 
+const char *ColoringMethodDescStr[] = {
+	(char *)"Simple",
+	(char *)"Average"
+};
+
+uint_fast32_t nbColoringMethods = sizeof(ColoringMethodStr) / sizeof(char *);
+
 ColoringMethod GetColoringMethod(const char *str)
 {
 	int len = strlen(str);
@@ -41,19 +48,32 @@ ColoringMethod GetColoringMethod(const char *str)
 	ColoringMethod res;
 
 	uint_fast32_t i;
-	uint_fast32_t nb_elem = sizeof(ColoringMethodStr) / sizeof(char *);
-	for (i = 0; i < nb_elem; ++i) {
+	for (i = 0; i < nbColoringMethods; ++i) {
 		if (strcmp(CMStr, ColoringMethodStr[i]) == 0) {
 			res = (ColoringMethod)i;
 			break;
 		}
 	}
-	if (i == nb_elem) {
+	if (i == nbColoringMethods) {
 		error("Unknown coloring method \'%s\'.\n", str);
 	}
 
 	return res;
 }
+
+const char *InterpolationMethodStr[] = {
+	(char *)"none",
+	(char *)"linear",
+	(char *)"spline"
+};
+
+const char *InterpolationMethodDescStr[] = {
+	(char *)"None",
+	(char *)"Linear",
+	(char *)"Spline"
+};
+
+uint_fast32_t nbInterpolationMethods = sizeof(InterpolationMethodStr) / sizeof(char *);
 
 InterpolationMethod GetInterpolationMethod(const char *str)
 {
@@ -67,15 +87,17 @@ InterpolationMethod GetInterpolationMethod(const char *str)
 	toLowerCase(IMStr);
 	InterpolationMethod res;
 
-	if (strcmp(IMStr, "none") == 0) {
-		res = IM_NONE;
-	} else if (strcmp(IMStr, "linear") == 0) {
-		res = IM_LINEAR;
-	} else if (strcmp(IMStr, "spline") == 0) {
-		res = IM_SPLINE;
-	} else {
+	uint_fast32_t i;
+	for (i = 0; i < nbInterpolationMethods; ++i) {
+		if (strcmp(IMStr, InterpolationMethodStr[i]) == 0) {
+			res = (InterpolationMethod)i;
+			break;
+		}
+	}
+	if (i == nbInterpolationMethods) {
 		error("Unknown interpolation method \'%s\'.\n", str);
 	}
+
 
 	return res;
 }

@@ -57,15 +57,16 @@ void CutRectangleMaxSize(Rectangle src, uint_fast32_t size, Rectangle **out, uin
 	*out = (Rectangle *)safeMalloc("rectangles", (*out_size)*sizeof(Rectangle));
 
 	Rectangle *p_out = *out;
-	uint_fast32_t x1 = src.x1;
-	uint_fast32_t x2 = src.x1+size-1;
-	for (; x1 <= src.x2; x1+=size, x2+=size) {
-		x2 = (x2 > src.x2) ? src.x2 : x2;
+	uint_fast32_t y1 = src.y1;
+	uint_fast32_t y2 = src.y1+size-1;
+	for (; y1 <= src.y2; y1+=size, y2+=size) {
+		y2 = (y2 > src.y2) ? src.y2 : y2;
 
-		uint_fast32_t y1 = src.y1;
-		uint_fast32_t y2 = src.y1+size-1;
-		for (; y1 <= src.y2; y1+=size, y2+=size) {
-			y2 = (y2 > src.y2) ? src.y2 : y2;
+		uint_fast32_t x1 = src.x1;
+		uint_fast32_t x2 = src.x1+size-1;
+		for (; x1 <= src.x2; x1+=size, x2+=size) {
+			x2 = (x2 > src.x2) ? src.x2 : x2;
+
 			p_out->x1 = x1;
 			p_out->x2 = x2;
 			p_out->y1 = y1;

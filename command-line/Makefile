@@ -22,7 +22,7 @@ else
 endif
 CFLAGS       += -I${INCLUDEDIR} -I${FRACTALLIBDIR}/include
 
-LDFLAGS   = -lm -lpthread -L${FRACTALLIBDIR} -lfractal2D 
+LDFLAGS   = -L${FRACTALLIBDIR} -lfractal2D -lm -lpthread 
 
 OBJECTS = \
 	$(OBJDIR)/anti_aliasing.o \

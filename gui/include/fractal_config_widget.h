@@ -1,5 +1,5 @@
 /*
- *  image_label.h -- part of fractal2D
+ *  fractal_config_widget.h -- part of fractal2D
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -17,36 +17,43 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
- 
+
  /**
-  * \file help.h
-  * \brief Header file introducing ImageLabel class.
+  * \file fractal_config_widget.h
+  * \brief Header file introducing FractalConfigWidget class.
   *
   * \author Marc Pegon
   */
 
-#ifndef _IMAGE_LABEL__H__
-#define _IMAGE_LABEL__H__
+#ifndef __FRACTAL_CONFIG_WIDGET_H__
+#define __FRACTAL_CONFIG_WIDGET_H__
 
-#include <QImage>
-#include <QLabel>
-#include <QPaintEvent>
+#include "fractal.h"
+#include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QWidget>
 
-class ImageLabel : public QLabel
+class FractalConfigWidget : public QWidget
 {
 	Q_OBJECT
-	 
+
 	public:
-	ImageLabel();
-	void paintEvent(QPaintEvent *event);
-	QSize sizeHint() const;
+	FractalConfigWidget(Fractal &fractal);
 
-	QImage *image;
-
-	private:
+	QComboBox *fractalFormulaComboBox;
+	QDoubleSpinBox *pParamSpinBox;
+	QDoubleSpinBox *cParamReSpinBox;
+	QDoubleSpinBox *cParamImSpinBox;
+	QDoubleSpinBox *centerXSpinBox;
+	QDoubleSpinBox *centerYSpinBox;
+	QDoubleSpinBox *spanXSpinBox;
+	QDoubleSpinBox *bailoutRadiusSpinBox;
+	QSpinBox *maxIterationsSpinBox;
 
 	public slots:
-	void setImage(QImage *newImage);
+	void UpdateSpaceSingleSteps(double spanX);
+	void UpdateCParamReSingleStep(double cParamRe);
+	void UpdateCParamImSingleStep(double cParamIm);
 };
 
 #endif

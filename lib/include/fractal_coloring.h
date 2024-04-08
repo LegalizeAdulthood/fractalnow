@@ -58,10 +58,22 @@ typedef enum e_ColoringMethod {
 } ColoringMethod;
 
 /**
+ * \var nbColoringMethods
+ * \brief Number of coloring methods.
+ */
+extern uint_fast32_t nbColoringMethods;
+
+/**
  * \var ColoringMethodStr
  * \brief Strings of coloring method enum values.
  */
 extern const char *ColoringMethodStr[];
+
+/**
+ * \var ColoringMethodDescStr
+ * \brief More descriptive strings for coloring methods.
+ */
+extern const char *ColoringMethodDescStr[];
 
 /**
  * \fn ColoringMethod GetColoringMethod(const char *str)
@@ -100,6 +112,24 @@ typedef enum e_InterpolationMethod {
 	IM_SPLINE
  /*<! Spline interpolation (four average sums), using fractal computing algorithm.*/
 } InterpolationMethod;
+
+/**
+ * \var nbInterpolationMethods
+ * \brief Number of interpolation methods.
+ */
+extern uint_fast32_t nbInterpolationMethods;
+
+/**
+ * \var InterpolationMethodStr
+ * \brief Strings of interpolation method enum values.
+ */
+extern const char *InterpolationMethodStr[];
+
+/**
+ * \var InterpolationMethodDescStr
+ * \brief More descriptive strings for interpolation methods.
+ */
+extern const char *InterpolationMethodDescStr[];
 
 /**
  * \fn InterpolationMethod GetInterpolationMethod(const char *str) * \brief Get interpolation method from string.

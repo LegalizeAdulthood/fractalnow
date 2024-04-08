@@ -196,6 +196,7 @@ Color ComputeFractalColor(Fractal *fractal, RenderingParameters *render, FLOAT c
  * \fn void DrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render, uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold)
  * \brief Draw fractal in a fast, approximate way.
  *
+ * Image width and height must be >= 2 (does nothing otherwise).
  * Details on the algorithm :
  * The image is cut in quads (rectangles, actually) of size
  * quadInterpolationSize (meaning width AND height <= size).
@@ -221,6 +222,7 @@ void DrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render
  * \fn Action LaunchDrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render, uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold)
  * \brief Launch fractal drawing but does not wait for termination.
  *
+ * Image width and height must be >= 2 (does nothing otherwise).
  * Action returned can be used to wait for termination or cancel drawing.
  *
  * \param image Image in which to draw fractal subset.
@@ -237,6 +239,8 @@ Action LaunchDrawFractalFast(Image *image, Fractal *fractal, RenderingParameters
  * \fn void DrawFractal(Image *image, Fractal *fractal, RenderingParameters *render)
  * \brief Draw fractal in a (slow) non-approximate way.
  *
+ * Image width and height must be >= 2 (does nothing otherwise).
+ *
  * Note that this is equivalent to DrawFractalFast(fractal_table,
  * fractal, 1, 0).
  *
@@ -249,6 +253,9 @@ void DrawFractal(Image *image, Fractal *fractal, RenderingParameters *render);
 /**
  * \fn void AntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *render, uint_fast32_t antiAliasingSize, FLOAT threshold)
  * \brief AntiAliase fractal image.
+ *
+ * Image width and height must be >= 2 (does nothing otherwise).
+ * Anti-aliasing size must be >= 2 to have an effect (does nothing otherwise).
  *
  * Details on the algorithm :
  * Pixels that differ too much from neighbour pixels
@@ -275,6 +282,8 @@ void AntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *rend
  * \fn Action LaunchAntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *render, uint_fast32_t antiAliasingSize, FLOAT threshold)
  * \brief Launch fractal image anti-aliasing, but does not wait for termination.
  *
+ * Image width and height must be >= 2 (does nothing otherwise).
+ * Anti-aliasing size must be >= 2 to have an effect (does nothing otherwise).
  * Action returned can be used to wait for termination or cancel anti-aliasing.
  *
  * \param image Fractal image (already drawn) to anti-aliase.

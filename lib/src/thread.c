@@ -31,16 +31,37 @@ void freeArgDoNothing(void *arg)
 	(void)arg;
 }
 
-inline Action LaunchThreads(uint_fast32_t N, void *args, size_t s_elem, void *(*routine)(void *),
-				void (*freeArg)(void *))
+Action DoNothingAction()
 {
 	Action res;
-        pthread_t *thread;
+	res.is_do_nothing = 1;
+	res.done = 1;
+
+	return res;
+}
+
+inline Action LaunchThreads(const char *message, uint_fast32_t N, void *args, size_t s_elem,
+			void *(*routine)(void *), void (*freeArg)(void *))
+{
+	if (N == 0) {
+		return DoNothingAction();
+	}
+	Action res;
+
+	res.is_do_nothing = 0;
+	res.done = 0;
+	res.return_value = -1;
+	size_t message_len = strlen(message);
+	res.message = (char *)safeMalloc("message", (message_len+1)*sizeof(char));
+	strcpy(res.message, message);
 
 	res.cancel = (sig_atomic_t *)safeMalloc("cancel", sizeof(sig_atomic_t));
 	*(res.cancel) = 0;
+        pthread_t *thread;
 	thread = (pthread_t *)safeMalloc("threads", N * sizeof(pthread_t)); 
 	res.args = safeMalloc("thread args", N * (s_elem + sizeof(sig_atomic_t *)));
+
+	info(T_NORMAL, "%s...\n", res.message);
 
 	uint8_t *res_args = (uint8_t *)res.args;
 	uint8_t *c_args = (uint8_t *)args;
@@ -68,11 +89,20 @@ inline Action LaunchThreads(uint_fast32_t N, void *args, size_t s_elem, void *(*
 
 void CancelAction(Action action)
 {
-	*(action.cancel) = 1;
+	if (!action.is_do_nothing) {
+		*(action.cancel) = 1;
+	}
 }
 
 inline int WaitForActionTermination(Action action)
 {
+	if (action.is_do_nothing) {
+		return 0;
+	}
+	if (action.done) {
+		return action.return_value;
+	}
+
 	void *status;
 	int res = 0;
 	uint8_t *c_arg = (uint8_t *)(action.args) + sizeof(sig_atomic_t *);
@@ -83,6 +113,36 @@ inline int WaitForActionTermination(Action action)
 			error("Thread ended because of an error.\n");
 		}
 		res |= (status == PTHREAD_CANCELED);
+		c_arg += action.s_elem + sizeof(sig_atomic_t *);
+	}
+
+	info(T_NORMAL, "%s : %s.\n", action.message, (res == 0) ? "DONE" : "CANCELED");
+	action.return_value = res;
+	action.done = 1;
+
+	return res;
+}
+
+int LaunchThreadsAndWaitForTermination(const char *message, uint_fast32_t N, void *args, size_t s_elem,
+					void *(*routine)(void *), void (*freeArg)(void *))
+{
+	Action action = LaunchThreads(message, N, args, s_elem, routine, freeArg);
+	int res = WaitForActionTermination(action);
+	FreeAction(action);
+
+	return res;
+}
+
+int CancelActionAndWaitForTermination(Action action)
+{
+	CancelAction(action);
+	return WaitForActionTermination(action);
+}
+
+inline void FreeAction(Action action)
+{
+	uint8_t *c_arg = (uint8_t *)(action.args) + sizeof(sig_atomic_t *);
+	for (uint_fast32_t i = 0; i < action.N; ++i) {
 		action.freeArg(c_arg);
 		c_arg += action.s_elem + sizeof(sig_atomic_t *);
 	}
@@ -90,20 +150,6 @@ inline int WaitForActionTermination(Action action)
 	free(action.thread);
 	free(action.args);
 	free(action.cancel);
-
-	return res;
-}
-
-int LaunchThreadsAndWaitForTermination(uint_fast32_t N, void *args, size_t s_elem,
-					void *(*routine)(void *), void (*freeArg)(void *))
-{
-	Action action = LaunchThreads(N, args, s_elem, routine, freeArg);
-	return WaitForActionTermination(action);
-}
-
-int CancelActionAndWaitForTermination(Action action)
-{
-	CancelAction(action);
-	return WaitForActionTermination(action);
+	free(action.message);
 }
 

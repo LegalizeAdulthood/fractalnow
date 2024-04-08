@@ -33,7 +33,11 @@ void aux_ExportPPM8(char *fileName, Image *image) {
 	fprintf(file,"P6\n%"PRIuFAST32" %"PRIuFAST32"\n%"PRIu8"\n",
 		image->width, image->height, (uint8_t)UINT8_MAX);
 
-	fwrite(image->data, 3, image->width*image->height, file);
+	if (image->width != 0 && image->height != 0) {
+		uint8_t *bytes = ImageToBytesArray(image);
+		fwrite(bytes, 3, image->width*image->height, file);
+		free(bytes);
+	}
 
 	if (fclose(file)) {
 		close_error(fileName);
@@ -51,11 +55,11 @@ void aux_ExportPPM16(char *fileName, Image *image) {
 	fprintf(file,"P6\n%"PRIuFAST32" %"PRIuFAST32"\n%"PRIu16"\n",
 		image->width, image->height, (uint16_t)UINT16_MAX);
 
-	uint8_t *bytes;
-	bytes = (uint8_t *)malloc(3*image->width*image->height*image->bytesPerComponent);
-	ImageToBytesArray(bytes, image);
-	fwrite(bytes, 6, image->width*image->height, file);
-	free(bytes);
+	if (image->width != 0 && image->height != 0) {
+		uint8_t *bytes = ImageToBytesArray(image);
+		fwrite(bytes, 6, image->width*image->height, file);
+		free(bytes);
+	}
 
 	if (fclose(file)) {
 		close_error(fileName);

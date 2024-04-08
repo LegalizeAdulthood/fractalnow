@@ -31,6 +31,8 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+
 /**
  * \enum e_AntiAliasingMethod
  * \brief Possible anti-aliasing methods.
@@ -43,10 +45,22 @@ typedef enum e_AntiAliasingMethod {
 } AntiAliasingMethod;
 
 /**
+ * \var nbAntiAliasingMethods
+ * \brief Number of anti-aliasing methods.
+ */
+extern uint_fast32_t nbAntiAliasingMethods;
+
+/**
  * \var AntiAliasingMethodStr
  * \brief Strings of anti-aliasing method enum values.
  */
 extern const char *AntiAliasingMethodStr[];
+
+/**
+ * \var AntiAliasingMethodDescStr
+ * \brief More descriptive strings for anti-aliasing methods.
+ */
+extern const char *AntiAliasingMethodDescStr[];
 
 /**
  * \fn AntiAliasingMethod GetAAM(const char *str)

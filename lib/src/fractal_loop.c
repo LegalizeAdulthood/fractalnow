@@ -38,7 +38,7 @@ FLOAT FractalLoop##formula##ptype##coloring##addend##interpolation( \
 {\
 	FLOAT complex z, c;\
 	FLOAT res = 0;\
-	CountingFunction countingFunction = render->countingFunction;\
+	CountingFunctionPtr countingFunction = render->countingFunctionPtr;\
 	(void)countingFunction;\
 	LOOP_INIT_FRAC_##formula\
 	LOOP_INIT_CM_##coloring(addend,interpolation)\

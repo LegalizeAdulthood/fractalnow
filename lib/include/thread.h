@@ -121,6 +121,12 @@ extern uint_fast32_t nbThreads;
  *   
  */
 typedef struct s_Action {
+	int is_do_nothing;
+ /*!< 1 if action is to do nothing (convenient).*/
+	int done;
+ /*!< 1 if action has already terminated and threads have been joined.*/
+	int return_value;
+ /*!< Action return value (0 if finished normally, 1 if canceled).*/
 	sig_atomic_t *cancel;
  /*!< Pointer to uint8_t used for cancelation request.*/
  	uint_fast32_t N;
@@ -133,10 +139,22 @@ typedef struct s_Action {
  /*!< Size of each argument.*/
 	void (*freeArg)(void *);
  /*!< Routine to free each arg.*/
+	char *message;
+ /*!< Action message to print at launch and termination.*/
 } Action;
 
 /**
- * \fn Action LaunchThreads(uint_fast32_t N, void *args, size_t s_elem, void *(*routine)(void *), void (*freeArg)(void *))
+ * \fn Action DoNothingAction()
+ * \brief Returns an action that does nothing.
+ *
+ * Convenient for working on empty image.
+ *
+ * \return Do-nothing action.
+ */
+Action DoNothingAction();
+
+/**
+ * \fn Action LaunchThreads(const char *message, uint_fast32_t N, void *args, size_t s_elem, void *(*routine)(void *), void (*freeArg)(void *))
  * \brief Create several threads..
  *
  * args is copied.
@@ -150,6 +168,7 @@ typedef struct s_Action {
  * Free argument routine will be called for each argument on
  * termination.
  *
+ * \param message Action message to print at launch and termination.
  * \param N Number of threads to create.
  * \param args Pointer to array of arguments for threads routines.
  * \param s_elem Size of one argument (in bytes).
@@ -157,12 +176,15 @@ typedef struct s_Action {
  * \param freeArg Routine to free each argument.
  * \return Corresponding action.
  */
-Action LaunchThreads(uint_fast32_t N, void *args, size_t s_elem, void *(*routine)(void *),
-			void (*freeArg)(void *));
+Action LaunchThreads(const char *message, uint_fast32_t N, void *args, size_t s_elem,
+			void *(*routine)(void *), void (*freeArg)(void *));
 
 /**
  * \fn int WaitForActionTermination(Action action)
  * \brief Wait for action to terminate (normally of after cancelation).
+ *
+ * Does nothing if WaitForActionTermination was already
+ * called for this action (i.e. if threads were already joined).
  *
  * \param action Action to wait for termination.
  * \return 0 if all threads terminated normally, 1 otherwise (at least one canceled).
@@ -170,7 +192,7 @@ Action LaunchThreads(uint_fast32_t N, void *args, size_t s_elem, void *(*routine
 int WaitForActionTermination(Action action);
 
 /**
- * \fn int LaunchThreadsAndWaitForTermination(uint_fast32_t nbThreads, void *args, size_t s_elem, void *(*routine)(void *), void (*freeArg)(void *))
+ * \fn int LaunchThreadsAndWaitForTermination(const char *message, uint_fast32_t N, void *args, size_t s_elem, void *(*routine)(void *), void (*freeArg)(void *))
  * \brief Create several threads and wait for them to end.
  *
  * args array is copied. If it was dynamically allocated by
@@ -193,7 +215,7 @@ int WaitForActionTermination(Action action);
  * \param freeArg Routine to free each argument.
  * \return 0 if all threads terminated normally, 1 otherwise (at least one canceled).
  */
-int LaunchThreadsAndWaitForTermination(uint_fast32_t nbThreads, void *args, size_t s_elem,
+int LaunchThreadsAndWaitForTermination(const char *message, uint_fast32_t N, void *args, size_t s_elem,
 					void *(*routine)(void *), void (*freeArg)(void *));
 
 /**
@@ -202,6 +224,9 @@ int LaunchThreadsAndWaitForTermination(uint_fast32_t nbThreads, void *args, size
  *
  * It is up to the thread routine to take the request into
  * account. \see thread.h
+ * Does nothing if threads have already finished
+ * (whether WaitForActionTermination has already been
+ * called or not).
  *
  * \param action Action to send cancelation request to.
  */
@@ -215,6 +240,15 @@ void CancelAction(Action action);
  * \return 0 if all threads terminated normally, 1 otherwise (at least one canceled).
  */
 int CancelActionAndWaitForTermination(Action action);
+
+/**
+ * \fn void FreeAction(Action action)
+ * \brief Free action.
+ *
+ * Action MUST have already terminated (i.e. WaitForActionTermination must 
+ * already have been called).
+ */
+void FreeAction(Action action);
 
 #ifdef __cplusplus
 }

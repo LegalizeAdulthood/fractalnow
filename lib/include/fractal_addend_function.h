@@ -62,10 +62,22 @@ typedef enum e_AddendFunction {
 } AddendFunction;
 
 /**
+ * \var nbAddendFunctions
+ * \brief Number of addend functions.
+ */
+extern uint_fast32_t nbAddendFunctions;
+
+/**
  * \var AddendFunctionStr
  * \brief Strings of addend function enum values.
  */
 extern const char *AddendFunctionStr[];
+
+/**
+ * \var AddendFunctionDescStr
+ * \brief More descriptive strings for addend functions.
+ */
+extern const char *AddendFunctionDescStr[];
 
 /**
  * \fn AddendFunction GetAddendFunction(const char *str)

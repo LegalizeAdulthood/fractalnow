@@ -32,11 +32,13 @@ inline void InitRenderingParameters(RenderingParameters *param, uint_fast8_t byt
 	param->bytesPerComponent = bytesPerComponent;
 	param->spaceColor = spaceColor;
 	param->countingFunction = countingFunction;
+	param->countingFunctionPtr = GetCountingFunctionPtr(countingFunction);
 	param->coloringMethod = coloringMethod;
 	param->addendFunction = addendFunction;
 	param->stripeDensity = stripeDensity;
 	param->interpolationMethod = interpolationMethod;
 	param->transferFunction = transferFunction;
+	param->transferFunctionPtr = GetTransferFunctionPtr(transferFunction);
 	param->multiplier = multiplier;
 	param->offset = offset;
 	param->gradient = gradient;

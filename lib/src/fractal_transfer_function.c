@@ -30,13 +30,6 @@ FLOAT logp1F(FLOAT x)
 	return logF(1+x);
 }
 
-FLOAT zeroF(FLOAT x)
-{
-	(void)x;
-
-	return 0;
-}
-
 FLOAT cubertF(FLOAT x)
 {
 	return powF(x, 1./3);
@@ -57,8 +50,7 @@ FLOAT cubeF(FLOAT x)
 	return x*x*x;
 }
 
-const TransferFunction TransferFunctionsArray[] = {
-	zeroF,
+const TransferFunctionPtr TransferFunctionsArray[] = {
 	logp1F,
 	cubertF,
 	SQRTF,
@@ -69,7 +61,6 @@ const TransferFunction TransferFunctionsArray[] = {
 };
 
 const char *TransferFunctionStr[] = {
-	(char *)"zero",
 	(char *)"log",
 	(char *)"cuberoot",
 	(char *)"squareroot",
@@ -78,6 +69,18 @@ const char *TransferFunctionStr[] = {
 	(char *)"cube",
 	(char *)"exp"
 };
+
+const char *TransferFunctionDescStr[] = {
+	(char *)"Logarithm",
+	(char *)"Cube root",
+	(char *)"Square root",
+	(char *)"Identity",
+	(char *)"Square",
+	(char *)"Cube",
+	(char *)"Exponential"
+};
+
+uint_fast32_t nbTransferFunctions = sizeof(TransferFunctionStr) / sizeof(char *);
 
 TransferFunction GetTransferFunction(const char *str)
 {
@@ -93,16 +96,21 @@ TransferFunction GetTransferFunction(const char *str)
 	TransferFunction res;
 
 	uint_fast32_t i;
-	uint_fast32_t nb_elem = sizeof(TransferFunctionStr) / sizeof(char *);
-	for (i = 0; i < nb_elem; ++i) {
+	for (i = 0; i < nbTransferFunctions; ++i) {
 		if (strcmp(TFStr, TransferFunctionStr[i]) == 0) {
-			res = TransferFunctionsArray[i];
+			res = (TransferFunction)i;
 			break;
 		}
 	}
-	if (i == nb_elem) {
+	if (i == nbTransferFunctions) {
 		error("Unknown transfer function \'%s\'.\n", str);
 	}
 
 	return res;
 }
+
+TransferFunctionPtr GetTransferFunctionPtr(TransferFunction transferFunction)
+{
+	return TransferFunctionsArray[(int)transferFunction];
+}
+

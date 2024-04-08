@@ -58,6 +58,9 @@ typedef struct s_Filter
  * \fn void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, uint_fast32_t cx, uint_fast32_t cy, FLOAT *data)
  * \brief Initialize filter.
  *
+ * Data will be owned by filter, and freed when the filter is freed,
+ * so it must have been dynamically allocated.
+ *
  * \param filter Pointer to the filter structure to initialize.
  * \param sx Number of columns.
  * \param sy Number of lines.
@@ -72,11 +75,13 @@ void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, uint_fast32_
  * \brief Initialize filter without specifying center.
  *
  * The center is automatically computed : ((sx-1)/2, (sy-1)/2).
+ * Data will be owned by filter, and freed when the filter is freed,
+ * so it must have been dynamically allocated.
  *
  * \param filter Pointer to the filter structure to initialize.
  * \param sx Number of columns.
  * \param sy Number of lines.
- * \param data Filter data (NOT copied : it is up to the user to keep alive and then free this data).
+ * \param data Filter data (NOT copied, and will be freed when the filter is freed).
  */
 void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOAT *data);
 

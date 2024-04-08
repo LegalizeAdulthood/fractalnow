@@ -41,11 +41,18 @@ extern "C" {
  * \struct s_Image
  * \brief A simple image.
  *
+ * RGB8 images pixels are stored using uint32_t (the
+ * most significant 8 bits are not used (0xFF)).
+ * RGB16 images pixels are stored using uint64_t bytes (the
+ * most significant 16 bites are not used (0xFFFF)).
+ *
  * A 2D array of colors representing an image.
  */
 typedef struct s_Image {
 	uint8_t *data;
- /*!< Imaga data.*/
+ /*!< Imaga data : 32-bits aligned.*/
+	int data_is_external;
+ /*!< 1 if data should not be freed by Image structure.*/
 	uint_fast32_t width;
  /*!< Image width.*/
 	uint_fast32_t height;
@@ -69,18 +76,41 @@ void CreateImage(Image *image, uint_fast32_t width, uint_fast32_t height,
 			uint_fast8_t bytesPerComponent);
 
 /**
- * \fn void ImageToBytesArray(uint8_t *array, Image *image)
+ * \fn void CreateImage2(Image *image, uint8_t *data, uint_fast32_t width, uint_fast32_t height, uint_fast8_t bytesPerComponent)
+ * \brief Create an image using an already allocated data array.
+ *
+ * Data format must be as described in image structure.
+ * Remark : in this case data will be NOT be freed by FreeImage,
+ * and must stay alive as long as image is used.
+ *
+ * \param image Pointer to image structure to create.
+ * \param data Image data to use for image.
+ * \param width Image width.
+ * \param height Image height.
+ * \param bytesPerComponent Colors bytes per component.
+ */
+void CreateImage2(Image *image, uint8_t *data, uint_fast32_t width, uint_fast32_t height,
+			uint_fast8_t bytesPerComponent);
+
+Image *CopyImage(Image *image);
+
+/**
+ * \fn uint8_t *ImageToBytesArray(Image *image)
  * \brief Convert image to bytes array.
  *
- * Bytes array must be big enough to store image data (width*height*3*bytesPerComponent).
- * For RGB8 images, function simply does a copy of internal data into array.
- * For RGB16 images, for each component, the most significant byte is put first
- * (this is NOT a simple copy of array).
+ * For RGB8 images : the returned bytes array is the sequence r1 g1 b1 r2 g2 b2, etc.,
+ * without padding (not 32-bits aligned).
+ * For RGB16 images : the returned bytes array is the sequence r1h r1l g1h g1l
+ * b1h b1l r2h r2b g2h g2l b2h b2l (h for high (MSB), and l for low (LSB)).
+ * without padding (not 32-bits aligned). 
  *
- * \param array Array to store image data.
+ * Thus the array size (in bytes) is width*height*3*bytesPerComponent.
+ * Convenient to write directly a binary PPM file for example.
+ * 
  * \param image Image to convert to bytes array.
+ * \return Copy of image data.
  */
-void ImageToBytesArray(uint8_t *array, Image *image);
+uint8_t *ImageToBytesArray(Image *image);
 
 /**
  * \fn Color iGetPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y)

@@ -266,7 +266,9 @@ void *ApplyFilterThreadRoutine(void *arg)
 
 inline Action LaunchApplyFilter(Image *dst, Image *src, Filter *filter)
 {
-	info(T_NORMAL,"Applying filter...\n");
+	if (src->width == 0 || src->height == 0) {
+		return DoNothingAction();
+	}
 
 	uint_fast32_t nbPixels = src->width*src->height;
 	uint_fast32_t realNbThreads = (nbThreads > nbPixels) ? nbPixels : nbThreads;
@@ -288,7 +290,7 @@ inline Action LaunchApplyFilter(Image *dst, Image *src, Filter *filter)
 		arg[i].src = src;
 		arg[i].filter = CopyFilter(filter);
 	}
-	Action res = LaunchThreads(realNbThreads, arg, sizeof(ApplyFilterArguments),
+	Action res = LaunchThreads("Applying filter", realNbThreads, arg, sizeof(ApplyFilterArguments),
 					ApplyFilterThreadRoutine, FreeApplyFilterArguments);
 
 	free(rectangle);
@@ -300,9 +302,9 @@ inline Action LaunchApplyFilter(Image *dst, Image *src, Filter *filter)
 void ApplyFilter(Image *dst, Image *src, Filter *filter)
 {
 	Action action = LaunchApplyFilter(dst, src, filter);
-	int canceled = WaitForActionTermination(action);
-
-	info(T_NORMAL,"Applying filter : %s.\n", canceled ? "CANCELED" : "DONE");
+	int unused = WaitForActionTermination(action);
+	(void)unused;
+	FreeAction(action);
 }
 
 void FreeFilter(Filter *filter)
