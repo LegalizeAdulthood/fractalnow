@@ -49,12 +49,13 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 	renderingFileName = NULL;
 	int minAntiAliasingSizeSpecified = 0;
 	int maxAntiAliasingSizeSpecified = 0;
+	int antiAliasingSizeIterationSpecified = 0;
 
 	int widthSpecified = 0, heightSpecified = 0;
 	width = 0;
 	height = 0;
 	int o;
-	while ((o = getopt(argc, argv, "hqvda:c:j:m:M:r:x:y:")) != -1) {
+	while ((o = getopt(argc, argv, "hqvda:c:i:j:m:M:r:x:y:")) != -1) {
 		switch (o) {
 		case 'h':
 			help = 1;
@@ -100,6 +101,16 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 			}
 			minAntiAliasingSize = (uint_fast32_t)tmp;
 			minAntiAliasingSizeSpecified = 1;
+			break;
+		case 'i':
+			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n    ", optarg);
+			}
+			if (tmp < 1) {
+				invalid_use_error("Anti-aliasing size iteration must be >= 1.\n");
+			}
+			antiAliasingSizeIteration = (uint_fast32_t)tmp;
+			antiAliasingSizeIterationSpecified = 1;
 			break;
 		case 'M':
 			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
@@ -148,6 +159,10 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 		exit(EXIT_SUCCESS);
 	}
 
+	if (!antiAliasingSizeIterationSpecified) {
+		antiAliasingSizeIteration = 1;
+	}
+		
 	if (!widthSpecified && !heightSpecified) {
 		width = DEFAULT_FRACTAL_IMAGE_WIDTH;
 	}

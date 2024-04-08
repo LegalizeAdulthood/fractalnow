@@ -21,10 +21,10 @@
 #include "fractal_config_widget.h"
 #include "floating_point.h"
 #include "fractal_formula.h"
-#include "main_window.h"
 #include <limits>
 #include <QLabel>
 #include <QVBoxLayout>
+#include "main.h"
 
 FractalConfigWidget::FractalConfigWidget(Fractal &fractal) : QWidget()
 {
@@ -132,6 +132,7 @@ void FractalConfigWidget::blockBoxesSignals(bool block)
 
 void FractalConfigWidget::updateBoxesValues(Fractal &fractal)
 {
+	blockBoxesSignals(true);
 	fractalFormulaComboBox->setCurrentIndex((int)fractal.fractalFormula);
 	pParamSpinBox->setValue(fractal.p);
 	cParamReSpinBox->setValue(crealF(fractal.c));
@@ -141,26 +142,41 @@ void FractalConfigWidget::updateBoxesValues(Fractal &fractal)
 	spanXSpinBox->setValue(fractal.spanX);
 	bailoutRadiusSpinBox->setValue(fractal.escapeRadius);
 	maxIterationsSpinBox->setValue(fractal.maxIter);
+	blockBoxesSignals(false);
 }
 
 void FractalConfigWidget::updateSpaceBoxesSingleSteps()
 {
 	double spanX = spanXSpinBox->value();
-	centerXSpinBox->setSingleStep(spanX / 10);
-	centerYSpinBox->setSingleStep(spanX / 10);
-	spanXSpinBox->setSingleStep(spanX / 3);
+	if (spanX == 0) {
+		centerXSpinBox->setSingleStep(MIN_SINGLE_STEP);
+		centerYSpinBox->setSingleStep(MIN_SINGLE_STEP);
+		spanXSpinBox->setSingleStep(MIN_SINGLE_STEP);
+	} else {
+		centerXSpinBox->setSingleStep(spanX / 5);
+		centerYSpinBox->setSingleStep(spanX / 5);
+		spanXSpinBox->setSingleStep(spanX * 0.3);
+	}
 }
 
 void FractalConfigWidget::updateCParamReSingleStep()
 {
 	double cParamRe = cParamReSpinBox->value();
-	cParamReSpinBox->setSingleStep(cParamRe / 10);
+	if (cParamRe == 0) {
+		cParamReSpinBox->setSingleStep(MIN_SINGLE_STEP);
+	} else {
+		cParamReSpinBox->setSingleStep(cParamRe / 5);
+	}
 }
 
 void FractalConfigWidget::updateCParamImSingleStep()
 {
 	double cParamIm = cParamImSpinBox->value();
-	cParamImSpinBox->setSingleStep(cParamIm / 10);
+	if (cParamIm == 0) {
+		cParamImSpinBox->setSingleStep(MIN_SINGLE_STEP);
+	} else {
+		cParamImSpinBox->setSingleStep(cParamIm / 5);
+	}
 }
 
 void FractalConfigWidget::updateBoxesEnabledValue()

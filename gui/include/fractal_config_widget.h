@@ -39,8 +39,6 @@ class FractalConfigWidget : public QWidget
 
 	public:
 	FractalConfigWidget(Fractal &fractal);
-	void blockBoxesSignals(bool block);
-	void updateBoxesValues(Fractal &fractal);
 
 	QComboBox *fractalFormulaComboBox;
 	QDoubleSpinBox *pParamSpinBox;
@@ -52,7 +50,13 @@ class FractalConfigWidget : public QWidget
 	QDoubleSpinBox *bailoutRadiusSpinBox;
 	QSpinBox *maxIterationsSpinBox;
 
+	private:
+	void blockBoxesSignals(bool block);
+
 	public slots:
+	void updateBoxesValues(Fractal &fractal);
+
+	private slots:
 	void updateSpaceBoxesSingleSteps();
 	void updateCParamReSingleStep();
 	void updateCParamImSingleStep();

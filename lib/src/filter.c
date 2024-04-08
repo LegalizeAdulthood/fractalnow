@@ -302,7 +302,7 @@ inline Action *LaunchApplyFilter(Image *dst, Image *src, Filter *filter)
 void ApplyFilter(Image *dst, Image *src, Filter *filter)
 {
 	Action *action = LaunchApplyFilter(dst, src, filter);
-	int unused = WaitForActionTermination(action);
+	int unused = WaitForFinished(action);
 	(void)unused;
 	FreeAction(*action);
 	free(action);

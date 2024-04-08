@@ -55,6 +55,8 @@ class CommandLineArguments {
 	uint_fast32_t minAntiAliasingSize;
 	//! Maximum size for anti-aliasing.
 	uint_fast32_t maxAntiAliasingSize;
+	//! Anti-aliasing size iteration.
+	uint_fast32_t antiAliasingSizeIteration;
 };
 
 #endif

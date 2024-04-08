@@ -34,108 +34,22 @@
 #include "fractal_rendering_parameters.h"
 #include "fractal_rendering_widget.h"
 #include "image.h"
-#include "fractal_image_label.h"
+#include "fractal_explorer.h"
 #include <QCloseEvent>
 #include <QDoubleSpinBox>
-#include <QFuture>
-#include <QFutureWatcher>
-#include <QKeyEvent>
 #include <QMainWindow>
-#include <QImage>
-#include <QTimer>
-
-#define DEFAULT_DECIMAL_NUMBER (int)(20)
 
 class MainWindow : public QMainWindow
 {
-	Q_OBJECT
-
 	public:
 	MainWindow(int argc, char *argv[]);
-	~MainWindow();
 
 	private:
 	void closeEvent(QCloseEvent * event);
-	void reInitFractal();
-	void reInitRenderingParameters();
-	void launchFractalDrawing();
-	void launchFractalAntiAliasing();
-	void cancelActionIfNotFinished();
-	void moveFractal(double dx, double dy);
-	void zoomInFractal(double newSpanX, double zoomCenterX, double zoomCenterY);
-	void zoomOutFractal(double newSpanX, double zoomCenterX, double zoomCenterY);
 
-	CommandLineArguments *args;
-	Fractal fractal;
-	RenderingParameters render;
-	Image fractalImage;
-	QImage *fractalQImage;
-	FractalImageLabel *fractalImageLabel;
+	FractalExplorer *fractalExplorer;
 	FractalConfigWidget *fractalConfigWidget;
 	FractalRenderingWidget *fractalRenderingWidget;
-
-	double currentAntiAliasingSize;
-	int movingFractalDeferred;
-	int movingFractalRealTime;
-	int fractalMoved;
-	double fractalCenterXOnPress, fractalCenterYOnPress;
-	QPointF prevMousePos;
-	QPointF mousePosOnPress;
-	QImage imageCopyOnPress;
-
-	Action *action;
-	QTimer *timer;
-	QFutureWatcher<int> fractalDrawingWatcher;
-	QFutureWatcher<int> fractalAntialiasingWatcher;
-	QFuture<int> future;
-
-	QAction *zoomInAction;
-	QAction *zoomOutAction;
-	QAction *moveLeftAction;
-	QAction *moveRightAction;
-	QAction *moveUpAction;
-	QAction *moveDownAction;
-
-	private slots:
-	void showImageLabelContextMenu(const QPoint&);
-
-	void wakeUpIfAsleep();
-	void onFractalDrawingFinished();
-	void onFractalAntiAliasingFinished();
-	void zoomInFractal();
-	void zoomOutFractal();
-	void moveUpFractal();
-	void moveDownFractal();
-	void moveLeftFractal();
-	void moveRightFractal();
-
-	void fractalFormulaChanged(int index);
-	void pParamChanged(double value);
-	void cParamReChanged(double value);
-	void cParamImChanged(double value);
-	void centerXChanged(double value);
-	void centerYChanged(double value);
-	void spanXChanged(double value);
-	void bailoutRadiusChanged(double value);
-	void maxIterationsChanged(int value);
-
-	void addendFunctionChanged(int index);
-	void stripeDensityChanged(int value);
-	void coloringMethodChanged(int index);
-	void countingFunctionChanged(int index);
-	void interpolationMethodChanged(int index);
-	void transferFunctionChanged(int index);
-	void colorScalingChanged(double value);
-	void colorOffsetChanged(double value);
-	void spaceColorChanged(QColor color);
-
-	void fractalImageLabelMousePressed(QMouseEvent *event);
-	void fractalImageLabelMouseReleased(QMouseEvent *event);
-	void fractalImageLabelMouseMoved(QMouseEvent *event);
-	void fractalImageLabelMouseWheelRotated(QWheelEvent *event);
-
-	signals:
-	void wakeUpSignal();
 };
 
 #endif

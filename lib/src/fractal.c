@@ -137,7 +137,7 @@ void ReadFractalFile(Fractal *fractal, const char *fileName)
 	if (p < 0 || p > 100) {
 		error("Invalid fractal file : p must be between 0 and 100.\n");
 	}
-	FLOAT cx = 0, cy = 0;
+	FLOAT cx = 0.5, cy = 0.5;
 
 	switch (fractalFormula) {
 	case FRAC_MANDELBROT:
@@ -442,7 +442,7 @@ inline void DrawFractalFast(Image *image, Fractal *fractal, RenderingParameters 
 			uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold)
 {
 	Action *action = LaunchDrawFractalFast(image, fractal, render, quadInterpolationSize, interpolationThreshold);
-	int unused = WaitForActionTermination(action);
+	int unused = WaitForFinished(action);
 	(void)unused;
 	FreeAction(*action);
 	free(action);
@@ -585,7 +585,7 @@ void AntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *rend
 			uint_fast32_t antiAliasingSize, FLOAT threshold)
 {
 	Action *action = LaunchAntiAliaseFractal(image, fractal, render, antiAliasingSize, threshold);
-	int unused = WaitForActionTermination(action);
+	int unused = WaitForFinished(action);
 	(void)unused;
 	FreeAction(*action);
 	free(action);

@@ -92,7 +92,7 @@ void CancelAction(Action *action)
 	action->cancel = 1;
 }
 
-inline int WaitForActionTermination(Action *action)
+inline int WaitForFinished(Action *action)
 {
 	if (action->is_do_nothing) {
 		return action->cancel;
@@ -120,21 +120,21 @@ inline int WaitForActionTermination(Action *action)
 	return res;
 }
 
-int LaunchThreadsAndWaitForTermination(const char *message, uint_fast32_t N, void *args, size_t s_elem,
+int LaunchThreadsAndWaitForFinished(const char *message, uint_fast32_t N, void *args, size_t s_elem,
 					void *(*routine)(void *), void (*freeArg)(void *))
 {
 	Action *action = LaunchThreads(message, N, args, s_elem, routine, freeArg);
-	int res = WaitForActionTermination(action);
+	int res = WaitForFinished(action);
 	FreeAction(*action);
 	free(action);
 
 	return res;
 }
 
-int CancelActionAndWaitForTermination(Action *action)
+int CancelActionAndWaitForFinished(Action *action)
 {
 	CancelAction(action);
-	return WaitForActionTermination(action);
+	return WaitForFinished(action);
 }
 
 inline void FreeAction(Action action)
@@ -143,7 +143,7 @@ inline void FreeAction(Action action)
 		return;
 	}
 	if (!action.done) {
-		error("Trying to free non-terminated action.\n");
+		error("Trying to free non-finished action.\n");
 	}
 
 	uint8_t *c_arg = (uint8_t *)(action.args) + sizeof(sig_atomic_t *);

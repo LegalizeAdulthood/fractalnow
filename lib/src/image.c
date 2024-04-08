@@ -427,7 +427,7 @@ in %"PRIuFAST32" parts.\n", rectangle[0].x1, rectangle[0].y1, rectangle[0].x2, r
 void DownscaleImage(Image *dst, Image *src)
 {
 	Action *action = LaunchDownscaleImage(dst, src);
-	int unused = WaitForActionTermination(action);
+	int unused = WaitForFinished(action);
 	(void)unused;
 	FreeAction(*action);
 	free(action);
