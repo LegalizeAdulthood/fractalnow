@@ -18,6 +18,12 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
  
+ /**
+  * \file thread.h
+  * \brief Header file related to threads.
+  * \author Marc Pegon
+  */
+
 #ifndef __THREAD_H__
 #define __THREAD_H__
 
@@ -26,8 +32,19 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#define DEFAULT_NB_THREADS 8
+/**
+ * \def DEFAULT_NB_THREADS
+ * \brief Default number of threads.
+ */
+#define DEFAULT_NB_THREADS 16
 
+/**
+ * \var nbThreads.
+ * \brief Number of threads to be used by parallelized functions.
+ *
+ * Unless changed explicitly, this variable will be equal to
+ * DEFAULT_NB_THREADS.
+ */
 extern uint32_t nbThreads;
 
 // thread related

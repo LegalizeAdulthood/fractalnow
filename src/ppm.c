@@ -21,28 +21,76 @@
 #include "ppm.h"
 #include "error.h"
 
-void ExportPPM(char *fileName, Image *image)
-{
+void aux_ExportPPM8(char *fileName, Image *image) {
 	FILE *file;
 
-	info(T_NORMAL, "Exporting PPM \'%s\'...\n", fileName);
 	file = fopen(fileName,"w");
 	if (!file) {
 		open_error(fileName);
 	}
 
-	fprintf(file,"P6\n%u %u\n%d\n",image->width,image->height,255);
+	fprintf(file,"P6\n%lu %lu\n%lu\n",(unsigned long)image->width,
+					(unsigned long)image->height,
+					(unsigned long)255);
 
 	Color *pixel = image->data;
 	for (uint32_t i=0; i<image->height; i++) {
 		for (uint32_t j=0; j<image->width; j++) {
-			fprintf(file, "%c%c%c", pixel->r, pixel->g, pixel->b);
+			fprintf(file, "%c%c%c", (uint8_t)pixel->r,
+				(uint8_t)pixel->g, (uint8_t)pixel->b);
 			pixel++;
 		}
 	}
 
 	if (fclose(file)) {
 		close_error(fileName);
+	}
+
+}
+
+void aux_ExportPPM16(char *fileName, Image *image) {
+	FILE *file;
+
+	file = fopen(fileName,"w");
+	if (!file) {
+		open_error(fileName);
+	}
+
+	fprintf(file,"P6\n%lu %lu\n%lu\n",(unsigned long)image->width,
+					(unsigned long)image->height,
+					(unsigned long)65535);
+
+	Color *pixel = image->data;
+	for (uint32_t i=0; i<image->height; i++) {
+		for (uint32_t j=0; j<image->width; j++) {
+			fprintf(file, "%c%c%c%c%c%c",
+				(uint8_t)(pixel->r >> 8),(uint8_t)(pixel->r & 0xFF),
+				(uint8_t)(pixel->g >> 8),(uint8_t)(pixel->g & 0xFF),
+				(uint8_t)(pixel->b >> 8),(uint8_t)(pixel->b & 0xFF));
+			pixel++;
+		}
+	}
+
+	if (fclose(file)) {
+		close_error(fileName);
+	}
+
+}
+
+void ExportPPM(char *fileName, Image *image)
+{
+	info(T_NORMAL, "Exporting PPM \'%s\'...\n", fileName);
+
+	switch (image->bytesPerComponent) {
+	case 1:
+		aux_ExportPPM8(fileName, image);
+		break;
+	case 2:
+		aux_ExportPPM16(fileName, image);
+		break;
+	default:
+		error("Invalid image bytes per component.\n");
+		break;
 	}
 
 	info(T_NORMAL, "Exporting PPM \'%s\' : DONE.\n", fileName);

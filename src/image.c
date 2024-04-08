@@ -22,8 +22,9 @@
 #include "filter.h"
 #include "rectangle.h"
 #include "thread.h"
+#include <stdlib.h>
 
-void CreateUnitializedImage(Image *image, uint32_t width, uint32_t height)
+void CreateUnitializedImage(Image *image, uint32_t width, uint32_t height, int bytesPerComponent)
 {
 	image->data = (Color *)malloc(width*height*sizeof(Color));
 	if (image->data == NULL) {
@@ -31,6 +32,7 @@ void CreateUnitializedImage(Image *image, uint32_t width, uint32_t height)
 	}
 	image->width = width;
 	image->height = height;
+	image->bytesPerComponent = bytesPerComponent;
 }
 
 typedef enum {
@@ -112,12 +114,12 @@ inline Color iGetPixel(Image *image, int32_t x, int32_t y) {
 }
 
 
-inline void PutPixel(Image *image, uint32_t x, uint32_t y, Color color)
+inline void PutPixelUnsafe(Image *image, uint32_t x, uint32_t y, Color color)
 {
 	*(image->data+y*image->width+x)=color;
 }
 
-void ApplyGaussianBlur(Image *dst, Image *src, double radius)
+void ApplyGaussianBlur(Image *dst, Image *src, FLOAT radius)
 {
 	info(T_NORMAL,"Applying gaussian blur...\n");
 
@@ -126,7 +128,7 @@ void ApplyGaussianBlur(Image *dst, Image *src, double radius)
 	CreateVerticalGaussianFilter2(&vertFilter, radius);
 
 	Image temp;
-	CreateUnitializedImage(&temp, src->width, src->height);
+	CreateUnitializedImage(&temp, src->width, src->height, src->bytesPerComponent);
 
 	ApplyFilter(&temp, src, &horizFilter);
 	ApplyFilter(dst, &temp, &vertFilter);
@@ -142,8 +144,8 @@ typedef struct s_DownscaleImageArguments {
 	Image *dst;
 	Rectangle *dstRect;
 	Image *src;
-	double invScaleX;
-	double invScaleY;
+	FLOAT invScaleX;
+	FLOAT invScaleY;
 	Filter *horizontalGaussianFilter;
 	Filter *verticalGaussianFilter;
 } DownscaleImageArguments;
@@ -154,15 +156,16 @@ void *DownscaleImageThreadRoutine(void *arg)
 	Image *dst = c_arg->dst;
 	Rectangle *dstRect = c_arg->dstRect;
 	Image *src = c_arg->src;
-	double invScaleX = c_arg->invScaleX;
-	double invScaleY = c_arg->invScaleY;
+	FLOAT invScaleX = c_arg->invScaleX;
+	FLOAT invScaleY = c_arg->invScaleY;
 	Filter *horizontalGaussianFilter = c_arg->horizontalGaussianFilter;
 	Filter *verticalGaussianFilter = c_arg->verticalGaussianFilter;
 	Image tmpImage;
-	CreateUnitializedImage(&tmpImage, 1, verticalGaussianFilter->sy);
+	CreateUnitializedImage(&tmpImage, 1, verticalGaussianFilter->sy, src->bytesPerComponent);
 
-	info(T_VERBOSE,"Downscaling image from (%u,%u) to (%u,%u)...\n",dstRect->x1,dstRect->y1,
-			dstRect->x2,dstRect->y2);
+	info(T_VERBOSE,"Downscaling image from (%lu,%lu) to (%lu,%lu)...\n",
+		(unsigned long)dstRect->x1,(unsigned long)dstRect->y1,
+		(unsigned long)dstRect->x2,(unsigned long)dstRect->y2);
 
 	for (uint32_t i = dstRect->x1; i <= dstRect->x2; ++i) {
 		uint32_t x = (i+0.5)*invScaleX;
@@ -170,18 +173,19 @@ void *DownscaleImageThreadRoutine(void *arg)
 			uint32_t y = (j+0.5)*invScaleY;
 
 			for (uint32_t k = 0; k < verticalGaussianFilter->sy; ++k) {
-				PutPixel(&tmpImage, 0, k, ApplyFilterOnSinglePixel(
+				PutPixelUnsafe(&tmpImage, 0, k, ApplyFilterOnSinglePixel(
 					src, x, y-verticalGaussianFilter->cy+k, horizontalGaussianFilter));
 			}
-			PutPixel(dst, i, j, ApplyFilterOnSinglePixel(&tmpImage,
+			PutPixelUnsafe(dst, i, j, ApplyFilterOnSinglePixel(&tmpImage,
 				0, verticalGaussianFilter->cy, verticalGaussianFilter));
 		}
 	}
 
 	FreeImage(&tmpImage);
 
-	info(T_VERBOSE,"Downscaling image from (%u,%u) to (%u,%u) : DONE.\n",dstRect->x1,dstRect->y1,
-			dstRect->x2,dstRect->y2);
+	info(T_VERBOSE,"Downscaling image from (%lu,%lu) to (%lu,%lu) : DONE.\n",
+		(unsigned long)dstRect->x1,(unsigned long)dstRect->y1,
+		(unsigned long)dstRect->x2,(unsigned long)dstRect->y2);
 
 	return NULL;
 }
@@ -200,8 +204,8 @@ void DownscaleImage(Image *dst, Image *src)
 		error("Downscaling to a bigger image makes no sense.\n");
 	}
 
-	double invScaleX = src->width / (double)dst->width;
-	double invScaleY = src->height / (double)dst->height;
+	FLOAT invScaleX = src->width / (FLOAT)dst->width;
+	FLOAT invScaleY = src->height / (FLOAT)dst->height;
 
 	Filter horizontalGaussianFilter;
 	Filter verticalGaussianFilter;
@@ -218,7 +222,12 @@ void DownscaleImage(Image *dst, Image *src)
 		alloc_error("rectangles");
 	}
 	InitRectangle(&rectangle[0], 0, 0, dst->width-1, dst->height-1);
-	CutRectangleInN(rectangle[0], realNbThreads, rectangle);
+	if (CutRectangleInN(rectangle[0], realNbThreads, rectangle)) {
+		error("Could not cut rectangle ((%lu,%lu),(%lu,%lu) in %lu parts.\n",
+			(unsigned long)rectangle[0].x1, (unsigned long)rectangle[0].y1,
+			(unsigned long)rectangle[0].x2, (unsigned long)rectangle[0].y2,
+			(unsigned long)realNbThreads);
+	}
 
         pthread_t *thread;
 	thread = (pthread_t *)malloc(realNbThreads * sizeof(pthread_t)); 

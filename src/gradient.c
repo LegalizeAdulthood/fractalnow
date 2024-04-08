@@ -25,6 +25,7 @@ void aux_GenerateGradient(Gradient *gradient, uint32_t ind_tab, Color C1, Color 
 {
 	Color *pixel = gradient->data+ind_tab;
 	for (uint32_t i=0;i<N;i++) {
+		pixel->bytesPerComponent = C1.bytesPerComponent;
 		pixel->r = (C1.r*(N-1-i) + C2.r*i) / (N-1);
 		pixel->g = (C1.g*(N-1-i) + C2.g*i) / (N-1);
 		pixel->b = (C1.b*(N-1-i) + C2.b*i) / (N-1);

@@ -21,7 +21,6 @@
 #include "filter.h"
 #include "rectangle.h"
 #include "thread.h"
-#include <math.h>
 
 typedef struct s_ApplyFilterArguments {
 	Image *dst;
@@ -30,7 +29,7 @@ typedef struct s_ApplyFilterArguments {
 	Filter *filter;
 } ApplyFilterArguments;
 
-void InitFilter(Filter *filter, uint32_t sx, uint32_t sy, uint32_t cx, uint32_t cy, double *data)
+void InitFilter(Filter *filter, uint32_t sx, uint32_t sy, uint32_t cx, uint32_t cy, FLOAT *data)
 {
 	filter->sx = sx;
 	filter->sy = sy;
@@ -39,7 +38,7 @@ void InitFilter(Filter *filter, uint32_t sx, uint32_t sy, uint32_t cx, uint32_t 
 	filter->data = data;
 }
 
-void InitFilter2(Filter *filter, uint32_t sx, uint32_t sy, double *data)
+void InitFilter2(Filter *filter, uint32_t sx, uint32_t sy, FLOAT *data)
 {
 	filter->sx = sx;
 	filter->sy = sy;
@@ -48,7 +47,7 @@ void InitFilter2(Filter *filter, uint32_t sx, uint32_t sy, double *data)
 	filter->data = data;
 }
 
-void CreateHorizontalGaussianFilter(Filter *filter, double sigma)
+void CreateHorizontalGaussianFilter(Filter *filter, FLOAT sigma)
 {
 	if (sigma <= 0) {
 		error("Sigma must be > 0.\n");
@@ -64,16 +63,16 @@ void CreateHorizontalGaussianFilter(Filter *filter, double sigma)
 	filter->cx = radius;
 	filter->cy = 0;
 
-	filter->data = (double *)malloc(filter->sx*filter->sy*sizeof(double));
+	filter->data = (FLOAT *)malloc(filter->sx*filter->sy*sizeof(FLOAT));
 	if (filter->data == NULL) {
 		alloc_error("filter");
 	}
 
 
-	double sigma2_x_2 = sigma*sigma*2;
-	double *value = filter->data;
+	FLOAT sigma2_x_2 = sigma*sigma*2;
+	FLOAT *value = filter->data;
 	int64_t size = (int64_t)filter->cx;
-	double sum = 0;
+	FLOAT sum = 0;
 	for (int64_t i = -size; i <= size; ++i) {
 		*value = exp(-i*i/sigma2_x_2);
 		sum += *(value++);
@@ -83,7 +82,7 @@ void CreateHorizontalGaussianFilter(Filter *filter, double sigma)
 	}
 }
 
-inline void CreateHorizontalGaussianFilter2(Filter *filter, double radius)
+inline void CreateHorizontalGaussianFilter2(Filter *filter, FLOAT radius)
 {
 	if (radius <= 0) {
 		error("Radius must be > 0.\n");
@@ -92,7 +91,7 @@ inline void CreateHorizontalGaussianFilter2(Filter *filter, double radius)
 	CreateHorizontalGaussianFilter(filter, radius / 3.);
 }
 
-void CreateVerticalGaussianFilter(Filter *filter, double sigma)
+void CreateVerticalGaussianFilter(Filter *filter, FLOAT sigma)
 {
 	if (sigma <= 0) {
 		error("Sigma must be > 0.\n");
@@ -108,15 +107,15 @@ void CreateVerticalGaussianFilter(Filter *filter, double sigma)
 	filter->cx = 0;
 	filter->cy = radius;
 
-	filter->data = (double *)malloc(filter->sx*filter->sy*sizeof(double));
+	filter->data = (FLOAT *)malloc(filter->sx*filter->sy*sizeof(FLOAT));
 	if (filter->data == NULL) {
 		alloc_error("filter");
 	}
 
-	double sigma2_x_2 = sigma*sigma*2;
-	double *value = filter->data;
+	FLOAT sigma2_x_2 = sigma*sigma*2;
+	FLOAT *value = filter->data;
 	int64_t size = (int64_t)filter->cy;
-	double sum = 0;
+	FLOAT sum = 0;
 	for (int64_t i = -size; i <= size; ++i) {
 		*value = exp(-i*i/sigma2_x_2);
 		sum += *(value++);
@@ -126,7 +125,7 @@ void CreateVerticalGaussianFilter(Filter *filter, double sigma)
 	}
 }
 
-inline void CreateVerticalGaussianFilter2(Filter *filter, double radius)
+inline void CreateVerticalGaussianFilter2(Filter *filter, FLOAT radius)
 {
 	if (radius <= 0) {
 		error("Radius must be > 0.\n");
@@ -135,7 +134,7 @@ inline void CreateVerticalGaussianFilter2(Filter *filter, double radius)
 	CreateVerticalGaussianFilter(filter, radius / 3.);
 }
 
-void CreateGaussianFilter(Filter *filter, double sigma)
+void CreateGaussianFilter(Filter *filter, FLOAT sigma)
 {
 	if (sigma <= 0) {
 		error("Sigma must be > 0.\n");
@@ -150,15 +149,15 @@ void CreateGaussianFilter(Filter *filter, double sigma)
 	filter->cx = radius;
 	filter->cy = radius;
 
-	filter->data = (double *)malloc(filter->sx*filter->sy*sizeof(double));
+	filter->data = (FLOAT *)malloc(filter->sx*filter->sy*sizeof(FLOAT));
 	if (filter->data == NULL) {
 		alloc_error("filter");
 	}
 
-	double sigma2_x_2 = sigma*sigma*2;
-	double *value = filter->data;
+	FLOAT sigma2_x_2 = sigma*sigma*2;
+	FLOAT *value = filter->data;
 	int64_t size = (int64_t)filter->cx;
-	double sum = 0;
+	FLOAT sum = 0;
 	for (int64_t i = -size; i <= size; ++i) {
 		for (int64_t j = -size; j <= size; ++j) {
 			*value = exp(-(i*i+j*j)/sigma2_x_2);
@@ -170,7 +169,7 @@ void CreateGaussianFilter(Filter *filter, double sigma)
 	}
 }
 
-void CreateGaussianFilter2(Filter *filter, double radius)
+void CreateGaussianFilter2(Filter *filter, FLOAT radius)
 {
 	if (radius <= 0) {
 		error("Radius must be > 0.\n");
@@ -178,19 +177,14 @@ void CreateGaussianFilter2(Filter *filter, double radius)
 	CreateGaussianFilter(filter, radius / 3.);
 }
 
-void FreeFilter(Filter *filter)
-{
-	free(filter->data);
-}
-
-inline double GetFilterValue(Filter *filter, uint32_t x, uint32_t y)
+inline FLOAT GetFilterValueUnsafe(Filter *filter, uint32_t x, uint32_t y)
 {
 	return filter->data[x+y*filter->sx];
 }
 
-void MultiplyFilterByScalar(Filter *filter, double scalar) 
+void MultiplyFilterByScalar(Filter *filter, FLOAT scalar) 
 {
-	double *value = filter->data;
+	FLOAT *value = filter->data;
 	for (uint32_t i = 0; i < filter->sx; ++i) {
 		for (uint32_t j = 0; j < filter->sy; ++j) {
 			*(value++) *= scalar;
@@ -198,10 +192,10 @@ void MultiplyFilterByScalar(Filter *filter, double scalar)
 	}
 }
 
-void NormalizeFilter(Filter *filter)
+int NormalizeFilter(Filter *filter)
 {
-	double *value = filter->data;
-	double sum = 0;
+	FLOAT *value = filter->data;
+	FLOAT sum = 0;
 	for (uint32_t i = 0; i < filter->sx; ++i) {
 		for (uint32_t j = 0; j < filter->sy; ++j) {
 			sum += *(value++);
@@ -210,15 +204,19 @@ void NormalizeFilter(Filter *filter)
 	if (sum != 0.) {
 		// Otherwize do nothing : can't be normalized anyway
 		MultiplyFilterByScalar(filter, 1./sum);
+
+		return 0;
+	} else {
+		return 1;
 	}
 }
 
 Color ApplyFilterOnSinglePixel(Image *src, uint32_t x, uint32_t y, Filter *filter)
 {
-	double value;
+	FLOAT value;
 	Color color;
 
-	double r, g, b;
+	FLOAT r, g, b;
 
 	r = 0;
 	g = 0;
@@ -226,7 +224,7 @@ Color ApplyFilterOnSinglePixel(Image *src, uint32_t x, uint32_t y, Filter *filte
 	for (uint32_t i = 0; i < filter->sx; ++i) {
 		for (uint32_t j = 0; j < filter->sy; ++j) {
 			color = iGetPixel(src, x-filter->cx+i, y-filter->cy+j);
-			value = GetFilterValue(filter, i, j);
+			value = GetFilterValueUnsafe(filter, i, j);
 			r += color.r * value;
 			g += color.g * value;
 			b += color.b * value;
@@ -248,17 +246,19 @@ void *ApplyFilterThreadRoutine(void *arg)
 	Image *src = c_arg->src;
 	Filter *filter = c_arg->filter;
 
-	info(T_VERBOSE,"Applying filter from (%u,%u) to (%u,%u)...\n",dstRect->x1,dstRect->y1,
-			dstRect->x2,dstRect->y2);
+	info(T_VERBOSE,"Applying filter from (%lu,%lu) to (%lu,%lu)...\n",
+			(unsigned long)dstRect->x1,(unsigned long)dstRect->y1,
+			(unsigned long)dstRect->x2,(unsigned long)dstRect->y2);
 
 	for (uint32_t i=dstRect->x1; i <= dstRect->x2; ++i) {
 		for (uint32_t j = dstRect->y1; j <= dstRect->y2; ++j) {
-			PutPixel(dst, i, j, ApplyFilterOnSinglePixel(src, i, j, filter));
+			PutPixelUnsafe(dst, i, j, ApplyFilterOnSinglePixel(src, i, j, filter));
 		}
 	}
 
-	info(T_VERBOSE,"Applying filter from (%u,%u) to (%u,%u) : DONE.\n",dstRect->x1,dstRect->y1,
-			dstRect->x2,dstRect->y2);
+	info(T_VERBOSE,"Applying filter from (%lu,%lu) to (%lu,%lu) : DONE.\n",
+		(unsigned long)dstRect->x1,(unsigned long)dstRect->y1,
+		(unsigned long)dstRect->x2,(unsigned long)dstRect->y2);
 
 	return NULL;
 }
@@ -276,7 +276,12 @@ void ApplyFilter(Image *dst, Image *src, Filter *filter)
 		alloc_error("rectangles");
 	}
 	InitRectangle(&rectangle[0], 0, 0, dst->width-1, dst->height-1);
-	CutRectangleInN(rectangle[0], realNbThreads, rectangle);
+	if (CutRectangleInN(rectangle[0], realNbThreads, rectangle)) {
+		error("Could not cut rectangle ((%lu,%lu),(%lu,%lu) in %lu parts.\n",
+			(unsigned long)rectangle[0].x1, (unsigned long)rectangle[0].y1,
+			(unsigned long)rectangle[0].x2, (unsigned long)rectangle[0].y2,
+			(unsigned long)realNbThreads);
+	}
 
         pthread_t *thread;
 	thread = (pthread_t *)malloc(realNbThreads * sizeof(pthread_t)); 
@@ -311,5 +316,10 @@ void ApplyFilter(Image *dst, Image *src, Filter *filter)
 	free(arg);
 
 	info(T_NORMAL,"Applying filter : DONE.\n");
+}
+
+void FreeFilter(Filter *filter)
+{
+	free(filter->data);
 }
 

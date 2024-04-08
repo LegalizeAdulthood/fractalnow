@@ -18,13 +18,25 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
  
+ /**
+  * \file ppm.h
+  * \brief Header file related to PPM (Portable Pixmap) handling.
+  * \author Marc Pegon
+  */
+
 #ifndef __PPM_H__
 #define __PPM_H__
 
 #include "image.h"
 #include  <stdint.h>
 
-// Export image as a PPM file
+/**
+ * \fn void ExportPPM(char *fileName, Image *image)
+ * \brief Export image as PPM;
+ *
+ * \param fileName Name of the PPM file to export the image in.
+ * \param image Pointer to image structure to export.
+ */
 void ExportPPM(char *fileName, Image *image);
 
 #endif

@@ -19,6 +19,7 @@
  */
  
 #include "rectangle.h"
+#include <stdlib.h>
 
 void InitRectangle(Rectangle *rectangle, uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2)
 {
@@ -28,10 +29,15 @@ void InitRectangle(Rectangle *rectangle, uint32_t x1, uint32_t y1, uint32_t x2, 
 	rectangle->y2 = y2;
 }
 
-void CutRectangleInHalf(Rectangle rectangle, Rectangle *out1, Rectangle *out2)
+int CutRectangleInHalf(Rectangle rectangle, Rectangle *out1, Rectangle *out2)
 {
 	uint32_t width = rectangle.x2 - rectangle.x1;
 	uint32_t height = rectangle.y2 - rectangle.y1;
+	
+	if (width == 0 && height == 0) {
+		return 1;
+	}
+
 	if (width >= height) {
 		width /= 2;
 		InitRectangle(out1, rectangle.x1, rectangle.y1, rectangle.x1 + width, rectangle.y2);
@@ -41,22 +47,41 @@ void CutRectangleInHalf(Rectangle rectangle, Rectangle *out1, Rectangle *out2)
 		InitRectangle(out1, rectangle.x1, rectangle.y1, rectangle.x2, rectangle.y1 + height);
 		InitRectangle(out2, rectangle.x1, rectangle.y1 + height + 1, rectangle.x2, rectangle.y2);
 	}
+
+	return 0;
 }
 
-void CutRectangleInN(Rectangle rectangle, uint32_t N, Rectangle *out)
+int CutRectangleInN(Rectangle rectangle, uint32_t N, Rectangle *out)
 {
+	uint32_t width = rectangle.x2 + 1 - rectangle.x1;
+	uint32_t height = rectangle.y2 + 1 - rectangle.y1;
+	if (width*height < N) {
+		return 1;
+	}
+
 	uint32_t nbRectangles = 1;
 	uint32_t tmpNbRectangles;
 	InitRectangle(&out[0], rectangle.x1, rectangle.y1, rectangle.x2, rectangle.y2);
 	while (nbRectangles < N) {
 		tmpNbRectangles = nbRectangles;
 		for (uint32_t i = 0; i < tmpNbRectangles; i++) {
-			CutRectangleInHalf(out[i], &out[i], &out[nbRectangles]);
-			nbRectangles++;
+			if (CutRectangleInHalf(out[i], &out[i], &out[nbRectangles])) {
+				/* This particular rectangle could not be in half.
+				 * Assuming that the initial rectangle could be cut in N parts,
+				 * we know that there still exists a rectangle that can be cut
+				 * in half (until we have reached N rectangles).
+				 * Just skip this one and try the next.
+				 */
+				 continue;
+			} else {
+				nbRectangles++;
+			}
 
 			if (nbRectangles == N) {
 				break;
 			}
 		}
 	}
+
+	return 0;
 }

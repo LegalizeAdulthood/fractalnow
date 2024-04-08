@@ -24,14 +24,26 @@
 inline Color ColorFromUint32(uint32_t color)
 {
 	Color res;
-	res.r = GET_R(color);
-	res.g = GET_G(color);
-	res.b = GET_B(color);
+	res.r = GET_R8(color);
+	res.g = GET_G8(color);
+	res.b = GET_B8(color);
+	res.bytesPerComponent = 1;
 
 	return res;
 }
 
-Color MixColors(Color C1, double weight1, Color C2, double weight2)
+inline Color ColorFromUint64(uint64_t color)
+{
+	Color res;
+	res.r = GET_R16(color);
+	res.g = GET_G16(color);
+	res.b = GET_B16(color);
+	res.bytesPerComponent = 2;
+
+	return res;
+}
+
+Color MixColors(Color C1, FLOAT weight1, Color C2, FLOAT weight2)
 {
 	Color res;
 
@@ -42,30 +54,3 @@ Color MixColors(Color C1, double weight1, Color C2, double weight2)
 	return res;
 }
 
-uint32_t ColorManhattanDistance(Color C1, Color C2)
-{
-	return abs(C1.r-C2.r)+abs(C1.g-C2.g)+abs(C1.b-C2.b);
-}
-
-inline double QuadHeterogeneity(Color C1, Color C2, Color C3, Color C4)
-{
-	Color avg;
-	avg.r = (C1.r + C2.r + C3.r + C4.r) / 4;
-	avg.g = (C1.g + C2.g + C3.g + C4.g) / 4;
-	avg.b = (C1.b + C2.b + C3.b + C4.b) / 4;
-	return (double)(ColorManhattanDistance(C1,avg)+
-			ColorManhattanDistance(C2,avg)+
-			ColorManhattanDistance(C3,avg)+
-			ColorManhattanDistance(C4,avg)) / (4*3*255);
-}
-
-inline Color LinearInterpolation(Color C1, Color C2, Color C3, Color C4,
-			double x, double y)
-{
-	Color res;
-	res.r = (C1.r*(1.-x)+C2.r*x)*(1.-y) + (C3.r*(1.-x)+C4.r*x)*y;
-	res.g = (C1.g*(1.-x)+C2.g*x)*(1.-y) + (C3.g*(1.-x)+C4.g*x)*y;
-	res.b = (C1.b*(1.-x)+C2.b*x)*(1.-y) + (C3.b*(1.-x)+C4.b*x)*y;
-
-	return res;
-}
