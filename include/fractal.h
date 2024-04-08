@@ -23,22 +23,17 @@
   * \brief Header file related to fractals.
   *
   * How is a fractal point computed and colored (step by step) :
-  * - The orbit is computed by the fractal loop function
-  *   (iterating zn = f(z{n-1})+c).
-  * - If the coloring method is simple, the (still temporary) fractal
-  *   value is computed from the orbit using the iteration count function.
-  * - If the coloring method is average, the (temporary) fractal value
-  *   is computed from the orbit using the interpolation function,
-  *   (which itself uses the iteration count and addend functions).
-  *   Note that there is an interpolation function for "no interpolation",
-  *   which uses iteration count and addend functions like the other
-  *   _real_ interpolation functions (linear, spline, ...).
-  * - Transfer function is then applied, as well as multiplier.
+  * - The fractal loop function is executed, and returns a floating point
+  *   value. See fractal loop header for more details on fractal loops.
+  *   \see fractal_loop.h
+  * - The transfer functions is applied, as well as the multiplier, and the
+  *   offset is added.
   * - Finally, the value is mapped to a color using the gradient.
   *
   * Note that points that belong to the fractal set (radius <= escape radius
   * after the maximum number of iterations) do not go through all those
-  * steps : the color of fractal space is returned.
+  * steps : the fractal loop gives a negative value, so that the color of
+  * fractal space is returned.
   *
   * \author Marc Pegon
   */
@@ -49,10 +44,8 @@
 #include "floating_point.h"
 #include "gradient.h"
 #include "image.h"
-#include "rectangle.h"
-#include "fractal_orbit.h"
+#include "fractal_formula.h"
 #include "fractal_rendering_parameters.h"
-#include "thread.h"
 #include <complex.h>
 #include <stdint.h>
 
@@ -80,43 +73,6 @@
  */
 #define DEFAULT_ADAPTIVE_AAM_THRESHOLD (FLOAT)(5.05E-2)
 
-/**
- * \enum e_FractalType
- * \brief Type of fractal.
- */
-typedef enum e_FractalType {
-	FRAC_MANDELBROT = 0,
- /*!< Mandelbrot fractal.*/
-	FRAC_MANDELBROTP,
- /*!< Mandelbrot type fractal with custom p parameter.*/
-	FRAC_JULIA,
- /*!< Julia fractal.*/
-	FRAC_JULIAP,
- /*!< Julia type fractal with custom p parameter.*/
-	FRAC_RUDY
- /*!< Rudy fractal (with custom p parameter).*/
-} FractalType;
-
-/**
- * \fn FractalType GetFractalType(const char *str)
- * \brief Get fractal type from string.
- *
- * Function is case insensitive.
- * Possible strings are :
- * - "mandelbrot" for FRAC_MANDELBROT
- * - "mandelbrotp" for FRAC_MANDELBROTP
- * - "julia" for FRAC_JULIA
- * - "juliap" for FRAC_JULIAP
- * - "rudy" for FRAC_RUDY
- * 
- * Exit with error in case of failure (unknown fractal type).
- *
- * \param str String specifying fractal type.
- * \return Corresponding fractal type.
- */
-FractalType GetFractalType(const char *str);
-
-
 struct s_Fractal;
 typedef struct s_Fractal Fractal;
 
@@ -125,10 +81,10 @@ typedef struct s_Fractal Fractal;
  * \brief A subset of some fractal set.
  *
  * Describes a subset of some fractal set, plus some parameters
- * for computation.
+ * used for computation.
  */
 struct s_Fractal {
-	FractalType fractalType;
+	FractalFormula fractalFormula;
  /*!< Fractal type.*/
 	FLOAT p;
  /*!< Parameter for some fractals (main power in iteration z = z^p + ...).*/
@@ -173,11 +129,11 @@ struct s_Fractal {
 };
 
 /**
- * \fn void InitFractal(Fractal *fractal, FractalType fractalType, FLOAT p, FLOAT complex c, FLOAT x1, FLOAT y1, FLOAT x2, FLOAT y2, FLOAT escapeRadius, uint_fast32_t maxIter)
+ * \fn void InitFractal(Fractal *fractal, FractalFormula fractalFormula, FLOAT p, FLOAT complex c, FLOAT x1, FLOAT y1, FLOAT x2, FLOAT y2, FLOAT escapeRadius, uint_fast32_t maxIter)
  * \brief Initialize fractal structure.
  *
  * \param fractal Pointer to fractal structure to initialize.
- * \param fractalType Fractal type.
+ * \param fractalFormula Fractal type.
  * \param p (main power in iteration) parameter for fractal.
  * \param c Parameter for Julia fractal (will be ignored for Mandelbrot fractal).
  * \param x1 X coordinate of the upper left point of the fractal subset.
@@ -187,16 +143,16 @@ struct s_Fractal {
  * \param escapeRadius Escape radius for computing fractal.
  * \param maxIter Maximum number of iterations for computing fractal.
  */
-void InitFractal(Fractal *fractal, FractalType fractalType, FLOAT p, FLOAT complex c,
+void InitFractal(Fractal *fractal, FractalFormula fractalFormula, FLOAT p, FLOAT complex c,
 		FLOAT x1, FLOAT y1, FLOAT x2, FLOAT y2, FLOAT escapeRadius,
 		uint_fast32_t maxIter);
 
 /**
- * \fn void InitFractal2(Fractal *fractal, FractalType fractalType, FLOAT p, FLOAT complex c, FLOAT centerX, FLOAT centerY, FLOAT spanX, FLOAT spanY, FLOAT escapeRadius, uint_fast32_t maxIter)
+ * \fn void InitFractal2(Fractal *fractal, FractalFormula fractalFormula, FLOAT p, FLOAT complex c, FLOAT centerX, FLOAT centerY, FLOAT spanX, FLOAT spanY, FLOAT escapeRadius, uint_fast32_t maxIter)
  * \brief Initialize fractal structure.
  *
  * \param fractal Pointer to fractal structure to initialize.
- * \param fractalType Fractal type.
+ * \param fractalFormula Fractal type.
  * \param p (main power in iteration) parameter for fractal.
  * \param c Parameter for Julia fractal (will be ignored for Mandelbrot fractal).
  * \param centerX X coordinate of the center of the fractal subset.
@@ -206,7 +162,7 @@ void InitFractal(Fractal *fractal, FractalType fractalType, FLOAT p, FLOAT compl
  * \param escapeRadius Escape radius for computing fractal.
  * \param maxIter Maximum number of iterations for computing fractal.
  */
-void InitFractal2(Fractal *fractal, FractalType fractalType, FLOAT p, FLOAT complex c,
+void InitFractal2(Fractal *fractal, FractalFormula fractalFormula, FLOAT p, FLOAT complex c,
 		FLOAT centerX, FLOAT centerY, FLOAT spanX, FLOAT spanY,
 		FLOAT escapeRadius, uint_fast32_t maxIter);
 
@@ -220,23 +176,18 @@ void InitFractal2(Fractal *fractal, FractalType fractalType, FLOAT p, FLOAT comp
 void ReadFractalFile(Fractal *fractal, char *fileName);
 
 /**
- * \fn Color ComputeFractalColor(Fractal *fractal, RenderingParameters *render, FractalOrbit *orbit, FLOAT complex z);
+ * \fn Color ComputeFractalColor(Fractal *fractal, RenderingParameters *render, FLOAT complex z);
  * \brief Compute some particular point of fractal.
  *
- * Function will compute the partial orbit at given point and render it as
- * an RGB color. Fractal orbit must already have been created.
- * Depending on coloring method, the partial orbit can be filled only with
- * iteration number and last complex norm (CM_SIMPLE), or with all the
- * norms of the complex numbers in sequence (CM_AVERAGE).
- * 
+ * Function will compute the RGB color at given point according
+ * to fractal and rendering parameters.
+ *
  * \param fractal Fractal to compute.
  * \param render Fractal rendering parameters.
- * \param orbit Orbit to be filled.
  * \param z Point in the complex plan to compute.
  * @return Color of fractal at specified point.
  */
-Color ComputeFractalColor(Fractal *fractal, RenderingParameters *render,
-				FractalOrbit *orbit, FLOAT complex z);
+Color ComputeFractalColor(Fractal *fractal, RenderingParameters *render, FLOAT complex z);
 
 /**
  * \fn void DrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render, uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold)

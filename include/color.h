@@ -30,13 +30,13 @@
 #include <stdint.h>
 #include "floating_point.h"
 
-#define GET_R8(x) ((x & 0x00FF0000)>>16)
-#define GET_G8(x) ((x & 0x0000FF00)>>8)
-#define GET_B8(x) (x & 0x000000FF)
+#define GET_R8(x) ((x >> 16) & 0xFF)
+#define GET_G8(x) ((x >> 8) & 0xFF)
+#define GET_B8(x) (x & 0xFF)
 
-#define GET_R16(x) ((x & 0x0000FFFF00000000)>>32)
-#define GET_G16(x) ((x & 0x00000000FFFF0000)>>16)
-#define GET_B16(x) (x & 0x000000000000FFFF)
+#define GET_R16(x) ((x >> 32) & 0xFFFF)
+#define GET_G16(x) ((x >> 16) & 0xFFFF)
+#define GET_B16(x) (x & 0xFFFF)
 
 /**
  * \struct s_Color

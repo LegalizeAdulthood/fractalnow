@@ -30,34 +30,30 @@
 #include "floating_point.h"
 #include <stdint.h>
 
-struct s_Fractal;
-struct s_FractalOrbit;
-
 /**
- * \typedef AddendFunction
+ * \enum e_AddendFunction
  * \brief Fractal addend function.
  *
  * Addend functions are used to compute values of fractal
  * in case of average coloring (CM_AVERAGE).
- * Addend function are applied on an orbit and compute
- * a number of average sums to be used by an interpolation
- * function.
+ *
+ * Addend functions are described by a sequence of instructions
+ * at the initialization of the fractal loop, for each iteration,
+ * and at the end of the fractal loop.
+ * They take for parameter 'size' the number of average sums to
+ * be computed. Those sums SN[0], SN[1], ..., SN[size-1] MUST be
+ * computed (at least initialized) by the addend function, since
+ * they will be used by the interpolation method.
+ * 
  * Remark : in the fractal "literature", addend functions
  * are not exactly the functions THAT COMPUTE the average sums,
  * but functions USED when computing those sums.
- * We justify this design because there exist different addend
- * functions, and it is more computationally efficient to branch
- * (i.e. select the addend function to use) outside loops
- * than inside (even if we used function pointers).
- * Remark2 : some sums might not be computable if the number of
+ * Remark 2 : some sums might not be computable if the number of
  * iterations (in orbit) is too small (N must be >= size).
- *
- * \param orbit Orbit used to compute average sums.
- * \param SN Pointer to array in which to store computed average sums.
- * \param size Number of average sums to compute (size of SN).
- * \return 0 if the average sums were computed, 1 otherwise (N too small).
  */
-typedef int (*AddendFunction)(struct s_FractalOrbit *orbit, FLOAT *SN, uint_fast32_t size);
+typedef enum e_AddendFunction {
+	AF_TRIANGLEINEQUALITY = 0
+} AddendFunction;
 
 /**
  * \fn AddendFunction GetAddendFunction(const char *str)
@@ -72,6 +68,54 @@ typedef int (*AddendFunction)(struct s_FractalOrbit *orbit, FLOAT *SN, uint_fast
  * \return Corresponding addend function.
  */
 AddendFunction GetAddendFunction(const char *str);
+
+/******************AF_TRIANGLEINEQUALITY******************/
+#define LOOP_INIT_AF_TRIANGLEINEQUALITY(size) \
+FLOAT zeros[size];\
+FLOAT complex prevZP = 0;\
+FLOAT nPrevZP = 0;\
+FLOAT mn=0, Mn=0, rn=0;\
+for (uint_fast32_t i = 0; i < size; ++i) {\
+	SN[i] = 0;\
+	zeros[i] = 0;\
+}
+
+#define LOOP_ITERATION_AF_TRIANGLEINEQUALITY(size) \
+uint_fast32_t m = 1;\
+if (n >= m) {\
+	prevZP = z-c;\
+	nPrevZP = cabs(prevZP);\
+	mn = fabsF(nPrevZP-normC);\
+	Mn = nPrevZP+normC;\
+	rn = sqrtF(normZ2);\
+	for (uint_fast32_t i = size-1; i > 0; --i) {\
+		SN[i] = SN[i-1];\
+		zeros[i] = zeros[i-1];\
+	}\
+	FLOAT diff = Mn-mn;\
+	if (diff != 0) {\
+		/* Avoid division by zero. */\
+		SN[0] += (rn - mn) / diff;\
+	} else {\
+		/* Counting zeros in order to divide by*/\
+		/* the exact number of terms added to SN.*/\
+		++zeros[0];\
+	}\
+}
+
+#define LOOP_END_AF_TRIANGLEINEQUALITY(size) \
+uint_fast32_t m = 1;\
+if (n >= m+size-1) {\
+	for (uint_fast32_t i = 0; i < size; ++i) {\
+		SN[i] /= n+1-m-i-zeros[i];\
+	}\
+} else {\
+	/* Result undefined. 0 chosen. */\
+	for (uint_fast32_t i = 0; i < size; ++i) {\
+		SN[i] = 0;\
+	}\
+}
+/*********************************************************/
 
 #endif
 

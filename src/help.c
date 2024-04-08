@@ -57,32 +57,44 @@ for oversampling (3-5 is good for a high quality image), \
 or adaptive anti-aliasing (must be integer in that last case).\
 \n  \
 -p <AAMThreshold> : Threshold for adaptive anti-aliasing (\
-%"PRIFLOAT" by default, which is good for \
-results generally similar to oversampling with same size factor). \
-Value must be greater than 0.\n  \
+%"PRIFLOAT" by default, which is good for results generally \
+similar to oversampling with same size factor). Value must be \
+greater than 0.\n  \
 -i <QuadSize> : Maximum size of quadrilateral for linear \
-interpolation (%"PRIuFAST32" by default, which is good for no visible \
-loss of quality). A value of 1 means no interpolation (all \
-pixels are computed).\n\
+interpolation (%"PRIuFAST32" by default, which is good for no \
+visible loss of quality). A value of 1 means no interpolation \
+(all pixels are computed).\n\
 Note that when oversampling factor is specified, this is \
 used to compute the high resolution image, before downscaling.\n  \
 -t <Threshold> : Dissimilarity threshold for quad interpolation \
 (%"PRIFLOAT" by default, which is good for no \
 visible loss of quality). A quadrilateral that shows too \
-dissimilar values at its corners will be computed (as opposed to \
-interpolated). Value must be greater than 0. Note that when \
+dissimilar values at its corners will be computed (as opposed \
+to interpolated). Value must be greater than 0. Note that when \
 oversampling factor is specified, this is used to compute \
 the high resolution image, before downscaling.\n\n  \
-Fractal file syntax :\n<FRACTAL_TYPE> | [CX | CY] | \
-<CENTER_X> | <CENTER_Y> | <SPAN_X> | <SPAN_Y> | \
+Fractal file syntax :\n<FRACTAL_TYPE> | [<MAIN_POWER>] | [CX | \
+CY] | <CENTER_X> | <CENTER_Y> | <SPAN_X> | <SPAN_Y> | \
 <ESCAPE_RADIUS> | <NB_ITER_MAX>\n\
-where FRACTAL_TYPE is either MANDELBROT or JULIA, CX and CY \
-are optional floats needed only for Julia (c parameter), and \
+FRACTAL_TYPE can be MANDELBROT, MANDELBROTP, JULIA, JULIAP \
+or RUDY.\n\
+MAIN_POWER is needed for MANDELBROTP, JULIAP and RUDY to \
+specify the main power in fractal formula (zn = z{n-1}^p + \
+...).\n\
+CX and CY are optional floats needed only for JULIA and \
+JULIAP (c parameter), as well as RUDY (d parameter).\n\
 \'|\' designates separators (tabs, blank spaces).\n  \
 Rendering file syntax :\n<BYTES_PER_COMPONENT> | \
-<SPACE_COLOR(hexa)> | <COLOR_SCALING> | <NB_TRANSITIONS> | \
+<SPACE_COLOR(hexa)> | <COUNTING_ALGORITHM> | \
+<COLORING_METHOD> | [<ADDEND_FUNCTION> <INTERPOLATION_METHOD>] \
+| <COLOR_SCALING> | <COLOR_OFFSET> | <NB_TRANSITIONS> | \
 <Color1(hexa)> | .. | <ColorN(hexa)>\n\
-where BYTES_PER_COMPONENT is either 1 (RGB8) or 2 (RGB16).\n",
+BYTES_PER_COMPONENT is either 1 (RGB8) or 2 (RGB16).\n\
+COLORING_METHOD is either SIMPLE OR AVERAGE.\n\
+ADDEND_FUNCTION and INTERPOLATION_METHOD are only needed for \
+\'AVERAGE\' COLORING_METHOD.\n\
+ADDEND_FUNCTION must be TRIANGLEINEQUALITY (for now).\n\
+INTERPOLATION_METHOD can be NONE, LINEAR, or SPLINE.\n",
 	DEFAULT_NB_THREADS,
 	FLOAT_DIG, DEFAULT_ADAPTIVE_AAM_THRESHOLD,
 	DEFAULT_QUAD_INTERPOLATION_SIZE,

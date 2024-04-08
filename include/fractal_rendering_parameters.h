@@ -31,7 +31,7 @@
 #include "gradient.h"
 #include "fractal_addend_function.h"
 #include "fractal_coloring.h"
-#include "fractal_iteration_count.h"
+#include "fractal_counting_function.h"
 #include "fractal_transfer_function.h"
 #include <stdint.h>
 
@@ -44,18 +44,20 @@ typedef struct s_RenderingParameters {
  /*!< Bytes per component for colors of rendering.*/
 	Color spaceColor;
  /*!< The color for fractal space.*/
-	IterationCountFunction iterationCountFunction;
+	CountingFunction countingFunction;
  /*!< Fractal iteration count function.*/
 	ColoringMethod coloringMethod;
  /*!< Fractal coloring method.*/
 	AddendFunction addendFunction;
  /*!< Fractal addend function (used only for CM_AVERAGE coloring method).*/
-	InterpolationFunction interpolationFunction;
- /*!< Fractal interpolation function (used only for CM_AVERAGE coloring method.)*/
+	InterpolationMethod interpolationMethod;
+ /*!< Fractal interpolation method (used only for CM_AVERAGE coloring method.)*/
 	TransferFunction transferFunction;
  /*!< Fractal transfer function (to make the values fit the gradient better).*/
 	FLOAT multiplier;
  /*!< Value with which fractal values will be multiplied (to make the values fit the gradient better).*/
+	FLOAT offset;
+ /*!< Offset for mapping value to gradient.*/
 	Gradient gradient;
  /*!< Gradient for mapping float values to colors.*/
 } RenderingParameters;

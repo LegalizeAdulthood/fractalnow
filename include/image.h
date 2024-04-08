@@ -39,7 +39,7 @@
  * A 2D array of colors representing an image.
  */
 typedef struct s_Image {
-	Color *data;
+	uint8_t *data;
  /*!< Imaga data.*/
 	uint_fast32_t width;
  /*!< Image width.*/
@@ -68,7 +68,9 @@ void CreateUnitializedImage(Image *image, uint_fast32_t width, uint_fast32_t hei
  * \brief Convert image to bytes array.
  *
  * Bytes array must be big enough to store image data (width*height*3*bytesPerComponent).
- * For RGB16 images, for each component, the most significant byte is put first.
+ * For RGB8 images, function simply does a copy of internal data into array.
+ * For RGB16 images, for each component, the most significant byte is put first
+ * (this is NOT a simple copy of array).
  *
  * \param array Array to store image data.
  * \param image Image to convert to bytes array.

@@ -24,12 +24,13 @@
 #include "filter.h"
 #include "fractal_loop.h"
 #include "misc.h"
+#include "rectangle.h"
+#include "thread.h"
 #include <inttypes.h>
 #include <pthread.h>
 #include <string.h>
 
 typedef struct s_DrawFractalArguments {
-	FractalOrbit *orbit;
 	Image *image;
 	Fractal *fractal;
 	RenderingParameters *render;
@@ -39,10 +40,10 @@ typedef struct s_DrawFractalArguments {
 	FLOAT threshold;
 } DrawFractalArguments;
 
-static inline void aux_InitFractal(Fractal *fractal, FractalType fractalType, FLOAT p,
+static inline void aux_InitFractal(Fractal *fractal, FractalFormula fractalFormula, FLOAT p,
 				FLOAT complex c, FLOAT escapeRadius, uint_fast32_t maxIter)
 {
-	fractal->fractalType = fractalType;
+	fractal->fractalFormula = fractalFormula;
 	fractal->p = p;
 	fractal->p_is_integer = isInteger(p);
 	fractal->p_int = (uint_fast8_t)p;
@@ -55,7 +56,7 @@ static inline void aux_InitFractal(Fractal *fractal, FractalType fractalType, FL
 	fractal->maxIter = maxIter;
 }
 
-void InitFractal(Fractal *fractal, FractalType fractalType, FLOAT p, FLOAT complex c,
+void InitFractal(Fractal *fractal, FractalFormula fractalFormula, FLOAT p, FLOAT complex c,
 		FLOAT x1, FLOAT y1, FLOAT x2, FLOAT y2, FLOAT escapeRadius,
 		uint_fast32_t maxIter)
 {
@@ -68,10 +69,10 @@ void InitFractal(Fractal *fractal, FractalType fractalType, FLOAT p, FLOAT compl
 	fractal->spanX = x2-x1;
 	fractal->spanY = y2-y1;
 
-	aux_InitFractal(fractal, fractalType, p, c, escapeRadius, maxIter);
+	aux_InitFractal(fractal, fractalFormula, p, c, escapeRadius, maxIter);
 }
 
-void InitFractal2(Fractal *fractal, FractalType fractalType, FLOAT p, FLOAT complex c,
+void InitFractal2(Fractal *fractal, FractalFormula fractalFormula, FLOAT p, FLOAT complex c,
 		FLOAT centerX, FLOAT centerY, FLOAT spanX, FLOAT spanY,
 		FLOAT escapeRadius, uint_fast32_t maxIter)
 {
@@ -84,10 +85,10 @@ void InitFractal2(Fractal *fractal, FractalType fractalType, FLOAT p, FLOAT comp
 	fractal->spanX = spanX;
 	fractal->spanY = spanY;
 
-	aux_InitFractal(fractal, fractalType, p, c, escapeRadius, maxIter);
+	aux_InitFractal(fractal, fractalFormula, p, c, escapeRadius, maxIter);
 }
 
-FractalType GetFractalType(const char *str)
+FractalFormula GetFractalFormula(const char *str)
 {
 	size_t len = strlen(str);
 
@@ -95,7 +96,7 @@ FractalType GetFractalType(const char *str)
 		error("Unknown fractal type \'%s\'.\n", str);
 	}
 
-	FractalType res;
+	FractalFormula res;
 	char FTStr[256];
 	strcpy(FTStr, str);
 	toLowerCase(FTStr);
@@ -129,11 +130,11 @@ void ReadFractalFile(Fractal *fractal, char *fileName)
 		open_error(fileName);
 	}
 
-	FractalType fractalType;
+	FractalFormula fractalFormula;
 	safeReadString(file, fileName, tmp[0]);
-	fractalType = GetFractalType(tmp[0]);
+	fractalFormula = GetFractalFormula(tmp[0]);
 	FLOAT p;
-	switch (fractalType) {
+	switch (fractalFormula) {
 	case FRAC_MANDELBROT:
 	case FRAC_JULIA:
 		p = 2;
@@ -153,7 +154,7 @@ void ReadFractalFile(Fractal *fractal, char *fileName)
 	}
 	FLOAT cx = 0, cy = 0;
 
-	switch (fractalType) {
+	switch (fractalFormula) {
 	case FRAC_MANDELBROT:
 	case FRAC_MANDELBROTP:
 		break;
@@ -184,7 +185,7 @@ void ReadFractalFile(Fractal *fractal, char *fileName)
 	}
 	uint_fast32_t nbIterMax = safeReadUint32(file, fileName);
 
-	InitFractal2(fractal, fractalType, p, cx+I*cy, centerX, centerY, spanX, spanY,
+	InitFractal2(fractal, fractalFormula, p, cx+I*cy, centerX, centerY, spanX, spanY,
 			escapeRadius, nbIterMax);
 
 	if (fclose(file)) {
@@ -195,30 +196,26 @@ void ReadFractalFile(Fractal *fractal, char *fileName)
 }
 
 static inline Color aux_ComputeFractalColor(Fractal *fractal, RenderingParameters *render,
-						FractalOrbit *orbit, FractalLoop fractalLoop,
-						FLOAT complex z)
+						FractalLoop fractalLoop, FLOAT complex z)
 {
-	fractalLoop(fractal, orbit, z);
-	FLOAT value = render->iterationCountFunction(fractal, orbit);
-	if (render->coloringMethod == CM_AVERAGE) {
-		value = render->interpolationFunction(value, orbit, render);
-	}
+	FLOAT value = fractalLoop(fractal, render, z);
 	Color res;
 	if (value < 0) {
 		res = render->spaceColor;
 	} else {
-		value = render->transferFunction(value)*render->multiplier;
+		value = render->transferFunction(value)*render->multiplier+
+			render->offset;
 		res = GetGradientColor(&render->gradient, (uint_fast64_t)(value));
 	}
 	return res;
 }
 
-Color ComputeFractalColor(Fractal *fractal, RenderingParameters *render,
-				FractalOrbit *orbit, FLOAT complex z)
+Color ComputeFractalColor(Fractal *fractal, RenderingParameters *render, FLOAT complex z)
 {
-	FractalLoop fractalLoop = GetFractalLoop(fractal->fractalType, render->coloringMethod,
-							fractal->p_is_integer);
-	return aux_ComputeFractalColor(fractal, render, orbit, fractalLoop, z);
+	FractalLoop fractalLoop = GetFractalLoop(fractal->fractalFormula, fractal->p_is_integer,
+					render->coloringMethod, render->addendFunction,
+					render->interpolationMethod);
+	return aux_ComputeFractalColor(fractal, render, fractalLoop, z);
 }
 
 static inline Color ComputeFractalImagePixel(DrawFractalArguments *arg,
@@ -227,7 +224,6 @@ static inline Color ComputeFractalImagePixel(DrawFractalArguments *arg,
 {
 	Fractal *fractal = arg->fractal;
 	RenderingParameters *render = arg->render;
-	FractalOrbit *orbit = arg->orbit;
 	FractalLoop fractalLoop = arg->fractalLoop;
 
 	uint_fast32_t widthm1 = width-1;
@@ -239,7 +235,7 @@ static inline Color ComputeFractalImagePixel(DrawFractalArguments *arg,
 	 * to re-get the FractalLoop to use for each pixel. It is already stored
 	 * in arg.
 	 */
-	return aux_ComputeFractalColor(fractal, render, orbit, fractalLoop, fx+I*fy);
+	return aux_ComputeFractalColor(fractal, render, fractalLoop, fx+I*fy);
 }
 
 /* Compute (all) fractal values of given rectangle and render in image.
@@ -370,6 +366,9 @@ void *DrawFractalThreadRoutine(void *arg)
 	info(T_VERBOSE,"Drawing fractal from (%"PRIuFAST32",%"PRIuFAST32") to \
 (%"PRIuFAST32",%"PRIuFAST32")...\n", clipRect->x1, clipRect->y1, clipRect->x2, clipRect->y2);
 
+	int old_val;
+	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &old_val);
+
 	if (width<2 || height<2) {
 		error("Image is too small : %"PRIuFAST32"x%"PRIuFAST32"\n",width,height);
 	}
@@ -419,14 +418,11 @@ void DrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render
 	
 	DrawFractalArguments *arg;
 	arg = (DrawFractalArguments *)safeMalloc("arguments", realNbThreads * sizeof(DrawFractalArguments));
-	FractalOrbit *orbit;
-	orbit = (FractalOrbit *)safeMalloc("orbits", realNbThreads*sizeof(FractalOrbit));
-	FractalLoop fractalLoop = GetFractalLoop(fractal->fractalType, render->coloringMethod,
-							fractal->p_is_integer);
-	for (uint_fast32_t i = 0; i < realNbThreads; ++i) {
-		CreateOrbit(&orbit[i], fractal->maxIter);
 
-		arg[i].orbit = &orbit[i];
+	FractalLoop fractalLoop = GetFractalLoop(fractal->fractalFormula, fractal->p_is_integer,
+					render->coloringMethod, render->addendFunction,
+					render->interpolationMethod);
+	for (uint_fast32_t i = 0; i < realNbThreads; ++i) {
 		arg[i].image = image;
 		arg[i].fractal = fractal;
 		arg[i].render = render;
@@ -438,10 +434,6 @@ void DrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render
 	}
 	LaunchThreadsAndWait(realNbThreads, arg, sizeof(DrawFractalArguments), DrawFractalThreadRoutine);
 
-	for (uint_fast32_t i = 0; i < realNbThreads; ++i) {
-		FreeOrbit(&orbit[i]);
-	}
-	free(orbit);
 	free(rectangle);
 	free(arg);
 
@@ -553,14 +545,10 @@ void AntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *rend
 	
 	DrawFractalArguments *arg;
 	arg = (DrawFractalArguments *)safeMalloc("arguments", realNbThreads*sizeof(DrawFractalArguments));
-	FractalOrbit *orbit;
-	orbit = (FractalOrbit *)safeMalloc("orbits", realNbThreads*sizeof(FractalOrbit));
-	FractalLoop fractalLoop = GetFractalLoop(fractal->fractalType, render->coloringMethod,
-							fractal->p_is_integer);
+	FractalLoop fractalLoop = GetFractalLoop(fractal->fractalFormula, fractal->p_is_integer,
+					render->coloringMethod, render->addendFunction,
+					render->interpolationMethod);
 	for (uint_fast32_t i = 0; i < realNbThreads; ++i) {
-		CreateOrbit(&orbit[i], fractal->maxIter);
-
-		arg[i].orbit = &orbit[i];
 		arg[i].image = image;
 		arg[i].fractal = fractal;
 		arg[i].render = render;
@@ -572,10 +560,6 @@ void AntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *rend
 	}
 	LaunchThreadsAndWait(realNbThreads, arg, sizeof(DrawFractalArguments), AntiAliaseFractalThreadRoutine);
 
-	for (uint_fast32_t i = 0; i < realNbThreads; ++i) {
-		FreeOrbit(&orbit[i]);
-	}
-	free(orbit);
 	free(rectangle);
 	free(arg);
 

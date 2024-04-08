@@ -20,55 +20,8 @@
 
 #include "fractal.h"
 #include "fractal_addend_function.h"
-#include "fractal_orbit.h"
 #include "misc.h"
 #include <string.h>
-
-static inline uint_fast32_t min(uint_fast32_t x, uint_fast32_t y)
-{
-	if (x < y) {
-		return x;
-	} else {
-		return y;
-	}
-}
-
-int triangleInequalityAddendFunction(FractalOrbit *orbit, FLOAT *SN, uint_fast32_t size)
-{
-	uint_fast32_t N = orbit->N;
-	FLOAT *rn = orbit->rn;
-	FLOAT *mn = orbit->mn;
-	FLOAT *Mn = orbit->Mn;
-	uint_fast32_t m = 1;
-	int res;
-
-	if (N >= m+size-1) {
-		FLOAT diff = 0;
-		uint_fast32_t zeros = 0;
-		for (uint_fast32_t n = m; n <= N; ++n) {
-			diff = Mn[n]-mn[n];
-			if (diff == 0) {
-				orbit->tn[n] = 0;
-				++zeros;
-			} else {
-				orbit->tn[n] = (rn[n]-mn[n]) / diff;
-			}
-		}
-		for (uint_fast32_t i = 0; i < size; ++i) {
-			SN[i] = 0;
-			for (uint_fast32_t n = m; n <= N-i; ++n) {
-				SN[i] += orbit->tn[n];
-			}
-			SN[i] /= N+1-m-i-zeros;
-		}
-
-		res = 0;
-	} else {
-		res = 1;
-	}
-
-	return res;
-}
 
 AddendFunction GetAddendFunction(const char *str)
 {
@@ -83,7 +36,7 @@ AddendFunction GetAddendFunction(const char *str)
 	AddendFunction res;
 
 	if (strcmp(AFStr, "triangleinequality") == 0) {
-		res = triangleInequalityAddendFunction;
+		res = AF_TRIANGLEINEQUALITY;
 	} else {
 		error("Unknown addend function \'%s\'.\n", str);
 	}

@@ -33,10 +33,6 @@
 #include "floating_point.h"
 #include <stdint.h>
 
-struct s_Fractal;
-struct s_FractalOrbit;
-struct s_RenderingParameters;
-
 /**
  * \enum e_ColoringMethod
  * \brief Possible coloring methods.
@@ -45,6 +41,10 @@ struct s_RenderingParameters;
  * and multiplier) is simply the result of iteration count function.
  * For average sums coloring method, fractal value is computed by interpolation
  * function thanks to addend function and iteration count function.
+ *
+ * See addend function and interation count headers for more details.
+ * \see fractal_addend_function.h
+ * \see fractal_counting_function.h
  */
 typedef enum e_ColoringMethod {
 	CM_SIMPLE = 0,
@@ -54,20 +54,32 @@ typedef enum e_ColoringMethod {
 } ColoringMethod;
 ColoringMethod GetColoringMethod(const char *str);
 
-
 /**
- * \typedef InterpolationFunction
- * \brief Interpolation function type.
+ * \enum e_InterpolationMethod
+ * \brief Possible coloring methods.
  *
- * Compute fractal value from orbit and iteration count, only when coloring method
- * is average sums (CM_AVERAGE).
+ * Interpolation methods use an addend function to compute a number of average
+ * sums, from which they compute de fractal value.
+ * For no interpolation, only 1 sum is to be computed, and is returned as is.
+ * For linear and spline interpolation, respectively 2 and 4 sums are to be
+ * computed by addend function, and the final value is computed from those
+ * sums using the iteration count function.
+ *
+ * See addend function and interation count headers for more details.
+ * \see fractal_addend_function.h
+ * \see fractal_counting_function.h
  */
-typedef FLOAT (*InterpolationFunction)(FLOAT iterationCount, struct s_FractalOrbit *orbit,
-					struct s_RenderingParameters *render);
+typedef enum e_InterpolationMethod {
+	IM_NONE = 0,
+ /*<! No interpolation (only one average sum).*/
+	IM_LINEAR,
+ /*<! Linear interpolation (two average sums), using fractal computing algorithm (smooth iteration for example).*/
+	IM_SPLINE
+ /*<! Spline interpolation (four average sums), using fractal computing algorithm.*/
+} InterpolationMethod;
 
 /**
- * \fn InterpolationFunction GetInterpolationFunction(const char *str)
- * \brief Get interpolation function from string.
+ * \fn InterpolationMethod GetInterpolationMethod(const char *str) * \brief Get interpolation method from string.
  *
  * Function is case insensitive.
  * Possible strings are :
@@ -77,9 +89,101 @@ typedef FLOAT (*InterpolationFunction)(FLOAT iterationCount, struct s_FractalOrb
  * Exit with error in case of failure.
  *
  * \param str String specifying interpolation function.
- * \return Corresponding interpolation function.
+ * \return Corresponding interpolation method.
  */
-InterpolationFunction GetInterpolationFunction(const char *str);
+InterpolationMethod GetInterpolationMethod(const char *str);
+
+/* Function assumes that y >= 1 and compute x^y. */
+static inline FLOAT iPowF(FLOAT x, uint_fast32_t y)
+{
+	FLOAT rem = 1, res = x;
+	do {
+		if (y % 2) {
+			rem *= x;
+			--y;
+		}
+		y >>= 1;
+		res *= res;
+	} while (y > 1);
+
+	return res*rem;
+}
+
+/*************************IM_NONE*************************/
+#define LOOP_INIT_IM_NONE(addend) \
+FLOAT SN[1];\
+LOOP_INIT_AF_##addend(1)
+
+#define LOOP_ITERATION_IM_NONE(addend) \
+LOOP_ITERATION_AF_##addend(1)
+
+#define LOOP_END_IM_NONE(addend) \
+LOOP_END_AF_##addend(1)\
+res = SN[0];
+/*********************************************************/
+
+
+/************************IM_LINEAR************************/
+#define LOOP_INIT_IM_LINEAR(addend) \
+FLOAT SN[2];\
+LOOP_INIT_AF_##addend(2)
+
+#define LOOP_ITERATION_IM_LINEAR(addend) \
+LOOP_ITERATION_AF_##addend(2)
+
+#define LOOP_END_IM_LINEAR(addend) \
+LOOP_END_AF_##addend(2)\
+res = countingFunction(fractal, n, sqrtF(normZ2));\
+FLOAT d, unused;\
+d = modfF(res, &unused);\
+res = d*SN[0] + (1-d)*SN[1];
+/*********************************************************/
+
+
+/************************IM_SPLINE************************/
+#define LOOP_INIT_IM_SPLINE(addend) \
+FLOAT SN[4];\
+LOOP_INIT_AF_##addend(4)
+
+#define LOOP_ITERATION_IM_SPLINE(addend) \
+LOOP_ITERATION_AF_##addend(4)
+
+#define LOOP_END_IM_SPLINE(addend) \
+LOOP_END_AF_##addend(4)\
+res = countingFunction(fractal, n, sqrtF(normZ2));\
+FLOAT unused, d1, d2, d3;\
+d1 = modfF(res, &unused);\
+d2 = d1*d1;\
+d3 = d1*d2;\
+res = ((-d2+d3)*SN[0] +\
+	(d1+4*d2-3*d3)*SN[1] +\
+	(2-5*d2+3*d3)*SN[2] +\
+	(-d1+2*d2-d3)*SN[3]) /2;\
+/*********************************************************/
+
+
+/************************CM_SIMPLE************************/
+#define LOOP_INIT_CM_SIMPLE(addend,interpolation) \
+(void)NULL;
+
+#define LOOP_ITERATION_CM_SIMPLE(addend,interpolation) \
+(void)NULL;
+
+#define LOOP_END_CM_SIMPLE(addend,interpolation) \
+res = countingFunction(fractal, n, sqrtF(normZ2));
+/*********************************************************/
+
+
+/************************CM_AVERAGE***********************/
+#define LOOP_INIT_CM_AVERAGE(addend,interpolation) \
+LOOP_INIT_IM_##interpolation(addend)
+
+#define LOOP_ITERATION_CM_AVERAGE(addend,interpolation) \
+LOOP_ITERATION_IM_##interpolation(addend)
+
+#define LOOP_END_CM_AVERAGE(addend,interpolation) \
+LOOP_END_IM_##interpolation(addend)
+/*********************************************************/
 
 #endif
 

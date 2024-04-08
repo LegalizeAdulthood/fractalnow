@@ -1,5 +1,5 @@
 /*
- *  fractal_iteration_count.c -- part of fractal2D
+ *  fractal_counting_function.c -- part of fractal2D
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -19,59 +19,37 @@
  */
  
 #include "fractal.h"
-#include "fractal_iteration_count.h"
-#include "fractal_orbit.h"
+#include "fractal_counting_function.h"
 #include "error.h"
 #include "misc.h"
 #include <string.h>
 
-FLOAT discreteIterationCount(Fractal *fractal, FractalOrbit *orbit)
+/* Assumes rN < escapeRadius */
+FLOAT discreteIterationCount(Fractal *fractal, uint_fast32_t N, FLOAT rN)
 {
-	uint_fast32_t N = orbit->N;
-	FLOAT rN = orbit->rn[N];
+	(void)rN;
+	(void)fractal;
 
-	FLOAT res;
-	if (rN < fractal->escapeRadius) {
-		res = -(FLOAT)N;
-	} else {
-		res = (FLOAT)N;
-	}
-	return res;
+	return (FLOAT)N;
 }
 
-FLOAT continuousIterationCount(Fractal *fractal, FractalOrbit *orbit)
+/* Assumes rN < escapeRadius */
+FLOAT continuousIterationCount(Fractal *fractal, uint_fast32_t N, FLOAT rN)
 {
-	uint_fast32_t N = orbit->N;
-	FLOAT rN = orbit->rn[N];
-
-	FLOAT res;
-	if (rN < fractal->escapeRadius) {
-		res = -(FLOAT)N;
-	} else {
-		res = N+(fractal->escapeRadiusP-rN)/(fractal->escapeRadiusP-fractal->escapeRadius);
-	}
-	return res;
+	return N+(fractal->escapeRadiusP-rN)/(fractal->escapeRadiusP-fractal->escapeRadius);
 }
 
-FLOAT smoothIterationCount(Fractal *fractal, FractalOrbit *orbit)
+/* Assumes rN < escapeRadius */
+FLOAT smoothIterationCount(Fractal *fractal, uint_fast32_t N, FLOAT rN)
 {
-	uint_fast32_t N = orbit->N;
-	FLOAT rN = orbit->rn[N];
-
-	FLOAT res;
-	if (rN < fractal->escapeRadius) {
-		res = -(FLOAT)N;
-	} else {
-		res = N+1+logF(fractal->logEscapeRadius/logF(rN))/fractal->logP;
-	}
-	return res;
+	return N+1+logF(fractal->logEscapeRadius/logF(rN))/fractal->logP;
 }
 
-IterationCountFunction GetIterationCountFunction(const char *str)
+CountingFunction GetCountingFunction(const char *str)
 {
 	int len = strlen(str);
 	if (len > 255) {
-		error("Unknown iteration count type \'%s\'.\n", str);
+		error("Unknown counting function \'%s\'.\n", str);
 	}
 
 	char ICStr[256];
@@ -85,6 +63,6 @@ IterationCountFunction GetIterationCountFunction(const char *str)
 	} else if (strcmp(ICStr, "smooth") == 0) {
 		return smoothIterationCount;
 	} else {
-		error("Unknown iteration count type \'%s\'.\n", str);
+		error("Unknown counting function \'%s\'.\n", str);
 	}
 }

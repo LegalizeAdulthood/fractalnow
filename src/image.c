@@ -25,10 +25,14 @@
 #include "thread.h"
 #include <inttypes.h>
 #include <stdlib.h>
+#include <string.h>
 
 void CreateUnitializedImage(Image *image, uint_fast32_t width, uint_fast32_t height, uint_fast8_t bytesPerComponent)
 {
-	image->data = (Color *)safeMalloc("image", width*height*sizeof(Color));
+	if (bytesPerComponent != 1 && bytesPerComponent != 2) {
+		error("Invalid bytes per component. Only 1 and 2 are allowed.\n");
+	}
+	image->data = (uint8_t *)safeMalloc("image", width*height*3*bytesPerComponent);
 	image->width = width;
 	image->height = height;
 	image->bytesPerComponent = bytesPerComponent;
@@ -36,32 +40,25 @@ void CreateUnitializedImage(Image *image, uint_fast32_t width, uint_fast32_t hei
 
 static inline void ImageRGB8ToBytesArray(uint8_t *array, Image *image)
 {
-	uint8_t *p_array = array;
-	Color *data = image->data;
-
-	for (uint_fast32_t i = 0; i < image->height; ++i) {
-		for (uint_fast32_t j = 0; j < image->width; ++j) {
-			*(p_array++) = (uint8_t)data->r;
-			*(p_array++) = (uint8_t)data->g;
-			*(p_array++) = (uint8_t)data->b;
-			++data;
-		}
-	}
+	memcpy(array, image->data, image->width*image->height*3*image->bytesPerComponent);
 }
 
 static inline void ImageRGB16ToBytesArray(uint8_t *array, Image *image)
 {
+	//memcpy(array, image->data, image->width*image->height*3*image->bytesPerComponent);
 	uint8_t *p_array = array;
-	Color *data = image->data;
+	uint16_t *data = (uint16_t *)image->data;
 
 	for (uint_fast32_t i = 0; i < image->height; ++i) {
 		for (uint_fast32_t j = 0; j < image->width; ++j) {
-			*(p_array++) = (uint8_t)(data->r >> 8);
-			*(p_array++) = (uint8_t)(data->r & 0xFF);
-			*(p_array++) = (uint8_t)(data->g >> 8);
-			*(p_array++) = (uint8_t)(data->g & 0xFF);
-			*(p_array++) = (uint8_t)(data->b >> 8);
-			*(p_array++) = (uint8_t)(data->b & 0xFF);
+			*(p_array++) = (uint8_t)((*data) >> 8);
+			*(p_array++) = (uint8_t)((*data) & 0xFF);
+			++data;
+			*(p_array++) = (uint8_t)((*data) >> 8);
+			*(p_array++) = (uint8_t)((*data) & 0xFF);
+			++data;
+			*(p_array++) = (uint8_t)((*data) >> 8);
+			*(p_array++) = (uint8_t)((*data) & 0xFF);
 			++data;
 		}
 	}
@@ -88,7 +85,31 @@ typedef enum {
 } Region;
 
 inline Color iGetPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y) {
-	return *(image->data+y*image->width+x);
+	Color res;
+	res.bytesPerComponent = image->bytesPerComponent;
+	switch (res.bytesPerComponent) {
+	case 1:
+		{
+		uint8_t *data = image->data + (y*image->width+x)*3;
+		res.r = *(data++);
+		res.g = *(data++);
+		res.b = *(data++);
+		break;
+		}
+	case 2:
+		{
+		uint16_t *data = (uint16_t *)(image->data + (y*image->width+x)*6);
+		res.r = *(data++);
+		res.g = *(data++);
+		res.b = *(data++);
+		}
+		break;
+	default:
+		error("Invalid bytes per component.\n");
+		break;
+	}
+	
+	return res;
 }
 
 Region iGetImageRegion(Image *image, int_fast64_t x, int_fast64_t y)
@@ -166,7 +187,27 @@ inline Color iGetPixel(Image *image, int_fast64_t x, int_fast64_t y) {
 
 inline void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color color)
 {
-	*(image->data+y*image->width+x)=color;
+	switch (image->bytesPerComponent) {
+	case 1:
+		{
+		uint8_t *data = image->data + (y*image->width+x)*3;
+		*(data++) = color.r;
+		*(data++) = color.g;
+		*(data++) = color.b;
+		break;
+		}
+	case 2:
+		{
+		uint16_t *data = (uint16_t *)(image->data + (y*image->width+x)*6);
+		*(data++) = color.r;
+		*(data++) = color.g;
+		*(data++) = color.b;
+		}
+		break;
+	default:
+		error("Invalid bytes per component.\n");
+		break;
+	}
 }
 
 void ApplyGaussianBlur(Image *dst, Image *src, FLOAT radius)

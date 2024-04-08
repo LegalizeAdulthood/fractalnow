@@ -52,9 +52,9 @@ FLOAT cubeF(FLOAT x)
 	return x*x*x;
 }
 
-FLOAT loglogF(FLOAT x)
+FLOAT logp1F(FLOAT x)
 {
-	return (logF(x));
+	return logF(1+x);
 }
 
 TransferFunction GetTransferFunction(const char *str)
@@ -72,7 +72,7 @@ TransferFunction GetTransferFunction(const char *str)
 	if (strcmp(TFStr, "zero") == 0) {
 		return zeroF;
 	} else if (strcmp(TFStr, "log") == 0) {
-		return loglogF;//LOGF;
+		return logp1F;
 	} else if (strcmp(TFStr, "cuberoot") == 0) {
 		return cubertF;
 	} else if (strcmp(TFStr, "squareroot") == 0) {

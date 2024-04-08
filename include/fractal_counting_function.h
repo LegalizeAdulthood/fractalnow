@@ -1,5 +1,5 @@
 /*
- *  fractal_iteration_count.h -- part of fractal2D
+ *  fractal_counting_function.h -- part of fractal2D
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -19,35 +19,36 @@
  */
  
  /**
-  * \file fractal_iteration_count.h
+  * \file fractal_counting_function.h
   * \brief Header file related to iteration count method.
   * \author Marc Pegon
   */
  
-#ifndef __FRACTAL_ITERATION_COUNT_H__
-#define __FRACTAL_ITERATION_COUNT_H__
+#ifndef __FRACTAL_COUNTING_FUNCTION_H__
+#define __FRACTAL_COUNTING_FUNCTION_H__
 
 #include "floating_point.h"
 
 struct s_Fractal;
-struct s_FractalOrbit;
 
 /**
  * \typedef IterationCountFunction
  * \brief Iteration count function type.
  *
  * There are different ways to "count" the number of iterations
- * when computing fractal, i.e. to compute fractal value :
+ * when computing fractal :
  * it can be either simply the number of iterations itself (which
  * is discrete), or more advanced stuff like continuous or smooth
  * iteration count.
+ * Some are not even about counting but estimating distance to
+ * fractal space...
  * 
  */
-typedef FLOAT (*IterationCountFunction)(struct s_Fractal *fractal, struct s_FractalOrbit *orbit);
+typedef FLOAT (*CountingFunction)(struct s_Fractal *fractal, uint_fast32_t N, FLOAT rN);
 
 /**
- * \fn IterationCountFunction GetIterationCountFunction(const char *str)
- * \brief Get iteration count function from string.
+ * \fn CountingFunction GetCountingFunction(const char *str)
+ * \brief Get counting function from string.
  *
  * Function is case insensitive.
  * Possible strings are :
@@ -56,9 +57,9 @@ typedef FLOAT (*IterationCountFunction)(struct s_Fractal *fractal, struct s_Frac
  * - "smooth" for smooth iteration count
  * Exit with error in case of failure.
  *
- * \param str String specifying iteration count function.
- * \return Corresponding iteration count function.
+ * \param str String specifying counting function.
+ * \return Corresponding counting function.
  */
-IterationCountFunction GetIterationCountFunction(const char *str);
+CountingFunction GetCountingFunction(const char *str);
 
 #endif

@@ -45,7 +45,7 @@ void ReadRenderingFile(RenderingParameters *param, char *fileName)
 
 	char str[256];
 	safeReadString(file, fileName, str);
-	param->iterationCountFunction = GetIterationCountFunction(str);
+	param->countingFunction = GetCountingFunction(str);
 
 	safeReadString(file, fileName, str);
 	param->coloringMethod = GetColoringMethod(str);
@@ -54,16 +54,17 @@ void ReadRenderingFile(RenderingParameters *param, char *fileName)
 		safeReadString(file, fileName, str);
 		param->addendFunction = GetAddendFunction(str);
 		safeReadString(file, fileName, str);
-		param->interpolationFunction = GetInterpolationFunction(str);
+		param->interpolationMethod = GetInterpolationMethod(str);
 	} else {
-		param->interpolationFunction = NULL;
-		param->addendFunction = NULL;
+		param->interpolationMethod = 0;
+		param->addendFunction = 0;
 	}
 
 	safeReadString(file, fileName, str);
 	param->transferFunction = GetTransferFunction(str);
 
 	param->multiplier = safeReadFLOAT(file, fileName);
+	param->offset = safeReadFLOAT(file, fileName);
 
 	uint_fast32_t nbTransitions = safeReadUint32(file, fileName);
 	if (nbTransitions < 2) {

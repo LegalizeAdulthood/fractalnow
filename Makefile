@@ -26,9 +26,8 @@ OBJECTS = $(OBJDIR)/main.o \
 	$(OBJDIR)/fractal_anti_aliasing.o \
 	$(OBJDIR)/fractal_addend_function.o \
 	$(OBJDIR)/fractal_coloring.o \
-	$(OBJDIR)/fractal_iteration_count.o \
+	$(OBJDIR)/fractal_counting_function.o \
 	$(OBJDIR)/fractal_loop.o \
-	$(OBJDIR)/fractal_orbit.o \
 	$(OBJDIR)/fractal_rendering_parameters.o \
 	$(OBJDIR)/fractal_transfer_function.o \
 	$(OBJDIR)/color.o \
