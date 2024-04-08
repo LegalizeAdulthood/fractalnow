@@ -19,8 +19,10 @@
  */
  
 #include "filter.h"
+#include "misc.h"
 #include "rectangle.h"
 #include "thread.h"
+#include <inttypes.h>
 
 typedef struct s_ApplyFilterArguments {
 	Image *dst;
@@ -29,7 +31,7 @@ typedef struct s_ApplyFilterArguments {
 	Filter *filter;
 } ApplyFilterArguments;
 
-void InitFilter(Filter *filter, uint32_t sx, uint32_t sy, uint32_t cx, uint32_t cy, FLOAT *data)
+void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, uint_fast32_t cx, uint_fast32_t cy, FLOAT *data)
 {
 	filter->sx = sx;
 	filter->sy = sy;
@@ -38,7 +40,7 @@ void InitFilter(Filter *filter, uint32_t sx, uint32_t sy, uint32_t cx, uint32_t 
 	filter->data = data;
 }
 
-void InitFilter2(Filter *filter, uint32_t sx, uint32_t sy, FLOAT *data)
+void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOAT *data)
 {
 	filter->sx = sx;
 	filter->sy = sy;
@@ -53,27 +55,19 @@ void CreateHorizontalGaussianFilter(Filter *filter, FLOAT sigma)
 		error("Sigma must be > 0.\n");
 	}
 
-	uint32_t radius = ceil(3. * sigma);
-	if (radius % 2 == 0) {
-		++radius;
-	}
+	uint_fast32_t radius = floorF(3. * sigma);
 
 	filter->sx = radius*2+1;
 	filter->sy = 1;
 	filter->cx = radius;
 	filter->cy = 0;
-
-	filter->data = (FLOAT *)malloc(filter->sx*filter->sy*sizeof(FLOAT));
-	if (filter->data == NULL) {
-		alloc_error("filter");
-	}
-
+	filter->data = (FLOAT *)safeMalloc("filter", filter->sx*filter->sy*sizeof(FLOAT));
 
 	FLOAT sigma2_x_2 = sigma*sigma*2;
 	FLOAT *value = filter->data;
-	int64_t size = (int64_t)filter->cx;
+	int_fast64_t size = (int_fast64_t)filter->cx;
 	FLOAT sum = 0;
-	for (int64_t i = -size; i <= size; ++i) {
+	for (int_fast64_t i = -size; i <= size; ++i) {
 		*value = exp(-i*i/sigma2_x_2);
 		sum += *(value++);
 	}
@@ -97,26 +91,19 @@ void CreateVerticalGaussianFilter(Filter *filter, FLOAT sigma)
 		error("Sigma must be > 0.\n");
 	}
 
-	uint32_t radius = ceil(3. * sigma);
-	if (radius % 2 == 0) {
-		++radius;
-	}
+	uint_fast32_t radius = floorF(3. * sigma);
 
 	filter->sx = 1;
 	filter->sy = radius*2+1;
 	filter->cx = 0;
 	filter->cy = radius;
-
-	filter->data = (FLOAT *)malloc(filter->sx*filter->sy*sizeof(FLOAT));
-	if (filter->data == NULL) {
-		alloc_error("filter");
-	}
+	filter->data = (FLOAT *)safeMalloc("filter", filter->sx*filter->sy*sizeof(FLOAT));
 
 	FLOAT sigma2_x_2 = sigma*sigma*2;
 	FLOAT *value = filter->data;
-	int64_t size = (int64_t)filter->cy;
+	int_fast64_t size = (int_fast64_t)filter->cy;
 	FLOAT sum = 0;
-	for (int64_t i = -size; i <= size; ++i) {
+	for (int_fast64_t i = -size; i <= size; ++i) {
 		*value = exp(-i*i/sigma2_x_2);
 		sum += *(value++);
 	}
@@ -139,27 +126,20 @@ void CreateGaussianFilter(Filter *filter, FLOAT sigma)
 	if (sigma <= 0) {
 		error("Sigma must be > 0.\n");
 	}
-	uint32_t radius = ceil(3. * sigma);
-	if (radius % 2 == 0) {
-		++radius;
-	}
+	uint_fast32_t radius = floorF(3. * sigma);
 
 	filter->sx = radius*2+1;
 	filter->sy = radius*2+1;
 	filter->cx = radius;
 	filter->cy = radius;
-
-	filter->data = (FLOAT *)malloc(filter->sx*filter->sy*sizeof(FLOAT));
-	if (filter->data == NULL) {
-		alloc_error("filter");
-	}
+	filter->data = (FLOAT *)safeMalloc("filter", filter->sx*filter->sy*sizeof(FLOAT));
 
 	FLOAT sigma2_x_2 = sigma*sigma*2;
 	FLOAT *value = filter->data;
-	int64_t size = (int64_t)filter->cx;
+	int_fast64_t size = (int_fast64_t)filter->cx;
 	FLOAT sum = 0;
-	for (int64_t i = -size; i <= size; ++i) {
-		for (int64_t j = -size; j <= size; ++j) {
+	for (int_fast64_t i = -size; i <= size; ++i) {
+		for (int_fast64_t j = -size; j <= size; ++j) {
 			*value = exp(-(i*i+j*j)/sigma2_x_2);
 			sum += *(value++);
 		}
@@ -177,7 +157,7 @@ void CreateGaussianFilter2(Filter *filter, FLOAT radius)
 	CreateGaussianFilter(filter, radius / 3.);
 }
 
-inline FLOAT GetFilterValueUnsafe(Filter *filter, uint32_t x, uint32_t y)
+inline FLOAT GetFilterValueUnsafe(Filter *filter, uint_fast32_t x, uint_fast32_t y)
 {
 	return filter->data[x+y*filter->sx];
 }
@@ -185,8 +165,8 @@ inline FLOAT GetFilterValueUnsafe(Filter *filter, uint32_t x, uint32_t y)
 void MultiplyFilterByScalar(Filter *filter, FLOAT scalar) 
 {
 	FLOAT *value = filter->data;
-	for (uint32_t i = 0; i < filter->sx; ++i) {
-		for (uint32_t j = 0; j < filter->sy; ++j) {
+	for (uint_fast32_t i = 0; i < filter->sx; ++i) {
+		for (uint_fast32_t j = 0; j < filter->sy; ++j) {
 			*(value++) *= scalar;
 		}
 	}
@@ -196,8 +176,8 @@ int NormalizeFilter(Filter *filter)
 {
 	FLOAT *value = filter->data;
 	FLOAT sum = 0;
-	for (uint32_t i = 0; i < filter->sx; ++i) {
-		for (uint32_t j = 0; j < filter->sy; ++j) {
+	for (uint_fast32_t i = 0; i < filter->sx; ++i) {
+		for (uint_fast32_t j = 0; j < filter->sy; ++j) {
 			sum += *(value++);
 		}
 	}
@@ -211,7 +191,7 @@ int NormalizeFilter(Filter *filter)
 	}
 }
 
-Color ApplyFilterOnSinglePixel(Image *src, uint32_t x, uint32_t y, Filter *filter)
+Color ApplyFilterOnSinglePixel(Image *src, uint_fast32_t x, uint_fast32_t y, Filter *filter)
 {
 	FLOAT value;
 	Color color;
@@ -221,8 +201,8 @@ Color ApplyFilterOnSinglePixel(Image *src, uint32_t x, uint32_t y, Filter *filte
 	r = 0;
 	g = 0;
 	b = 0;
-	for (uint32_t i = 0; i < filter->sx; ++i) {
-		for (uint32_t j = 0; j < filter->sy; ++j) {
+	for (uint_fast32_t i = 0; i < filter->sx; ++i) {
+		for (uint_fast32_t j = 0; j < filter->sy; ++j) {
 			color = iGetPixel(src, x-filter->cx+i, y-filter->cy+j);
 			value = GetFilterValueUnsafe(filter, i, j);
 			r += color.r * value;
@@ -246,19 +226,17 @@ void *ApplyFilterThreadRoutine(void *arg)
 	Image *src = c_arg->src;
 	Filter *filter = c_arg->filter;
 
-	info(T_VERBOSE,"Applying filter from (%lu,%lu) to (%lu,%lu)...\n",
-			(unsigned long)dstRect->x1,(unsigned long)dstRect->y1,
-			(unsigned long)dstRect->x2,(unsigned long)dstRect->y2);
+	info(T_VERBOSE,"Applying filter from (%"PRIuFAST32",%"PRIuFAST32") to \
+(%"PRIuFAST32",%"PRIuFAST32")...\n", dstRect->x1, dstRect->y1, dstRect->x2, dstRect->y2);
 
-	for (uint32_t i=dstRect->x1; i <= dstRect->x2; ++i) {
-		for (uint32_t j = dstRect->y1; j <= dstRect->y2; ++j) {
+	for (uint_fast32_t i=dstRect->x1; i <= dstRect->x2; ++i) {
+		for (uint_fast32_t j = dstRect->y1; j <= dstRect->y2; ++j) {
 			PutPixelUnsafe(dst, i, j, ApplyFilterOnSinglePixel(src, i, j, filter));
 		}
 	}
 
-	info(T_VERBOSE,"Applying filter from (%lu,%lu) to (%lu,%lu) : DONE.\n",
-		(unsigned long)dstRect->x1,(unsigned long)dstRect->y1,
-		(unsigned long)dstRect->x2,(unsigned long)dstRect->y2);
+	info(T_VERBOSE,"Applying filter from (%"PRIuFAST32",%"PRIuFAST32") to \
+(%"PRIuFAST32",%"PRIuFAST32") : DONE.\n", dstRect->x1, dstRect->y1, dstRect->x2, dstRect->y2);
 
 	return NULL;
 }
@@ -267,52 +245,29 @@ void ApplyFilter(Image *dst, Image *src, Filter *filter)
 {
 	info(T_NORMAL,"Applying filter...\n");
 
-	uint32_t nbPixels = src->width*src->height;
-	uint32_t realNbThreads = (nbThreads > nbPixels) ? nbPixels : nbThreads;
+	uint_fast32_t nbPixels = src->width*src->height;
+	uint_fast32_t realNbThreads = (nbThreads > nbPixels) ? nbPixels : nbThreads;
 
 	Rectangle *rectangle;
-	rectangle = (Rectangle *)malloc(realNbThreads * sizeof(Rectangle));
-	if (rectangle == NULL) {
-		alloc_error("rectangles");
-	}
+	rectangle = (Rectangle *)safeMalloc("rectangles", realNbThreads * sizeof(Rectangle));
 	InitRectangle(&rectangle[0], 0, 0, dst->width-1, dst->height-1);
 	if (CutRectangleInN(rectangle[0], realNbThreads, rectangle)) {
-		error("Could not cut rectangle ((%lu,%lu),(%lu,%lu) in %lu parts.\n",
-			(unsigned long)rectangle[0].x1, (unsigned long)rectangle[0].y1,
-			(unsigned long)rectangle[0].x2, (unsigned long)rectangle[0].y2,
-			(unsigned long)realNbThreads);
+		error("Could not cut rectangle ((%"PRIuFAST32",%"PRIuFAST32"),\
+(%"PRIuFAST32",%"PRIuFAST32") in %"PRIuFAST32" parts.\n", rectangle[0].x1, rectangle[0].y1,
+			rectangle[0].x2, rectangle[0].y2, realNbThreads);
 	}
 
-        pthread_t *thread;
-	thread = (pthread_t *)malloc(realNbThreads * sizeof(pthread_t)); 
-	if (thread == NULL) {
-		alloc_error("threads");
-	}
 	ApplyFilterArguments *arg;
-	arg = (ApplyFilterArguments *)malloc(realNbThreads * sizeof(ApplyFilterArguments));
-	if (arg == NULL) {
-		alloc_error("arguments");
-	}
-	for (uint32_t i = 0; i < realNbThreads; ++i) {
+	arg = (ApplyFilterArguments *)safeMalloc("arguments", realNbThreads * sizeof(ApplyFilterArguments));
+	for (uint_fast32_t i = 0; i < realNbThreads; ++i) {
 		arg[i].dst = dst;
 		arg[i].dstRect = &rectangle[i];
 		arg[i].src = src;
 		arg[i].filter = filter;
-
-                safePThreadCreate(&(thread[i]),NULL,ApplyFilterThreadRoutine,(void *)&arg[i]);
 	}
-
-	void *status;
-	for (uint32_t i = 0; i < realNbThreads; ++i) {
-		safePThreadJoin(thread[i], &status);
-
-		if (status != NULL) {
-			error("Thread ended because of an error.\n");
-		}
-	}
+	LaunchThreadsAndWait(realNbThreads, arg, sizeof(ApplyFilterArguments), ApplyFilterThreadRoutine);
 
 	free(rectangle);
-	free(thread);
 	free(arg);
 
 	info(T_NORMAL,"Applying filter : DONE.\n");

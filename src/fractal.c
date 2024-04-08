@@ -20,63 +20,101 @@
  
 #include "fractal.h"
 #include "error.h"
-#include "queue.h"
+#include "file_parsing.h"
+#include "filter.h"
+#include "fractal_loop.h"
+#include "misc.h"
+#include <inttypes.h>
 #include <pthread.h>
 #include <string.h>
 
-typedef struct s_ComputeFractalArguments {
-	FloatTable *fractal_table;
-	Fractal *fractal;
-	Rectangle *clipRect;
-	uint32_t quadInterpolationSize;
-	FLOAT interpolationThreshold;
-} ComputeFractalArguments;
-
-typedef struct s_RenderFractalArguments {
+typedef struct s_DrawFractalArguments {
+	FractalOrbit *orbit;
 	Image *image;
-	FloatTable *fractal_table;
+	Fractal *fractal;
+	RenderingParameters *render;
+	FractalLoop fractalLoop;
 	Rectangle *clipRect;
-	Gradient *gradient;
-	Color spaceColor;
-	FLOAT multiplier;
-} RenderFractalArguments;
+	uint_fast32_t size;
+	FLOAT threshold;
+} DrawFractalArguments;
 
-FLOAT ComputeMandelbrotFractalValue(Fractal *fractal, FLOAT x, FLOAT y);
-FLOAT ComputeJuliaFractalValue(Fractal *fractal, FLOAT x, FLOAT y);
-
-void InitFractal(Fractal *fractal, FractalType fractalType, FLOAT complex c, FLOAT x1,
-		FLOAT y1, FLOAT x2, FLOAT y2, FLOAT escapeRadius, uint32_t maxIter)
+static inline void aux_InitFractal(Fractal *fractal, FractalType fractalType, FLOAT p,
+				FLOAT complex c, FLOAT escapeRadius, uint_fast32_t maxIter)
 {
-	switch (fractalType) {
-	case FRAC_MANDELBROT:
-		fractal->computeFunction = ComputeMandelbrotFractalValue;
-		break;
-	case FRAC_JULIA:
-		fractal->computeFunction = ComputeJuliaFractalValue;
-		break;
-	default:
-		error("Unknown fractal type.\n");
-		break;
-	}
-
+	fractal->fractalType = fractalType;
+	fractal->p = p;
+	fractal->p_is_integer = isInteger(p);
+	fractal->p_int = (uint_fast8_t)p;
+	fractal->logP = logF(p);
 	fractal->c = c;
+	fractal->escapeRadius = escapeRadius;
+	fractal->escapeRadius2 = escapeRadius*escapeRadius;
+	fractal->escapeRadiusP = powF(escapeRadius,p);
+	fractal->logEscapeRadius = logF(escapeRadius);
+	fractal->maxIter = maxIter;
+}
+
+void InitFractal(Fractal *fractal, FractalType fractalType, FLOAT p, FLOAT complex c,
+		FLOAT x1, FLOAT y1, FLOAT x2, FLOAT y2, FLOAT escapeRadius,
+		uint_fast32_t maxIter)
+{
 	fractal->x1 = x1;
 	fractal->x2 = x2;
 	fractal->y1 = y1;
 	fractal->y2 = y2;
-	fractal->escapeRadius = escapeRadius;
-	fractal->maxIter = maxIter;
+	fractal->centerX = (x1+x2) / 2;
+	fractal->centerY = (y1+y2) / 2;
+	fractal->spanX = x2-x1;
+	fractal->spanY = y2-y1;
+
+	aux_InitFractal(fractal, fractalType, p, c, escapeRadius, maxIter);
 }
 
-void InitFractal2(Fractal *fractal, FractalType fractalType, FLOAT complex c, FLOAT centerX,
-		FLOAT centerY, FLOAT spanX, FLOAT spanY, FLOAT escapeRadius, uint32_t maxIter)
+void InitFractal2(Fractal *fractal, FractalType fractalType, FLOAT p, FLOAT complex c,
+		FLOAT centerX, FLOAT centerY, FLOAT spanX, FLOAT spanY,
+		FLOAT escapeRadius, uint_fast32_t maxIter)
 {
-	FLOAT x1 = centerX-spanX/2;
-	FLOAT x2 = centerX+spanX/2;
-	FLOAT y1 = centerY-spanY/2;
-	FLOAT y2 = centerY+spanY/2;
+	fractal->x1 = centerX-spanX/2;
+	fractal->x2 = centerX+spanX/2;
+	fractal->y1 = centerY-spanY/2;
+	fractal->y2 = centerY+spanY/2;
+	fractal->centerX = centerX;
+	fractal->centerY = centerY;
+	fractal->spanX = spanX;
+	fractal->spanY = spanY;
 
-	InitFractal(fractal, fractalType, c, x1, y1, x2, y2, escapeRadius, maxIter);
+	aux_InitFractal(fractal, fractalType, p, c, escapeRadius, maxIter);
+}
+
+FractalType GetFractalType(const char *str)
+{
+	size_t len = strlen(str);
+
+	if (len > 255) {
+		error("Unknown fractal type \'%s\'.\n", str);
+	}
+
+	FractalType res;
+	char FTStr[256];
+	strcpy(FTStr, str);
+	toLowerCase(FTStr);
+
+	if (strcmp(FTStr, "mandelbrot") == 0) {
+		res = FRAC_MANDELBROT;
+	} else if (strcmp(FTStr, "mandelbrotp") == 0) {
+		res = FRAC_MANDELBROTP;
+	} else if (strcmp(FTStr, "julia") == 0) {
+		res = FRAC_JULIA;
+	} else if (strcmp(FTStr, "juliap") == 0) {
+		res = FRAC_JULIAP;
+	} else if (strcmp(FTStr, "rudy") == 0) {
+		res = FRAC_RUDY;
+	} else {
+		error("Unknown fractal type \'%s\'.\n", str);
+	}
+
+	return res;
 }
 
 void ReadFractalFile(Fractal *fractal, char *fileName)
@@ -91,59 +129,62 @@ void ReadFractalFile(Fractal *fractal, char *fileName)
 		open_error(fileName);
 	}
 
-	if ( fscanf(file,"%s",tmp[0]) == EOF ) {
-		read_error(fileName);
-	}
 	FractalType fractalType;
+	safeReadString(file, fileName, tmp[0]);
+	fractalType = GetFractalType(tmp[0]);
+	FLOAT p;
+	switch (fractalType) {
+	case FRAC_MANDELBROT:
+	case FRAC_JULIA:
+		p = 2;
+		break;
+	case FRAC_MANDELBROTP:
+	case FRAC_JULIAP:
+	case FRAC_RUDY:
+		p = safeReadFLOAT(file, fileName);
+		break;
+	default:
+		error("Unknown fractal type \'%s\'.\n", tmp[0]);
+		break;
+	}
+
+	if (p < 0 || p > 100) {
+		error("Invalid fractal file : p must be between 0 and 100.\n");
+	}
 	FLOAT cx = 0, cy = 0;
 
-	if (strcmp(tmp[0], "MANDELBROT") == 0) {
-		fractalType = FRAC_MANDELBROT;
-	} else if (strcmp(tmp[0], "JULIA") == 0) {
-		fractalType = FRAC_JULIA;
-
-		if ( fscanf(file,"%s",tmp[0]) == EOF ) {
-			read_error(fileName);
-		}
-		if ( fscanf(file,"%s",tmp[1]) == EOF ) {
-			read_error(fileName);
-		}
-		cx = strtoF(tmp[0], NULL);
-		cy = strtoF(tmp[1], NULL);
-	} else {
-		error("Invalid fractal file : unknown fractal type (%s).\n", tmp[0]);
+	switch (fractalType) {
+	case FRAC_MANDELBROT:
+	case FRAC_MANDELBROTP:
+		break;
+	case FRAC_JULIA:
+	case FRAC_JULIAP:
+	case FRAC_RUDY:
+		cx = safeReadFLOAT(file, fileName);
+		cy = safeReadFLOAT(file, fileName);
+		break;
+	default:
+		error("Unknown fractal type \'%s\'.\n", tmp[0]);
+		break;
 	}
 
-	for (uint32_t i=0; i<6; i++) {
-		if ( fscanf(file,"%s",tmp[i]) == EOF ) {
-			read_error(fileName);
-		}
-	}
-
-	FLOAT centerX;
-	FLOAT centerY;
-	FLOAT spanX;
-	FLOAT spanY;
-	FLOAT escapeRadius;
-	uint32_t nbIterMax;
-
-	centerX = strtoF(tmp[0], NULL);
-	centerY = strtoF(tmp[1], NULL);
-	spanX = strtoF(tmp[2], NULL);
+	FLOAT centerX = safeReadFLOAT(file, fileName);
+	FLOAT centerY = safeReadFLOAT(file, fileName);
+	FLOAT spanX = safeReadFLOAT(file, fileName);
 	if (spanX <= 0) {
 		error("Invalid fractal file : spanX must be > 0.\n");
 	}
-	spanY = strtoF(tmp[3], NULL);
+	FLOAT spanY = safeReadFLOAT(file, fileName);
 	if (spanY <= 0) {
 		error("Invalid fractal file : spanY must be > 0.\n");
 	}
-	escapeRadius = strtoF(tmp[4], NULL);
-	if (escapeRadius <= 0) {
-		error("Invalid config file : escape radius must be > 0.\n");
+	FLOAT escapeRadius = safeReadFLOAT(file, fileName);
+	if (escapeRadius <= 1.) {
+		error("Invalid config file : escape radius must be > 1.\n");
 	}
-	nbIterMax = (uint32_t)strtoll(tmp[5], NULL, 10);
+	uint_fast32_t nbIterMax = safeReadUint32(file, fileName);
 
-	InitFractal2(fractal, fractalType, cx+I*cy, centerX, centerY, spanX, spanY,
+	InitFractal2(fractal, fractalType, p, cx+I*cy, centerX, centerY, spanX, spanY,
 			escapeRadius, nbIterMax);
 
 	if (fclose(file)) {
@@ -153,403 +194,391 @@ void ReadFractalFile(Fractal *fractal, char *fileName)
 	info(T_NORMAL, "Reading fractal file : DONE\n");
 }
 
-inline FLOAT ComputeFractalValue(Fractal *fractal, FLOAT complex z0, FLOAT complex c)
+static inline Color aux_ComputeFractalColor(Fractal *fractal, RenderingParameters *render,
+						FractalOrbit *orbit, FractalLoop fractalLoop,
+						FLOAT complex z)
 {
-	FLOAT complex z = z0;
-	FLOAT normZ = 0;
-
-	uint32_t n;
-	FLOAT data;
-	for (n=0; n<fractal->maxIter && normZ < fractal->escapeRadius; n++) {
-		z = z*z+c;
-		normZ = creal(z)*creal(z) + cimag(z)*cimag(z);
+	fractalLoop(fractal, orbit, z);
+	FLOAT value = render->iterationCountFunction(fractal, orbit);
+	if (render->coloringMethod == CM_AVERAGE) {
+		value = render->interpolationFunction(value, orbit, render);
 	}
-
-	if (normZ < fractal->escapeRadius) {
-		return -1;
+	Color res;
+	if (value < 0) {
+		res = render->spaceColor;
 	} else {
-		data = sqrt((FLOAT)(n) + (log(log(fractal->escapeRadius)/log(normZ))) / log(2.));
-		return data;
+		value = render->transferFunction(value)*render->multiplier;
+		res = GetGradientColor(&render->gradient, (uint_fast64_t)(value));
 	}
+	return res;
 }
 
-FLOAT ComputeMandelbrotFractalValue(Fractal *fractal, FLOAT x, FLOAT y)
+Color ComputeFractalColor(Fractal *fractal, RenderingParameters *render,
+				FractalOrbit *orbit, FLOAT complex z)
 {
-	return ComputeFractalValue(fractal, 0, x+I*y);
+	FractalLoop fractalLoop = GetFractalLoop(fractal->fractalType, render->coloringMethod,
+							fractal->p_is_integer);
+	return aux_ComputeFractalColor(fractal, render, orbit, fractalLoop, z);
 }
 
-FLOAT ComputeJuliaFractalValue(Fractal *fractal, FLOAT x, FLOAT y)
+static inline Color ComputeFractalImagePixel(DrawFractalArguments *arg,
+						uint_fast32_t width, uint_fast32_t height,
+						uint_fast32_t x, uint_fast32_t y)
 {
-	return ComputeFractalValue(fractal, x+I*y, fractal->c);
+	Fractal *fractal = arg->fractal;
+	RenderingParameters *render = arg->render;
+	FractalOrbit *orbit = arg->orbit;
+	FractalLoop fractalLoop = arg->fractalLoop;
+
+	uint_fast32_t widthm1 = width-1;
+	uint_fast32_t heightm1 = height-1;
+	FLOAT fx = (fractal->x1*widthm1+x*(fractal->x2-fractal->x1)) / widthm1;
+	FLOAT fy = (fractal->y1*heightm1+y*(fractal->y2-fractal->y1)) / heightm1;
+
+	/* We call auxiliary function because we don't need (and thus want) to
+	 * to re-get the FractalLoop to use for each pixel. It is already stored
+	 * in arg.
+	 */
+	return aux_ComputeFractalColor(fractal, render, orbit, fractalLoop, fx+I*fy);
 }
 
-FLOAT ComputeFractalValueForTable(Fractal *fractal,
-				uint32_t width, uint32_t height,
-				uint32_t x, uint32_t y)
-{
-	FLOAT fx = (fractal->x1*(width-1)+x*(fractal->x2-fractal->x1)) / (width-1);
-	FLOAT fy = (fractal->y1*(height-1)+y*(fractal->y2-fractal->y1)) / (height-1);
-
-	return fractal->computeFunction(fractal, fx, fy);
-}
-
-int IsTooBigForInterpolation(Rectangle *rectangle, uint32_t quadInterpolationSize)
-{
-	return ((rectangle->x2-rectangle->x1 > quadInterpolationSize)
-		|| (rectangle->y2-rectangle->y1 > quadInterpolationSize));
-}
-
-/* Compute the dissimilarity of the quadrilateral and compare it with given threshold.
-   Note that when one corner is < 0 (meaning here that it is inside the fractal set),
-   then the quad cannot be interpolated (unless ALL the corners belong to the
-   fractal set).
-*/
-int QuadCanBeInterpolated(FLOAT v[4], FLOAT threshold)//1, FLOAT v2, FLOAT v3, FLOAT v4, FLOAT threshold)
-{
-	if (v[0] < 0 || v[1] < 0 || v[2] < 0 || v[3] < 0) {
-		if (v[0] < 0 && v[1] < 0 && v[2] < 0 && v[3] < 0) {
-			return 1;
-		} else {
-			return 0;
-		}
-	}
-	
-	FLOAT avg;
-	avg = (v[0] + v[1] + v[2] + v[3]) / 4;
-	FLOAT avgError = (fabsF(v[0]-avg)+fabsF(v[1]-avg)+
-			fabsF(v[2]-avg)+fabsF(v[3]-avg)) / 4;
-
-	return (avgError < threshold);
-}
-
-inline FLOAT QuadLinearInterpolation(FLOAT v[4], FLOAT x, FLOAT y)
-{
-	return (v[0]*(1.-x)+v[1]*x)*(1.-y) + (v[2]*(1.-x)+v[3]*x)*y;
-}
-
-/* Compute (all) fractal values of given rectangle into fractal_table.
+/* Compute (all) fractal values of given rectangle and render in image.
  */
-void aux1_ComputeFractalThreadRoutine(FloatTable *fractal_table, Fractal *fractal,
-					Rectangle *rectangle)
+static void aux1_DrawFractalThreadRoutine(DrawFractalArguments *arg, Rectangle *rectangle)
 {
-	uint32_t width = fractal_table->width;
-	uint32_t height = fractal_table->height;
+	Image *image = arg->image;
 
-	FLOAT value = -1;
-	for (uint32_t i=rectangle->y1; i<=rectangle->y2; i++) {
-		for (uint32_t j=rectangle->x1; j<=rectangle->x2; j++) {
-			value = ComputeFractalValueForTable(fractal, width, height, j, i);
-			SetDataUnsafe(fractal_table,j,i,value);
+	Color color;
+	for (uint_fast32_t i=rectangle->y1; i<=rectangle->y2; i++) {
+		for (uint_fast32_t j=rectangle->x1; j<=rectangle->x2; j++) {
+			color = ComputeFractalImagePixel(arg, image->width, image->height, j, i);
+			PutPixelUnsafe(image,j,i,color);
 		}
+	}
+}
+
+static inline int IsTooBigForInterpolation(Rectangle *rectangle, uint_fast32_t quadInterpolationSize)
+{
+	return ((rectangle->x2-rectangle->x1+1 > quadInterpolationSize)
+		|| (rectangle->y2-rectangle->y1+1 > quadInterpolationSize));
+}
+
+static inline int_fast8_t GetCornerIndex(Rectangle *rectangle, uint_fast32_t x, uint_fast32_t y)
+{
+	if ((x == rectangle->x1 && y == rectangle->y1)) {
+		return 0;
+	} else if (x == rectangle->x2 && y == rectangle->y1) {
+		return 1;
+	} else if (x == rectangle->x1 && y == rectangle->y2) {
+		return 2;
+	} else if (x == rectangle->x2 && y == rectangle->y2) {
+		return 3;
+	} else {
+		return -1;
 	}
 }
 
 /* Compute fractal values of given rectangle into fractal_table, according to
    its dissimilarity and the given dissimilarity threshold (i.e. either
-   computes it really, or interpolate linearly from the corners).
+   computes it really, or interpolate linearly from the corners), and render
+   in image.
  */
-void aux2_ComputeFractalThreadRoutine(FloatTable *fractal_table, Fractal *fractal,
-					Rectangle *rectangle, FLOAT interpolationThreshold)
+static inline void aux2_DrawFractalThreadRoutine(DrawFractalArguments *arg, Rectangle *rectangle)
 {
-	uint32_t width = fractal_table->width;
-	uint32_t height = fractal_table->height;
+	Image *image = arg->image;
+	uint_fast32_t width = image->width;
+	uint_fast32_t height = image->height;
+	FLOAT interpolationThreshold = arg->threshold;
 
+	Color corner[4];
+	if (rectangle->x1 == rectangle->x2 && rectangle->y1 == rectangle->y2) {
+		/* Rectangle is just one pixel.*/
+		ComputeFractalImagePixel(arg,width,height,rectangle->x1,rectangle->y1);
+		return;
+	} else if (rectangle->x1 == rectangle->x2) {
+		/* Rectangle is a vertical line.
+		   There are only two "corners".
+		*/
+		corner[0] = ComputeFractalImagePixel(arg,width,height,rectangle->x1,rectangle->y1);
+		corner[1] = corner[0];
+		corner[2] = ComputeFractalImagePixel(arg,width,height,rectangle->x1,rectangle->y2);
+		corner[3] = corner[2];
+		/* Even for a line, we can still use quad interpolation.*/
+	} else if (rectangle->y1 == rectangle->y2) {
+		/* Rectangle is a horizontal line.
+		   There are only two "corners".
+		*/
+		corner[0] = ComputeFractalImagePixel(arg,width,height,rectangle->x1,rectangle->y1);
+		corner[1] = ComputeFractalImagePixel(arg,width,height,rectangle->x2,rectangle->y1);
+		corner[2] = corner[0];
+		corner[3] = corner[1];
+		/* Even for a line, we can still use quad interpolation.*/
+	} else {
+		/* "Real" rectangle. Compute four corners. */
+		corner[0] = ComputeFractalImagePixel(arg,width,height,rectangle->x1,rectangle->y1);
+		corner[1] = ComputeFractalImagePixel(arg,width,height,rectangle->x2,rectangle->y1);
+		corner[2] = ComputeFractalImagePixel(arg,width,height,rectangle->x1,rectangle->y2);
+		corner[3] = ComputeFractalImagePixel(arg,width,height,rectangle->x2,rectangle->y2);
+	}
 
-	FLOAT corner[4];
-	corner[0] = ComputeFractalValueForTable(fractal,width,height,rectangle->x1,rectangle->y1);
-	corner[1] = ComputeFractalValueForTable(fractal,width,height,rectangle->x2,rectangle->y1);
-	corner[2] = ComputeFractalValueForTable(fractal,width,height,rectangle->x1,rectangle->y2);
-	corner[3] = ComputeFractalValueForTable(fractal,width,height,rectangle->x2,rectangle->y2);
-
-	FLOAT value = -1;
-	if (QuadCanBeInterpolated(corner, interpolationThreshold)) {
+	Color color;
+	int_fast8_t index = -1;
+	if (QuadAvgDissimilarity(corner) < interpolationThreshold) {
 		/* Linear interpolation */
-		FLOAT sx = (FLOAT)rectangle->x2-rectangle->x1;
-		FLOAT sy = (FLOAT)rectangle->y2-rectangle->y1;
+		FLOAT sx = (FLOAT)rectangle->x2-rectangle->x1+1;
+		FLOAT sy = (FLOAT)rectangle->y2-rectangle->y1+1;
 		FLOAT x, y;
-		for (uint32_t i=rectangle->y1; i<=rectangle->y2; i++) {
+		for (uint_fast32_t i=rectangle->y1; i<=rectangle->y2; i++) {
 			y = ((FLOAT)(i-rectangle->y1)) / sy;
-			for (uint32_t j=rectangle->x1; j<=rectangle->x2; j++) {
-				if ((j == rectangle->x1 && i == rectangle->y1)) {
-					value = corner[0];
-				} else if (j == rectangle->x2 && i == rectangle->y1) {
-					value = corner[1];
-				} else if (j == rectangle->x1 && i == rectangle->y2) {
-					value = corner[2];
-				} else if (j == rectangle->x2 && i == rectangle->y2) {
-					value = corner[3];
+			for (uint_fast32_t j=rectangle->x1; j<=rectangle->x2; j++) {
+				index = GetCornerIndex(rectangle, j, i);
+				if (index >= 0) {
+					color = corner[index];
 				} else {
 					x = ((FLOAT)(j-rectangle->x1)) / sx;
-					value = QuadLinearInterpolation(corner,x,y);
+					color = QuadLinearInterpolation(corner,x,y);
 				}
-				SetDataUnsafe(fractal_table,j,i,value);
+
+				PutPixelUnsafe(image,j,i,color);
 			}
 		}
 	} else {
 		/* Real computation */
-		for (uint32_t i=rectangle->y1; i<=rectangle->y2; i++) {
-			for (uint32_t j=rectangle->x1; j<=rectangle->x2; j++) {
-				if ((j == rectangle->x1 && i == rectangle->y1)) {
-					value = corner[0];
-				} else if (j == rectangle->x2 && i == rectangle->y1) {
-					value = corner[1];
-				} else if (j == rectangle->x1 && i == rectangle->y2) {
-					value = corner[2];
-				} else if (j == rectangle->x2 && i == rectangle->y2) {
-					value = corner[3];
+		for (uint_fast32_t i=rectangle->y1; i<=rectangle->y2; i++) {
+			for (uint_fast32_t j=rectangle->x1; j<=rectangle->x2; j++) {
+				index = GetCornerIndex(rectangle, j, i);
+				if (index >= 0) {
+					color = corner[index];
 				} else {
-					value = ComputeFractalValueForTable(fractal, width, height, j, i);
+					color = ComputeFractalImagePixel(arg,width,height,j,i);
 				}
-				SetDataUnsafe(fractal_table,j,i,value);
+
+				PutPixelUnsafe(image,j,i,color);
 			}
 		}
 	}
 }
 
-void *ComputeFractalThreadRoutine(void *arg)
+void *DrawFractalThreadRoutine(void *arg)
 {
-	ComputeFractalArguments *c_arg = (ComputeFractalArguments *)arg;
-	FloatTable *fractal_table = c_arg->fractal_table;
-	Fractal *fractal = c_arg->fractal;
-	Rectangle *clipRect = c_arg->clipRect;
-	uint32_t width = fractal_table->width;
-	uint32_t height = fractal_table->height;
-
-	info(T_VERBOSE,"Computing fractal from (%lu,%lu) to (%lu,%lu)...\n",
-		(unsigned long)clipRect->x1,(unsigned long)clipRect->y1,
-		(unsigned long)clipRect->x2,(unsigned long)clipRect->y2);
-
-	if (width<2 || height<2) {
-		error("Table is too small : %lux%lu\n",
-			(unsigned long)width,(unsigned long)height);
-	}
-
-	if (c_arg->quadInterpolationSize == 1) {
-		aux1_ComputeFractalThreadRoutine(fractal_table, fractal, clipRect);
-	} else {
-		/* First, cut rectangle into smaller rectangles, until
-		   all rectangles are smaller than quadInterpolationSize.
-		   We do that by creating a queue, pushing clipRect in it,
-		   cutting rectangles and pushing the ones that are too big
-		   in the first queue, and those that are small enough in
-		   the second queue.
-		   Process is stopped when the first queue is empty :
-		   then all the rectangles in the second queue are small
-		   enough.
-		 */
-		Queue queue_src, queue_dst;
-		InitEmptyQueue(&queue_src);
-		InitEmptyQueue(&queue_dst);
-		Rectangle *currentRectangle = (Rectangle *)malloc(sizeof(Rectangle));
-		if (currentRectangle == NULL) {
-			alloc_error("rectangle");
-		}
-		InitRectangle(currentRectangle, clipRect->x1, clipRect->y1, clipRect->x2, clipRect->y2);
-		PushQueue(&queue_src, (void *)currentRectangle);
-		Rectangle *new_rectangle[2];
-
-		while (!IsQueueEmpty(&queue_src)) {
-			currentRectangle = (Rectangle *)PopQueue(&queue_src);
-
-			if (IsTooBigForInterpolation(currentRectangle, c_arg->quadInterpolationSize)) {
-				new_rectangle[0] = (Rectangle *)malloc(sizeof(Rectangle));
-				if (currentRectangle == NULL) {
-					alloc_error("rectangle");
-				}
-				new_rectangle[1] = (Rectangle *)malloc(sizeof(Rectangle));
-				if (currentRectangle == NULL) {
-					alloc_error("rectangle");
-				}
-
-				CutRectangleInHalf(*currentRectangle, new_rectangle[0], new_rectangle[1]);
-				PushQueue(&queue_src, (void *)new_rectangle[0]);
-				PushQueue(&queue_src, (void *)new_rectangle[1]);
-
-				free(currentRectangle);
-			} else {
-				PushQueue(&queue_dst, (void *)currentRectangle);
-			}
-		}
-
-		/* Then we process all the rectangles in the second queue.
-		 * If the rectangle dissimilarity is greater that threshold,
-		 * we compute the fractal values, otherwize we interpolate
-		 * them using the corner values.
-		*/
-		while (!IsQueueEmpty(&queue_dst)) {
-			currentRectangle = (Rectangle *)PopQueue(&queue_dst);
-
-			aux2_ComputeFractalThreadRoutine(fractal_table, fractal, currentRectangle,
-							c_arg->interpolationThreshold);
-			free(currentRectangle);
-		}
-	}
-
-	info(T_VERBOSE,"Computing fractal from (%lu,%lu) to (%lu,%lu) : DONE.\n",
-		(unsigned long)clipRect->x1,(unsigned long)clipRect->y1,
-		(unsigned long)clipRect->x2,(unsigned long)clipRect->y2);
-
-	return NULL;
-}
-
-void ComputeFractalFast(FloatTable *fractal_table, Fractal *fractal,
-			uint32_t quadInterpolationSize, FLOAT interpolationThreshold)
-{
-	info(T_NORMAL,"Computing fractal...\n");
-
-	uint32_t tableSize = fractal_table->width*fractal_table->height;
-	uint32_t realNbThreads = (nbThreads > tableSize) ? tableSize : nbThreads;
-
-	Rectangle *rectangle;
-	rectangle = (Rectangle *)malloc(realNbThreads * sizeof(Rectangle));
-	if (rectangle == NULL) {
-		alloc_error("rectangles");
-	}
-	InitRectangle(&rectangle[0], 0, 0, fractal_table->width-1, fractal_table->height-1);
-	if (CutRectangleInN(rectangle[0], realNbThreads, rectangle)) {
-		error("Could not rectangle ((%lu,%lu),(%lu,%lu) in %lu parts.\n",
-			(unsigned long)rectangle[0].x1, (unsigned long)rectangle[0].y1,
-			(unsigned long)rectangle[0].x2, (unsigned long)rectangle[0].y2,
-			(unsigned long)realNbThreads);
-	}
-	
-	ComputeFractalArguments *arg;
-	arg = (ComputeFractalArguments *)malloc(realNbThreads * sizeof(ComputeFractalArguments));
-	if (arg == NULL) {
-		alloc_error("arguments");
-	}
-
-        pthread_t *thread;
-	thread = (pthread_t *)malloc(realNbThreads * sizeof(pthread_t)); 
-	if (thread == NULL) {
-		alloc_error("threads");
-	}
-	for (uint32_t i = 0; i < realNbThreads; ++i) {
-		arg[i].fractal_table = fractal_table;
-		arg[i].fractal = fractal;
-		arg[i].clipRect = &rectangle[i];
-		arg[i].quadInterpolationSize = quadInterpolationSize;
-		arg[i].interpolationThreshold = interpolationThreshold;
-
-                safePThreadCreate(&(thread[i]),NULL,ComputeFractalThreadRoutine,(void *)&arg[i]);
-	}
-
-	void *status;
-	for (uint32_t i = 0; i < realNbThreads; ++i) {
-		safePThreadJoin(thread[i], &status);
-
-		if (status != NULL) {
-			error("Thread ended because of an error.\n");
-		}
-	}
-
-	free(rectangle);
-	free(arg);
-	free(thread);
-
-	info(T_NORMAL,"Computing fractal : DONE.\n");
-}
-
-inline void ComputeFractal(FloatTable *fractal_table, Fractal *fractal)
-{
-	ComputeFractalFast(fractal_table, fractal, 1, 0);
-}
-
-void *RenderFractalThreadRoutine(void *arg)
-{
-	RenderFractalArguments *c_arg = (RenderFractalArguments *)arg;
+	DrawFractalArguments *c_arg = (DrawFractalArguments *)arg;
 	Image *image = c_arg->image;
-	FloatTable *fractal_table = c_arg->fractal_table;
 	Rectangle *clipRect = c_arg->clipRect;
-	Gradient *gradient = c_arg->gradient;
-	Color spaceColor = c_arg->spaceColor;
-	FLOAT multiplier  = c_arg->multiplier;
-	uint32_t width = fractal_table->width;
-	uint32_t height = fractal_table->height;
+	uint_fast32_t width = image->width;
+	uint_fast32_t height = image->height;
 
-	info(T_VERBOSE,"Rendering fractal from (%lu,%lu) to (%lu,%lu)...\n",
-		(unsigned long)clipRect->x1,(unsigned long)clipRect->y1,
-		(unsigned long)clipRect->x2,(unsigned long)clipRect->y2);
+	info(T_VERBOSE,"Drawing fractal from (%"PRIuFAST32",%"PRIuFAST32") to \
+(%"PRIuFAST32",%"PRIuFAST32")...\n", clipRect->x1, clipRect->y1, clipRect->x2, clipRect->y2);
 
 	if (width<2 || height<2) {
-		error("Table is too small : %lux%lu\n",
-		(unsigned long)width,(unsigned long)height);
+		error("Image is too small : %"PRIuFAST32"x%"PRIuFAST32"\n",width,height);
 	}
 
-	FLOAT value = -1;
-	Color color;
-	FLOAT multiplier2 = multiplier*multiplier;
-	for (uint32_t i=clipRect->y1; i<=clipRect->y2; i++) {
-		for (uint32_t j=clipRect->x1; j<=clipRect->x2; j++) {
-			value = GetDataUnsafe(fractal_table, j, i);
-			color = (value < 0) ? spaceColor: GetGradientColor(gradient,
-							(uint32_t)(value*multiplier2));
-			PutPixelUnsafe(image,j,i,color);
+	if (c_arg->size == 1) {
+		aux1_DrawFractalThreadRoutine(c_arg, clipRect);
+	} else {
+		/* Cut rectangle into smaller rectangles, so that
+		   all rectangles are smaller than quadInterpolationSize.
+		 */
+		Rectangle *rectangle;
+		uint_fast32_t nbRectangles;
+		CutRectangleMaxSize(*clipRect, c_arg->size, &rectangle, &nbRectangles);
+
+		/* If the rectangle dissimilarity is greater that threshold,
+		   we compute the fractal colors, otherwize we interpolate
+		   them using the corner colors.
+		 */
+		for (uint_fast32_t i = 0; i < nbRectangles; ++i) {
+			aux2_DrawFractalThreadRoutine(c_arg, &rectangle[i]);
 		}
+		free(rectangle);
 	}
 
-	info(T_VERBOSE,"Rendering fractal from (%lu,%lu) to (%lu,%lu) : DONE.\n",
-		(unsigned long)clipRect->x1,(unsigned long)clipRect->y1,
-		(unsigned long)clipRect->x2,(unsigned long)clipRect->y2);
+	info(T_VERBOSE,"Drawing fractal from (%"PRIuFAST32",%"PRIuFAST32") to \
+(%"PRIuFAST32",%"PRIuFAST32") : DONE.\n", clipRect->x1, clipRect->y1, clipRect->x2, clipRect->y2);
 
 	return NULL;
 }
 
-void RenderFractal(Image *image, FloatTable *fractal_table, RenderingParameters *param)
+void DrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render,
+			uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold)
 {
-	info(T_NORMAL,"Rendering fractal...\n");
+	info(T_NORMAL,"Drawing fractal...\n");
 
-	uint32_t nbPixels = image->width*image->height;
-	uint32_t realNbThreads = (nbThreads > nbPixels) ? nbPixels : nbThreads;
+	uint_fast32_t tableSize = image->width*image->height;
+	uint_fast32_t realNbThreads = (nbThreads > tableSize) ? tableSize : nbThreads;
 
 	Rectangle *rectangle;
-	rectangle = (Rectangle *)malloc(realNbThreads * sizeof(Rectangle));
-	if (rectangle == NULL) {
-		alloc_error("rectangles");
-	}
+	rectangle = (Rectangle *)safeMalloc("rectangles", realNbThreads * sizeof(Rectangle));
 	InitRectangle(&rectangle[0], 0, 0, image->width-1, image->height-1);
 	if (CutRectangleInN(rectangle[0], realNbThreads, rectangle)) {
-		error("Could not cut rectangle ((%lu,%lu),(%lu,%lu) in %lu parts.\n",
-			(unsigned long)rectangle[0].x1, (unsigned long)rectangle[0].y1,
-			(unsigned long)rectangle[0].x2, (unsigned long)rectangle[0].y2,
-			(unsigned long)realNbThreads);
+		error("Could not cut rectangle ((%"PRIuFAST32",%"PRIuFAST32"),\
+(%"PRIuFAST32",%"PRIuFAST32") in %"PRIuFAST32" parts.\n", rectangle[0].x1, rectangle[0].y1,
+			rectangle[0].x2, rectangle[0].y2, realNbThreads);
 	}
 	
-	RenderFractalArguments *arg;
-	arg = (RenderFractalArguments *)malloc(realNbThreads * sizeof(RenderFractalArguments));
-	if (arg == NULL) {
-		alloc_error("arguments");
-	}
+	DrawFractalArguments *arg;
+	arg = (DrawFractalArguments *)safeMalloc("arguments", realNbThreads * sizeof(DrawFractalArguments));
+	FractalOrbit *orbit;
+	orbit = (FractalOrbit *)safeMalloc("orbits", realNbThreads*sizeof(FractalOrbit));
+	FractalLoop fractalLoop = GetFractalLoop(fractal->fractalType, render->coloringMethod,
+							fractal->p_is_integer);
+	for (uint_fast32_t i = 0; i < realNbThreads; ++i) {
+		CreateOrbit(&orbit[i], fractal->maxIter);
 
-        pthread_t *thread;
-	thread = (pthread_t *)malloc(realNbThreads * sizeof(pthread_t)); 
-	if (thread == NULL) {
-		alloc_error("threads");
-	}
-	for (uint32_t i = 0; i < realNbThreads; ++i) {
+		arg[i].orbit = &orbit[i];
 		arg[i].image = image;
-		arg[i].fractal_table = fractal_table;
-		arg[i].clipRect = &rectangle[i];
-		arg[i].gradient = &param->gradient;
-		arg[i].spaceColor = param->spaceColor;
-		arg[i].multiplier = param->multiplier;
+		arg[i].fractal = fractal;
+		arg[i].render = render;
+		arg[i].fractalLoop = fractalLoop;
 
-                safePThreadCreate(&(thread[i]),NULL,RenderFractalThreadRoutine,(void *)&arg[i]);
+		arg[i].clipRect = &rectangle[i];
+		arg[i].size = quadInterpolationSize;
+		arg[i].threshold = interpolationThreshold;
+	}
+	LaunchThreadsAndWait(realNbThreads, arg, sizeof(DrawFractalArguments), DrawFractalThreadRoutine);
+
+	for (uint_fast32_t i = 0; i < realNbThreads; ++i) {
+		FreeOrbit(&orbit[i]);
+	}
+	free(orbit);
+	free(rectangle);
+	free(arg);
+
+	info(T_NORMAL,"Drawing fractal : DONE.\n");
+}
+
+inline void DrawFractal(Image *image, Fractal *fractal, RenderingParameters *render)
+{
+	DrawFractalFast(image, fractal, render, 1, 0);
+}
+
+void *AntiAliaseFractalThreadRoutine(void *arg)
+{
+	DrawFractalArguments *c_arg = (DrawFractalArguments *)arg;
+	Image *image = c_arg->image;
+	Rectangle *clipRect = c_arg->clipRect;
+	uint_fast32_t antialiasingSize = c_arg->size;
+	FLOAT threshold = c_arg->threshold;
+	uint_fast32_t width = image->width;
+	uint_fast32_t height = image->height;
+
+	info(T_VERBOSE,"Anti-aliasing fractal from (%"PRIuFAST32",%"PRIuFAST32") to \
+(%"PRIuFAST32",%"PRIuFAST32")...\n", clipRect->x1, clipRect->y1, clipRect->x2, clipRect->y2);
+
+	if (width<2 || height<2) {
+		error("Image is too small : %"PRIuFAST32"x%"PRIuFAST32"\n",width,height);
 	}
 
-	void *status;
-	for (uint32_t i = 0; i < realNbThreads; ++i) {
-		safePThreadJoin(thread[i], &status);
+	Image tmpImage1, tmpImage2;
+	CreateUnitializedImage(&tmpImage1, antialiasingSize, antialiasingSize, image->bytesPerComponent);
+	CreateUnitializedImage(&tmpImage2, 1, antialiasingSize, image->bytesPerComponent);
 
-		if (status != NULL) {
-			error("Thread ended because of an error.\n");
+	Filter horizontalGaussianFilter;
+	Filter verticalGaussianFilter;
+	CreateHorizontalGaussianFilter2(&horizontalGaussianFilter, antialiasingSize);
+	CreateVerticalGaussianFilter2(&verticalGaussianFilter, antialiasingSize);
+
+	uint_fast32_t center = (antialiasingSize-1) / 2;
+	uint_fast32_t bigWidth = width * antialiasingSize;
+	uint_fast32_t bigHeight = height * antialiasingSize;
+	Color C[9], c;
+	FLOAT max = 0;
+
+	uint_fast32_t y = clipRect->y1 * antialiasingSize;
+	for (uint_fast32_t i = clipRect->y1; i <= clipRect->y2; ++i, y+=antialiasingSize) {
+		uint_fast32_t x = clipRect->x1 * antialiasingSize;
+		for (uint_fast32_t j = clipRect->x1; j <= clipRect->x2; ++j, x+=antialiasingSize) {
+			C[0]  = iGetPixel(image, j, i);
+			C[1]  = iGetPixel(image, j-1, i-1);
+			C[2]  = iGetPixel(image, j, i-1);
+			C[3]  = iGetPixel(image, j+1, i-1);
+			C[4]  = iGetPixel(image, j-1, i);
+			C[5]  = iGetPixel(image, j+1, i);
+			C[6]  = iGetPixel(image, j-1, i+1);
+			C[7]  = iGetPixel(image, j, i+1);
+			C[8]  = iGetPixel(image, j+1, i+1);
+
+			max = 0;
+			for (int_fast8_t k = 1; k < 9; ++k) {
+				max = fmaxF(max, ColorManhattanDistance(C[0], C[k]));
+			}
+
+			if (max > threshold) {
+				for (uint_fast32_t k=0; k<antialiasingSize; ++k) {
+					for (uint_fast32_t l=0; l<antialiasingSize; ++l) {
+						c = ComputeFractalImagePixel(c_arg, bigWidth, bigHeight, x+l, y+k);
+						PutPixelUnsafe(&tmpImage1, l, k, c);
+					}
+				}
+
+				for (uint_fast32_t k = 0; k < antialiasingSize; ++k) {
+					c = ApplyFilterOnSinglePixel(&tmpImage1, center, k, &horizontalGaussianFilter);
+					PutPixelUnsafe(&tmpImage2, 0, k, c);
+				}
+				c = ApplyFilterOnSinglePixel(&tmpImage2, 0, center, &verticalGaussianFilter);
+
+				PutPixelUnsafe(image, j, i, c);
+			}
 		}
 	}
 
+	FreeFilter(&horizontalGaussianFilter);
+	FreeFilter(&verticalGaussianFilter);
+	FreeImage(&tmpImage1);
+	FreeImage(&tmpImage2);
+
+	info(T_VERBOSE,"Anti-aliasing fractal from (%"PRIuFAST32",%"PRIuFAST32") to \
+(%"PRIuFAST32",%"PRIuFAST32") : DONE.\n", clipRect->x1, clipRect->y1, clipRect->x2, clipRect->y2);
+
+	return NULL;
+}
+
+void AntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *render,
+			uint_fast32_t antiAliasingSize, FLOAT threshold)
+{
+	info(T_NORMAL,"Anti-aliasing fractal...\n");
+
+	uint_fast32_t tableSize = image->width*image->height;
+	uint_fast32_t realNbThreads = (nbThreads > tableSize) ? tableSize : nbThreads;
+
+	Rectangle *rectangle;
+	rectangle = (Rectangle *)safeMalloc("rectangles", realNbThreads * sizeof(Rectangle));
+	InitRectangle(&rectangle[0], 0, 0, image->width-1, image->height-1);
+	if (CutRectangleInN(rectangle[0], realNbThreads, rectangle)) {
+		error("Could not cut rectangle ((%"PRIuFAST32",%"PRIuFAST32"),\
+(%"PRIuFAST32",%"PRIuFAST32") in %"PRIuFAST32" parts.\n", rectangle[0].x1, rectangle[0].y1,
+			rectangle[0].x2, rectangle[0].y2, realNbThreads);
+	}
+	
+	DrawFractalArguments *arg;
+	arg = (DrawFractalArguments *)safeMalloc("arguments", realNbThreads*sizeof(DrawFractalArguments));
+	FractalOrbit *orbit;
+	orbit = (FractalOrbit *)safeMalloc("orbits", realNbThreads*sizeof(FractalOrbit));
+	FractalLoop fractalLoop = GetFractalLoop(fractal->fractalType, render->coloringMethod,
+							fractal->p_is_integer);
+	for (uint_fast32_t i = 0; i < realNbThreads; ++i) {
+		CreateOrbit(&orbit[i], fractal->maxIter);
+
+		arg[i].orbit = &orbit[i];
+		arg[i].image = image;
+		arg[i].fractal = fractal;
+		arg[i].render = render;
+		arg[i].fractalLoop = fractalLoop;
+
+		arg[i].clipRect = &rectangle[i];
+		arg[i].size = antiAliasingSize;
+		arg[i].threshold = threshold;
+	}
+	LaunchThreadsAndWait(realNbThreads, arg, sizeof(DrawFractalArguments), AntiAliaseFractalThreadRoutine);
+
+	for (uint_fast32_t i = 0; i < realNbThreads; ++i) {
+		FreeOrbit(&orbit[i]);
+	}
+	free(orbit);
 	free(rectangle);
 	free(arg);
-	free(thread);
 
-	info(T_NORMAL,"Rendering fractal : DONE.\n");
+	info(T_NORMAL,"Anti-aliasing fractal : DONE.\n");
 }
 

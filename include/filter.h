@@ -42,15 +42,15 @@
  */
 typedef struct s_Filter
 {
-	uint32_t sx; /*!< Number of columns.*/
-	uint32_t sy; /*!< Number of rows.*/
-	uint32_t cx; /*!< X coordinate of filter's center.*/
-	uint32_t cy; /*!< Y coordinate of filter's center.*/
+	uint_fast32_t sx; /*!< Number of columns.*/
+	uint_fast32_t sy; /*!< Number of rows.*/
+	uint_fast32_t cx; /*!< X coordinate of filter's center.*/
+	uint_fast32_t cy; /*!< Y coordinate of filter's center.*/
 	FLOAT *data; /*!< Filter data (the elements of the matrix).*/
 } Filter;
 
 /**
- * \fn void InitFilter(Filter *filter, uint32_t sx, uint32_t sy, uint32_t cx, uint32_t cy, FLOAT *data)
+ * \fn void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, uint_fast32_t cx, uint_fast32_t cy, FLOAT *data)
  * \brief Initialize filter.
  *
  * \param filter Pointer to the filter structure to initialize.
@@ -60,10 +60,10 @@ typedef struct s_Filter
  * \param cy Y coordinate of filter's center.
  * \param data Filter data (NOT copied, and will be freed when the filter is freed).
  */
-void InitFilter(Filter *filter, uint32_t sx, uint32_t sy, uint32_t cx, uint32_t cy, FLOAT *data);
+void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, uint_fast32_t cx, uint_fast32_t cy, FLOAT *data);
 
 /**
- * \fn void InitFilter2(Filter *filter, uint32_t sx, uint32_t sy, FLOAT *data)
+ * \fn void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOAT *data)
  * \brief Initialize filter without specifying center.
  *
  * The center is automatically computed : ((sx-1)/2, (sy-1)/2).
@@ -73,7 +73,7 @@ void InitFilter(Filter *filter, uint32_t sx, uint32_t sy, uint32_t cx, uint32_t 
  * \param sy Number of lines.
  * \param data Filter data (NOT copied : it is up to the user to keep alive and then free this data).
  */
-void InitFilter2(Filter *filter, uint32_t sx, uint32_t sy, FLOAT *data);
+void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOAT *data);
 
 /**
  * \fn void CreateHorizontalGaussianFilter(Filter *filter, FLOAT sigma)
@@ -140,7 +140,7 @@ void CreateGaussianFilter(Filter *filter, FLOAT sigma);
 void CreateGaussianFilter2(Filter *filter, FLOAT radius);
 
 /**
- * \fn FLOAT GetFilterValueUnsafe(Filter *filter, uint32_t x, uint32_t y)
+ * \fn FLOAT GetFilterValueUnsafe(Filter *filter, uint_fast32_t x, uint_fast32_t y)
  * \brief Get some particular value of filter.
  *
  * Get value of filter at row x, column y. Warning, this function is
@@ -152,7 +152,7 @@ void CreateGaussianFilter2(Filter *filter, FLOAT radius);
  * \param y Column of the filter value.
  * \return Value at position (x,y) of filter.
  */
-FLOAT GetFilterValueUnsafe(Filter *filter, uint32_t x, uint32_t y);
+FLOAT GetFilterValueUnsafe(Filter *filter, uint_fast32_t x, uint_fast32_t y);
 
 /**
  * \fn void MultiplyFilterByScalar(Filter *filter, FLOAT scalar)
@@ -179,7 +179,7 @@ void MultiplyFilterByScalar(Filter *filter, FLOAT scalar);
 int NormalizeFilter(Filter *filter);
 
 /**
- * \fn Color ApplyFilterOnSinglePixel(Image *src, uint32_t x, uint32_t y, Filter *filter)
+ * \fn Color ApplyFilterOnSinglePixel(Image *src, uint_fast32_t x, uint_fast32_t y, Filter *filter)
  * \brief Apply a filter on the single pixel of an image.
  *
  * The image will NOT be modified.
@@ -192,7 +192,7 @@ int NormalizeFilter(Filter *filter);
  * \param filter Filter we apply on the image.
  * @return Result of the application of the filter on pixel (x,y) of the image.
  */
-Color ApplyFilterOnSinglePixel(Image *src, uint32_t x, uint32_t y, Filter *filter);
+Color ApplyFilterOnSinglePixel(Image *src, uint_fast32_t x, uint_fast32_t y, Filter *filter);
 
 /**
  * \fn void ApplyFilter(Image *dst, Image *src, Filter *filter)

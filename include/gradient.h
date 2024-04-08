@@ -38,14 +38,14 @@
  * transitions between colors.
  */
 typedef struct s_Gradient {
-	uint32_t size;
+	uint_fast64_t size;
  /*!< Gradient size (total number of colors).*/
 	Color *data;
  /*!< Gradient data.*/
 } Gradient;
 
 /**
- * \fn void GenerateGradient(Gradient *gradient, Color *color, uint32_t size, uint32_t N)
+ * \fn void GenerateGradient(Gradient *gradient, Color *color, uint_fast32_t size, uint_fast32_t N)
  * \brief Generate a gradient.
  *
  * Generate a gradient from some colors and the number of transitions
@@ -59,10 +59,10 @@ typedef struct s_Gradient {
  * \param size Size of the colors array (previous argument).
  * \param N Number of transitions between two colors in the gradient.
  */
-void GenerateGradient(Gradient *gradient, Color *color, uint32_t size, uint32_t N);
+void GenerateGradient(Gradient *gradient, Color *color, uint_fast32_t size, uint_fast32_t N);
 
 /**
- * \fn Color GetGradientColor(Gradient *gradient, uint32_t index)
+ * \fn Color GetGradientColor(Gradient *gradient, uint_fast64_t index)
  * \brief Get a color in the gradient.
  *
  * Get the color in gradient at position index mod gradient_size
@@ -71,7 +71,7 @@ void GenerateGradient(Gradient *gradient, Color *color, uint32_t size, uint32_t 
  * \param index (mod.) Index of the color to get.
  * \return Color in gradient at position (index mod gradient_size).
  */
-Color GetGradientColor(Gradient *gradient, uint32_t index);
+Color GetGradientColor(Gradient *gradient, uint_fast64_t index);
 
 /**
  * \fn void FreeGradient(Gradient *gradient)

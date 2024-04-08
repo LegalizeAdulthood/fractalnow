@@ -1,7 +1,7 @@
 SRCDIR    = src
 INCLUDEDIR= include
 OBJDIR    = objs
-PROG      = fractal2D fractal2D-computer fractal2D-renderer
+PROG      = fractal2D
 DEPENDENCY_FILE=${OBJDIR}/makefile.dep
 
 UNAME := $(shell uname)
@@ -14,7 +14,7 @@ CFLAGS    = -std=c99 -pedantic -Wall -Wextra
 CFLAGS   += -DFLOAT_PRECISION=$(FLOAT_PRECISION)
 #DEBUG     = true
 ifdef DEBUG
-	CFLAGS += -Werror -O0 -g
+	CFLAGS += -Werror -O0
 else
 	CFLAGS += -O2 -ffast-math
 endif
@@ -22,57 +22,27 @@ CFLAGS    += -I${INCLUDEDIR}
 
 LDFLAGS   = -lm -lpthread
 
-OBJECTS = $(OBJDIR)/fractal2D.o \
-	$(OBJDIR)/fractal2D_computer.o \
-	$(OBJDIR)/fractal2D_renderer.o \
+OBJECTS = $(OBJDIR)/main.o \
+	$(OBJDIR)/fractal_anti_aliasing.o \
+	$(OBJDIR)/fractal_addend_function.o \
+	$(OBJDIR)/fractal_coloring.o \
+	$(OBJDIR)/fractal_iteration_count.o \
+	$(OBJDIR)/fractal_loop.o \
+	$(OBJDIR)/fractal_orbit.o \
+	$(OBJDIR)/fractal_rendering_parameters.o \
+	$(OBJDIR)/fractal_transfer_function.o \
+	$(OBJDIR)/color.o \
+	$(OBJDIR)/command_line.o \
+	$(OBJDIR)/file_parsing.o \
+	$(OBJDIR)/filter.o \
+	$(OBJDIR)/fractal.o \
 	$(OBJDIR)/gradient.o \
-	$(OBJDIR)/queue.o \
+	$(OBJDIR)/help.o \
+	$(OBJDIR)/image.o \
+	$(OBJDIR)/misc.o \
 	$(OBJDIR)/ppm.o \
 	$(OBJDIR)/rectangle.o \
-	$(OBJDIR)/fractal.o \
-	$(OBJDIR)/image.o \
-	$(OBJDIR)/rendering_parameters.o \
-	$(OBJDIR)/filter.o \
-	$(OBJDIR)/color.o \
-	$(OBJDIR)/thread.o \
-	$(OBJDIR)/float_table.o
-
-FRACTAL2D_OBJECTS = $(OBJDIR)/fractal2D.o \
-	$(OBJDIR)/gradient.o \
-	$(OBJDIR)/queue.o \
-	$(OBJDIR)/ppm.o \
-	$(OBJDIR)/rectangle.o \
-	$(OBJDIR)/fractal.o \
-	$(OBJDIR)/image.o \
-	$(OBJDIR)/rendering_parameters.o \
-	$(OBJDIR)/filter.o \
-	$(OBJDIR)/color.o \
-	$(OBJDIR)/thread.o \
-	$(OBJDIR)/float_table.o
-
-FRACTAL2DCOMPUTER_OBJECTS = $(OBJDIR)/fractal2D_computer.o \
-	$(OBJDIR)/gradient.o \
-	$(OBJDIR)/queue.o \
-	$(OBJDIR)/rectangle.o \
-	$(OBJDIR)/fractal.o \
-	$(OBJDIR)/image.o \
-	$(OBJDIR)/filter.o \
-	$(OBJDIR)/color.o \
-	$(OBJDIR)/thread.o \
-	$(OBJDIR)/float_table.o
-
-FRACTAL2DRENDERER_OBJECTS = $(OBJDIR)/fractal2D_renderer.o \
-	$(OBJDIR)/gradient.o \
-	$(OBJDIR)/queue.o \
-	$(OBJDIR)/ppm.o \
-	$(OBJDIR)/rectangle.o \
-	$(OBJDIR)/fractal.o \
-	$(OBJDIR)/image.o \
-	$(OBJDIR)/rendering_parameters.o \
-	$(OBJDIR)/filter.o \
-	$(OBJDIR)/color.o \
-	$(OBJDIR)/thread.o \
-	$(OBJDIR)/float_table.o
+	$(OBJDIR)/thread.o
 
 quiet-command = $(if $(VERB),$1,$(if $(2),@echo $2 && $1, @$1))
 
@@ -82,13 +52,7 @@ ${DEPENDENCY_FILE}: $(OBJDIR) ${SRCDIR}/*.c ${INCLUDEDIR}/*.h
 	$(call quiet-command,for i in ${SRCDIR}/*.c; do ${CC} ${CFLAGS} -MM "$${i}"; done | sed "s/\(^.*:\)/${OBJDIR}\/\1/" > $@,"  BUILDING DEPENDENCY DATABASE");
 -include ${DEPENDENCY_FILE}
 
-fractal2D: $(FRACTAL2D_OBJECTS)
-	$(call quiet-command, $(LD) $^ $(LDFLAGS) -o $@, "  LD     $@")
-
-fractal2D-computer: $(FRACTAL2DCOMPUTER_OBJECTS)
-	$(call quiet-command, $(LD) $^ $(LDFLAGS) -o $@, "  LD     $@")
-
-fractal2D-renderer: $(FRACTAL2DRENDERER_OBJECTS)
+fractal2D: $(OBJECTS)
 	$(call quiet-command, $(LD) $^ $(LDFLAGS) -o $@, "  LD     $@")
 
 $(OBJDIR):

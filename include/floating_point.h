@@ -50,43 +50,64 @@
  */
 #if FLOAT_PRECISION == 0
 	#define FLOAT float
-	#define PRINTF_FLOAT_TYPE_SPECIFIER "%.*G"
-	#define SCANF_FLOAT_TYPE_SPECIFIER "%f"
+	#define PRIFLOAT ".*G"
+	#define SCNFLOAT "f"
 	#define FLOAT_DIG FLT_DIG
-	#define strtoF(nptr,endptr) strtof(nptr,endptr)
+	#define fabsF(x) fabsf(x)
+	#define cabsF(z) cabsf(z)
 	#define crealF(z) crealf(z)
 	#define cimagF(z) cimagf(z)
+	#define cpowF(z,y) cpowf(z,y)
 	#define roundF(x) roundf(x)
-	#define fabsF(x) fabsf(x)
-	#define frexpF(x,exp) frexpf(x,exp)
-	#define ldexpF(x,exp) ldexpf(x,exp)
+	#define floorF(x) floorf(x)
 	#define powF(x,y) powf(x,y)
+	#define fmaxF(x,y) fmaxf(x,y)
+	#define modfF(x,y) modff(x,y)
+	#define logF(x) logf(x)
+	#define sqrtF(x) sqrtf(x)
+	#define LOGF logf
+	#define SQRTF sqrtf
+	#define EXPF expf
 #elif FLOAT_PRECISION == 2
 	#define FLOAT long double
-	#define PRINTF_FLOAT_TYPE_SPECIFIER "%.*LG"
-	#define SCANF_FLOAT_TYPE_SPECIFIER "%Lf"
+	#define PRIFLOAT ".*LG"
+	#define SCNFLOAT "Lf"
 	#define FLOAT_DIG LDBL_DIG
-	#define strtoF(nptr,endptr) strtold(nptr,endptr)
+	#define fabsF(x) fabsl(x)
+	#define cabsF(z) cabsl(z)
 	#define crealF(z) creall(z)
 	#define cimagF(z) cimagl(z)
+	#define cpowF(z,y) cpowl(z,y)
 	#define roundF(x) roundl(x)
-	#define fabsF(x) fabsl(x)
-	#define frexpF(x,exp) frexpl(x,exp)
-	#define ldexpF(x,exp) ldexpl(x,exp)
+	#define floorF(x) floorl(x)
 	#define powF(x,y) powl(x,y)
+	#define fmaxF(x,y) fmaxl(x,y)
+	#define modfF(x,y) modfl(x,y)
+	#define logF(x) logl(x)
+	#define sqrtF(x) sqrtl(x)
+	#define LOGF logl
+	#define SQRTF sqrtl
+	#define EXPF expl
 #else
 	#define FLOAT double
-	#define PRINTF_FLOAT_TYPE_SPECIFIER "%.*lG"
-	#define SCANF_FLOAT_TYPE_SPECIFIER "%lf"
+	#define PRIFLOAT ".*lG"
+	#define SCNFLOAT "lf"
 	#define FLOAT_DIG DBL_DIG
-	#define strtoF(nptr,endptr) strtod(nptr,endptr)
+	#define fabsF(x) fabs(x)
+	#define cabsF(z) cabs(z)
 	#define crealF(z) creal(z)
 	#define cimagF(z) cimag(z)
+	#define cpowF(z,y) cpow(z,y)
 	#define roundF(x) round(x)
-	#define fabsF(x) fabs(x)
-	#define frexpF(x,exp) frexp(x,exp)
-	#define ldexpF(x,exp) ldexp(x,exp)
+	#define floorF(x) floor(x)
 	#define powF(x,y) pow(x,y)
+	#define fmaxF(x,y) fmax(x,y)
+	#define modfF(x,y) modf(x,y)
+	#define logF(x) log(x)
+	#define sqrtF(x) sqrt(x)
+	#define LOGF log
+	#define SQRTF sqrt
+	#define EXPF exp
 #endif
 
 #endif

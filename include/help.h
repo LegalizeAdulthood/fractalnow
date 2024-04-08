@@ -1,5 +1,5 @@
 /*
- *  queue.c -- part of fractal2D
+ *  help.h -- part of fractal2D
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *
@@ -18,52 +18,13 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
  
-#include "queue.h"
-#include "error.h"
+#ifndef __HELP_H__
+#define __HELP_H__
 
-void InitEmptyQueue(Queue *queue)
-{
-	queue->head = NULL;
-	queue->tail = NULL;
-	queue->size = 0;
-}
+/**
+ * \fn void DisplayHelp()
+ * \brief Display program help.
+ */
+void DisplayHelp();
 
-inline int IsQueueEmpty(Queue *queue)
-{
-	return (queue->size == 0);
-}
-
-void PushQueue(Queue *queue, void *value)
-{
-	Cell *cell = (Cell *)malloc(sizeof(Cell));
-	if (cell == NULL) {
-		alloc_error("cell");
-	}
-	cell->value = value;
-	cell->next = NULL;
-
-	if (queue->size == 0) {
-		queue->head = cell;
-		queue->tail = cell;
-	} else {
-		queue->tail->next = cell;
-		queue->tail = cell;
-	}
-	++queue->size;
-}
-
-void *PopQueue(Queue *queue)
-{
-	void *value = queue->head->value;
-	Cell *oldHead = queue->head;
-	queue->head = oldHead->next;
-	--queue->size;
-	if (queue->size == 0) {
-		queue->tail = NULL;
-	}
-
-	free(oldHead);
-
-	return value;
-}
-
+#endif

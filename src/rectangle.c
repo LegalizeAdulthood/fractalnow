@@ -19,9 +19,11 @@
  */
  
 #include "rectangle.h"
+#include "error.h"
+#include "misc.h"
 #include <stdlib.h>
 
-void InitRectangle(Rectangle *rectangle, uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2)
+void InitRectangle(Rectangle *rectangle, uint_fast32_t x1, uint_fast32_t y1, uint_fast32_t x2, uint_fast32_t y2)
 {
 	rectangle->x1 = x1;
 	rectangle->y1 = y1;
@@ -31,8 +33,8 @@ void InitRectangle(Rectangle *rectangle, uint32_t x1, uint32_t y1, uint32_t x2, 
 
 int CutRectangleInHalf(Rectangle rectangle, Rectangle *out1, Rectangle *out2)
 {
-	uint32_t width = rectangle.x2 - rectangle.x1;
-	uint32_t height = rectangle.y2 - rectangle.y1;
+	uint_fast32_t width = rectangle.x2 - rectangle.x1;
+	uint_fast32_t height = rectangle.y2 - rectangle.y1;
 	
 	if (width == 0 && height == 0) {
 		return 1;
@@ -51,20 +53,57 @@ int CutRectangleInHalf(Rectangle rectangle, Rectangle *out1, Rectangle *out2)
 	return 0;
 }
 
-int CutRectangleInN(Rectangle rectangle, uint32_t N, Rectangle *out)
+void CutRectangleMaxSize(Rectangle src, uint_fast32_t size, Rectangle **out, uint_fast32_t *out_size)
 {
-	uint32_t width = rectangle.x2 + 1 - rectangle.x1;
-	uint32_t height = rectangle.y2 + 1 - rectangle.y1;
+	uint_fast32_t width = src.x2 - src.x1 + 1;
+	uint_fast32_t height = src.y2 - src.y1 + 1;
+
+	uint_fast32_t nb_x = width / size;
+	uint_fast32_t nb_y = height / size;
+
+	if (width % size > 0) {
+		nb_x++;
+	}
+	if (height % size > 0) {
+		nb_y++;
+	}
+
+	*out_size = nb_x*nb_y;
+	*out = (Rectangle *)safeMalloc("rectangles", (*out_size)*sizeof(Rectangle));
+
+	Rectangle *p_out = *out;
+	uint_fast32_t x1 = src.x1;
+	uint_fast32_t x2 = src.x1+size-1;
+	for (; x1 <= src.x2; x1+=size, x2+=size) {
+		x2 = (x2 > src.x2) ? src.x2 : x2;
+
+		uint_fast32_t y1 = src.y1;
+		uint_fast32_t y2 = src.y1+size-1;
+		for (; y1 <= src.y2; y1+=size, y2+=size) {
+			y2 = (y2 > src.y2) ? src.y2 : y2;
+			p_out->x1 = x1;
+			p_out->x2 = x2;
+			p_out->y1 = y1;
+			p_out->y2 = y2;
+			++p_out;
+		}
+	}
+}
+
+int CutRectangleInN(Rectangle rectangle, uint_fast32_t N, Rectangle *out)
+{
+	uint_fast32_t width = rectangle.x2 + 1 - rectangle.x1;
+	uint_fast32_t height = rectangle.y2 + 1 - rectangle.y1;
 	if (width*height < N) {
 		return 1;
 	}
 
-	uint32_t nbRectangles = 1;
-	uint32_t tmpNbRectangles;
+	uint_fast32_t nbRectangles = 1;
+	uint_fast32_t tmpNbRectangles;
 	InitRectangle(&out[0], rectangle.x1, rectangle.y1, rectangle.x2, rectangle.y2);
 	while (nbRectangles < N) {
 		tmpNbRectangles = nbRectangles;
-		for (uint32_t i = 0; i < tmpNbRectangles; i++) {
+		for (uint_fast32_t i = 0; i < tmpNbRectangles; i++) {
 			if (CutRectangleInHalf(out[i], &out[i], &out[nbRectangles])) {
 				/* This particular rectangle could not be in half.
 				 * Assuming that the initial rectangle could be cut in N parts,

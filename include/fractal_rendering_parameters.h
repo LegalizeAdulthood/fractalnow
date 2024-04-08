@@ -1,5 +1,5 @@
 /*
- *  rendering_parameters.h -- part of fractal2D
+ *  fractal_rendering_parameters.h -- part of fractal2D
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *
@@ -19,16 +19,20 @@
  */
  
  /**
-  * \file rendering_parameters.h
+  * \file fractal_rendering_parameters.h
   * \brief Header file related to rendering parameters.
   * \author Marc Pegon
   */
 
-#ifndef __RENDERING_PARAMETERS_H__
-#define __RENDERING_PARAMETERS_H__
+#ifndef __FRACTAL_RENDERING_PARAMETERS_H__
+#define __FRACTAL_RENDERING_PARAMETERS_H__
 
 #include "color.h"
 #include "gradient.h"
+#include "fractal_addend_function.h"
+#include "fractal_coloring.h"
+#include "fractal_iteration_count.h"
+#include "fractal_transfer_function.h"
 #include <stdint.h>
 
 /**
@@ -36,10 +40,20 @@
  * \brief Structure containing fractal rendering parameters.
  */
 typedef struct s_RenderingParameters {
-	int bytesPerComponent;
+	uint_fast8_t bytesPerComponent;
  /*!< Bytes per component for colors of rendering.*/
 	Color spaceColor;
  /*!< The color for fractal space.*/
+	IterationCountFunction iterationCountFunction;
+ /*!< Fractal iteration count function.*/
+	ColoringMethod coloringMethod;
+ /*!< Fractal coloring method.*/
+	AddendFunction addendFunction;
+ /*!< Fractal addend function (used only for CM_AVERAGE coloring method).*/
+	InterpolationFunction interpolationFunction;
+ /*!< Fractal interpolation function (used only for CM_AVERAGE coloring method.)*/
+	TransferFunction transferFunction;
+ /*!< Fractal transfer function (to make the values fit the gradient better).*/
 	FLOAT multiplier;
  /*!< Value with which fractal values will be multiplied (to make the values fit the gradient better).*/
 	Gradient gradient;

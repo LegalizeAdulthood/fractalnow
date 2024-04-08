@@ -18,13 +18,14 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
  
-#include "error.h"
 #include "gradient.h"
+#include "error.h"
+#include "misc.h"
 
-void aux_GenerateGradient(Gradient *gradient, uint32_t ind_tab, Color C1, Color C2, uint32_t N)
+void aux_GenerateGradient(Gradient *gradient, uint_fast64_t ind_tab, Color C1, Color C2, uint_fast32_t N)
 {
 	Color *pixel = gradient->data+ind_tab;
-	for (uint32_t i=0;i<N;i++) {
+	for (uint_fast32_t i=0;i<N;i++) {
 		pixel->bytesPerComponent = C1.bytesPerComponent;
 		pixel->r = (C1.r*(N-1-i) + C2.r*i) / (N-1);
 		pixel->g = (C1.g*(N-1-i) + C2.g*i) / (N-1);
@@ -33,16 +34,13 @@ void aux_GenerateGradient(Gradient *gradient, uint32_t ind_tab, Color C1, Color 
 	}
 }
 
-void GenerateGradient(Gradient *gradient, Color *color, uint32_t size, uint32_t N)
+void GenerateGradient(Gradient *gradient, Color *color, uint_fast32_t size, uint_fast32_t N)
 {
 	info(T_NORMAL,"Generating gradient...\n");
 	
-	gradient->data = malloc(N*(size-1)*sizeof(Color));
-	if (gradient->data == NULL) {
-		alloc_error("gradient");
-	}
+	gradient->data = safeMalloc("gradient", N*(size-1)*sizeof(Color));
 
-	for (uint32_t i=0; i<size-1; i++) {
+	for (uint_fast64_t i=0; i<size-1; i++) {
 		aux_GenerateGradient(gradient, i*N, color[i], color[i+1],N);
 	}
 
@@ -51,7 +49,7 @@ void GenerateGradient(Gradient *gradient, Color *color, uint32_t size, uint32_t 
 	info(T_NORMAL,"Generating gradient : DONE.\n");
 }
 
-inline Color GetGradientColor(Gradient *gradient, uint32_t index)
+inline Color GetGradientColor(Gradient *gradient, uint_fast64_t index)
 {
 	return gradient->data[index % gradient->size];
 }

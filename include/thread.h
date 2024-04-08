@@ -36,7 +36,7 @@
  * \def DEFAULT_NB_THREADS
  * \brief Default number of threads.
  */
-#define DEFAULT_NB_THREADS 16
+#define DEFAULT_NB_THREADS (uint_fast32_t)(16)
 
 /**
  * \var nbThreads.
@@ -45,7 +45,7 @@
  * Unless changed explicitly, this variable will be equal to
  * DEFAULT_NB_THREADS.
  */
-extern uint32_t nbThreads;
+extern uint_fast32_t nbThreads;
 
 // thread related
 #define THREAD_CREATE_ERROR "Thread create error"
@@ -71,5 +71,16 @@ extern uint32_t nbThreads;
 #define safePThreadCondSignal(cond) {if((errno=pthread_cond_signal(cond))!=0){perror(THREAD_COND_SIGNAL_ERROR);pthread_exit(THREAD_ENDED_WITH_ERROR);}}
 #define safePThreadCondBroadcast(cond) {if((errno=pthread_cond_broadcast(cond))!=0){perror(THREAD_COND_BROADCAST_ERROR);pthread_exit(THREAD_ENDED_WITH_ERROR);}}
 #define safePThreadCondDestroy(cond) {if((errno=pthread_cond_destroy(cond))!=0){perror(THREAD_COND_DESTROY_ERROR);pthread_exit(THREAD_ENDED_WITH_ERROR);}}
+
+/**
+ * \fn void LaunchThreadsAndWait(uint_fast32_t nbThreads, void *args, size_t s_elem, void *(*routine)(void *))
+ * \brief Create several threads and wait for them to end.
+ *
+ * \param nbThreads Number of threads to create.
+ * \param args Pointer to array of arguments for threads routines.
+ * \param s_elem Size of one argument (in bytes).
+ * \param routine Threads routine.
+ */
+void LaunchThreadsAndWait(uint_fast32_t nbThreads, void *args, size_t s_elem, void *(*routine)(void *));
 
 #endif

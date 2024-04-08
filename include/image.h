@@ -41,16 +41,16 @@
 typedef struct s_Image {
 	Color *data;
  /*!< Imaga data.*/
-	uint32_t width;
+	uint_fast32_t width;
  /*!< Image width.*/
-	uint32_t height;
+	uint_fast32_t height;
  /*!< Image height.*/
-	int bytesPerComponent;
+	uint_fast8_t bytesPerComponent;
  /*!< Colors bytes per component.*/
 } Image;
 
 /**
- * \fn void CreateUnitializedImage(Image *image, uint32_t width, uint32_t height, int bytesPerComponent)
+ * \fn void CreateUnitializedImage(Image *image, uint_fast32_t width, uint_fast32_t height, uint_fast8_t bytesPerComponent)
  * \brief Create an unitialized image.
  *
  * Create an unitialized image (allocate memory for data) of given width and height.
@@ -60,11 +60,23 @@ typedef struct s_Image {
  * \param height Image height.
  * \param bytesPerComponent Colors bytes per component.
  */
-void CreateUnitializedImage(Image *image, uint32_t width, uint32_t height,
-				int bytesPerComponent);
+void CreateUnitializedImage(Image *image, uint_fast32_t width, uint_fast32_t height,
+				uint_fast8_t bytesPerComponent);
 
 /**
- * \fn Color iGetPixelUnsafe(Image *image, uint32_t x, uint32_t y)
+ * \fn void ImageToBytesArray(uint8_t *array, Image *image)
+ * \brief Convert image to bytes array.
+ *
+ * Bytes array must be big enough to store image data (width*height*3*bytesPerComponent).
+ * For RGB16 images, for each component, the most significant byte is put first.
+ *
+ * \param array Array to store image data.
+ * \param image Image to convert to bytes array.
+ */
+void ImageToBytesArray(uint8_t *array, Image *image);
+
+/**
+ * \fn Color iGetPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y)
  * \brief Get some pixel of image.
  *
  * Get pixel (x,y) of image.
@@ -76,10 +88,10 @@ void CreateUnitializedImage(Image *image, uint32_t width, uint32_t height,
  * \param y Y pixel coordinate.
  * \return Color at position (x,y) of image.
  */
-Color iGetPixelUnsafe(Image *image, uint32_t x, uint32_t y);
+Color iGetPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y);
 
 /**
- * \fn Color iGetPixel(Image *image, int32_t x, int32_t y)
+ * \fn Color iGetPixel(Image *image, int_fast64_t x, int_fast64_t y)
  * \brief Get some pixel of image.
  *
  * Get pixel (x,y) of image.
@@ -91,10 +103,10 @@ Color iGetPixelUnsafe(Image *image, uint32_t x, uint32_t y);
  * \param y Y pixel coordinate.
  * \return Color at position (x,y) of image.
  */
-Color iGetPixel(Image *image, int32_t x, int32_t y);
+Color iGetPixel(Image *image, int_fast64_t x, int_fast64_t y);
 
 /**
- * \fn void PutPixelUnsafe(Image *image, uint32_t x, uint32_t y, Color color)
+ * \fn void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color color)
  * \brief Put pixel at some particular position in image.
  *
  * Put pixel at position (x,y) of image.
@@ -108,7 +120,7 @@ Color iGetPixel(Image *image, int32_t x, int32_t y);
  * \param y Y pixel coordinate.
  * \param color Color to put at position (x,y) of image.
  */
-void PutPixelUnsafe(Image *image, uint32_t x, uint32_t y, Color color);
+void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color color);
 
 /**
  * \fn void ApplyGaussianBlur(Image *dst, Image *src, FLOAT radius)

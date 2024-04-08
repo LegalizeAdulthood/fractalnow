@@ -20,45 +20,93 @@
  
 #include "image.h"
 #include "filter.h"
+#include "misc.h"
 #include "rectangle.h"
 #include "thread.h"
+#include <inttypes.h>
 #include <stdlib.h>
 
-void CreateUnitializedImage(Image *image, uint32_t width, uint32_t height, int bytesPerComponent)
+void CreateUnitializedImage(Image *image, uint_fast32_t width, uint_fast32_t height, uint_fast8_t bytesPerComponent)
 {
-	image->data = (Color *)malloc(width*height*sizeof(Color));
-	if (image->data == NULL) {
-		alloc_error("image");
-	}
+	image->data = (Color *)safeMalloc("image", width*height*sizeof(Color));
 	image->width = width;
 	image->height = height;
 	image->bytesPerComponent = bytesPerComponent;
+}
+
+static inline void ImageRGB8ToBytesArray(uint8_t *array, Image *image)
+{
+	uint8_t *p_array = array;
+	Color *data = image->data;
+
+	for (uint_fast32_t i = 0; i < image->height; ++i) {
+		for (uint_fast32_t j = 0; j < image->width; ++j) {
+			*(p_array++) = (uint8_t)data->r;
+			*(p_array++) = (uint8_t)data->g;
+			*(p_array++) = (uint8_t)data->b;
+			++data;
+		}
+	}
+}
+
+static inline void ImageRGB16ToBytesArray(uint8_t *array, Image *image)
+{
+	uint8_t *p_array = array;
+	Color *data = image->data;
+
+	for (uint_fast32_t i = 0; i < image->height; ++i) {
+		for (uint_fast32_t j = 0; j < image->width; ++j) {
+			*(p_array++) = (uint8_t)(data->r >> 8);
+			*(p_array++) = (uint8_t)(data->r & 0xFF);
+			*(p_array++) = (uint8_t)(data->g >> 8);
+			*(p_array++) = (uint8_t)(data->g & 0xFF);
+			*(p_array++) = (uint8_t)(data->b >> 8);
+			*(p_array++) = (uint8_t)(data->b & 0xFF);
+			++data;
+		}
+	}
+}
+
+void ImageToBytesArray(uint8_t *array, Image *image)
+{
+	switch(image->bytesPerComponent) {
+	case 1:
+		ImageRGB8ToBytesArray(array, image);
+		break;
+	case 2:
+		ImageRGB16ToBytesArray(array, image);
+		break;
+	default:
+		error("Invalid bytes per component (%"PRIuFAST8").\n",
+			image->bytesPerComponent);
+		break;
+	}
 }
 
 typedef enum {
 	LEFT = 0, TOP, RIGHT, BOTTOM, TOPLEFT, TOPRIGHT, BOTTOMRIGHT, BOTTOMLEFT, CENTER
 } Region;
 
-inline Color iGetPixelUnsafe(Image *image, uint32_t x, uint32_t y) {
+inline Color iGetPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y) {
 	return *(image->data+y*image->width+x);
 }
 
-Region iGetImageRegion(Image *image, int32_t x, int32_t y)
+Region iGetImageRegion(Image *image, int_fast64_t x, int_fast64_t y)
 {
 	Region region;
 
 	if (x < 0) {
 		if (y < 0) {
 			region = TOPLEFT;
-		} else if ((uint32_t)y >= image->height) {
+		} else if ((uint_fast32_t)y >= image->height) {
 			region = BOTTOMLEFT;
 		} else {
 			region = LEFT;
 		}
-	} else if ((uint32_t)x >= image->width) {
+	} else if ((uint_fast32_t)x >= image->width) {
 		if (y < 0) {
 			region = TOPRIGHT;
-		} else if ((uint32_t)y >= image->height) {
+		} else if ((uint_fast32_t)y >= image->height) {
 			region = BOTTOMRIGHT;
 		} else {
 			region = RIGHT;
@@ -66,7 +114,7 @@ Region iGetImageRegion(Image *image, int32_t x, int32_t y)
 	} else {
 		if (y < 0) {
 			region = TOP;
-		} else if ((uint32_t)y >= image->height) {
+		} else if ((uint_fast32_t)y >= image->height) {
 			region = BOTTOM;
 		} else {
 			region = CENTER;
@@ -76,45 +124,47 @@ Region iGetImageRegion(Image *image, int32_t x, int32_t y)
 	return region;
 }
 
-inline Color iGetPixel(Image *image, int32_t x, int32_t y) {
+inline Color iGetPixel(Image *image, int_fast64_t x, int_fast64_t y) {
 	Region region = iGetImageRegion(image, x, y);
+	Color res;
 
 	switch (region) {
 	case TOPLEFT:
-		return iGetPixelUnsafe(image, 0, 0);
+		res = iGetPixelUnsafe(image, 0, 0);
 		break;
 	case TOPRIGHT:
-		return iGetPixelUnsafe(image, image->width-1, 0);
+		res = iGetPixelUnsafe(image, image->width-1, 0);
 		break;
 	case BOTTOMLEFT:
-		return iGetPixelUnsafe(image, 0, image->height-1);
+		res = iGetPixelUnsafe(image, 0, image->height-1);
 		break;
 	case BOTTOMRIGHT:
-		return iGetPixelUnsafe(image, image->width-1, image->height-1);
+		res = iGetPixelUnsafe(image, image->width-1, image->height-1);
 		break;
 	case TOP:
-		return iGetPixelUnsafe(image, x, 0);
+		res = iGetPixelUnsafe(image, x, 0);
 		break;
 	case LEFT:
-		return iGetPixelUnsafe(image, 0, y);
+		res = iGetPixelUnsafe(image, 0, y);
 		break;
 	case RIGHT:
-		return iGetPixelUnsafe(image, image->width-1, y);
+		res = iGetPixelUnsafe(image, image->width-1, y);
 		break;
 	case BOTTOM:
-		return iGetPixelUnsafe(image, x, image->height-1);
+		res = iGetPixelUnsafe(image, x, image->height-1);
 		break;
 	case CENTER:
-		return iGetPixelUnsafe(image, x, y);
+		res = iGetPixelUnsafe(image, x, y);
 		break;
 	default:
 		error("Unknown region.\n");
 		break;
 	}
+	return res;
 }
 
 
-inline void PutPixelUnsafe(Image *image, uint32_t x, uint32_t y, Color color)
+inline void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color color)
 {
 	*(image->data+y*image->width+x)=color;
 }
@@ -163,16 +213,15 @@ void *DownscaleImageThreadRoutine(void *arg)
 	Image tmpImage;
 	CreateUnitializedImage(&tmpImage, 1, verticalGaussianFilter->sy, src->bytesPerComponent);
 
-	info(T_VERBOSE,"Downscaling image from (%lu,%lu) to (%lu,%lu)...\n",
-		(unsigned long)dstRect->x1,(unsigned long)dstRect->y1,
-		(unsigned long)dstRect->x2,(unsigned long)dstRect->y2);
+	info(T_VERBOSE,"Downscaling image from (%"PRIuFAST32",%"PRIuFAST32") to \
+(%"PRIuFAST32",%"PRIuFAST32")...\n", dstRect->x1,dstRect->y1, dstRect->x2,dstRect->y2);
 
-	for (uint32_t i = dstRect->x1; i <= dstRect->x2; ++i) {
-		uint32_t x = (i+0.5)*invScaleX;
-		for (uint32_t j = dstRect->y1; j <= dstRect->y2; ++j) {
-			uint32_t y = (j+0.5)*invScaleY;
+	for (uint_fast32_t i = dstRect->x1; i <= dstRect->x2; ++i) {
+		uint_fast32_t x = (i+0.5)*invScaleX;
+		for (uint_fast32_t j = dstRect->y1; j <= dstRect->y2; ++j) {
+			uint_fast32_t y = (j+0.5)*invScaleY;
 
-			for (uint32_t k = 0; k < verticalGaussianFilter->sy; ++k) {
+			for (uint_fast32_t k = 0; k < verticalGaussianFilter->sy; ++k) {
 				PutPixelUnsafe(&tmpImage, 0, k, ApplyFilterOnSinglePixel(
 					src, x, y-verticalGaussianFilter->cy+k, horizontalGaussianFilter));
 			}
@@ -183,9 +232,8 @@ void *DownscaleImageThreadRoutine(void *arg)
 
 	FreeImage(&tmpImage);
 
-	info(T_VERBOSE,"Downscaling image from (%lu,%lu) to (%lu,%lu) : DONE.\n",
-		(unsigned long)dstRect->x1,(unsigned long)dstRect->y1,
-		(unsigned long)dstRect->x2,(unsigned long)dstRect->y2);
+	info(T_VERBOSE,"Downscaling image from (%"PRIuFAST32",%"PRIuFAST32") to \
+(%"PRIuFAST32",%"PRIuFAST32") : DONE.\n", dstRect->x1,dstRect->y1, dstRect->x2,dstRect->y2);
 
 	return NULL;
 }
@@ -213,33 +261,21 @@ void DownscaleImage(Image *dst, Image *src)
 	CreateHorizontalGaussianFilter2(&horizontalGaussianFilter, invScaleX);
 	CreateVerticalGaussianFilter2(&verticalGaussianFilter, invScaleY);
 
-	uint32_t nbPixels = src->width*src->height;
-	uint32_t realNbThreads = (nbThreads > nbPixels) ? nbPixels : nbThreads;
+	uint_fast32_t nbPixels = src->width*src->height;
+	uint_fast32_t realNbThreads = (nbThreads > nbPixels) ? nbPixels : nbThreads;
 
 	Rectangle *rectangle;
-	rectangle = (Rectangle *)malloc(realNbThreads * sizeof(Rectangle));
-	if (rectangle == NULL) {
-		alloc_error("rectangles");
-	}
+	rectangle = (Rectangle *)safeMalloc("rectangles", realNbThreads * sizeof(Rectangle));
 	InitRectangle(&rectangle[0], 0, 0, dst->width-1, dst->height-1);
 	if (CutRectangleInN(rectangle[0], realNbThreads, rectangle)) {
-		error("Could not cut rectangle ((%lu,%lu),(%lu,%lu) in %lu parts.\n",
-			(unsigned long)rectangle[0].x1, (unsigned long)rectangle[0].y1,
-			(unsigned long)rectangle[0].x2, (unsigned long)rectangle[0].y2,
-			(unsigned long)realNbThreads);
+		error("Could not cut rectangle ((%"PRIuFAST32",%"PRIuFAST32"),(%"PRIuFAST32",%"PRIuFAST32") \
+in %"PRIuFAST32" parts.\n", rectangle[0].x1, rectangle[0].y1, rectangle[0].x2, rectangle[0].y2,
+			realNbThreads);
 	}
 
-        pthread_t *thread;
-	thread = (pthread_t *)malloc(realNbThreads * sizeof(pthread_t)); 
-	if (thread == NULL) {
-		alloc_error("threads");
-	}
 	DownscaleImageArguments *arg;
-	arg = (DownscaleImageArguments *)malloc(realNbThreads * sizeof(DownscaleImageArguments));
-	if (arg == NULL) {
-		alloc_error("arguments");
-	}
-	for (uint32_t i = 0; i < realNbThreads; ++i) {
+	arg = (DownscaleImageArguments *)safeMalloc("arguments", realNbThreads * sizeof(DownscaleImageArguments));
+	for (uint_fast32_t i = 0; i < realNbThreads; ++i) {
 		arg[i].dst = dst;
 		arg[i].dstRect = &rectangle[i];
 		arg[i].src = src;
@@ -247,21 +283,10 @@ void DownscaleImage(Image *dst, Image *src)
 		arg[i].invScaleY = invScaleY;
 		arg[i].horizontalGaussianFilter = &horizontalGaussianFilter;
 		arg[i].verticalGaussianFilter = &verticalGaussianFilter;
-
-                safePThreadCreate(&(thread[i]),NULL,DownscaleImageThreadRoutine,(void *)&arg[i]);
 	}
-
-	void *status;
-	for (uint32_t i = 0; i < realNbThreads; ++i) {
-		safePThreadJoin(thread[i], &status);
-
-		if (status != NULL) {
-			error("Thread ended because of an error.\n");
-		}
-	}
+	LaunchThreadsAndWait(realNbThreads, arg, sizeof(DownscaleImageArguments), DownscaleImageThreadRoutine);
 
 	free(rectangle);
-	free(thread);
 	free(arg);
 	FreeFilter(&horizontalGaussianFilter);
 	FreeFilter(&verticalGaussianFilter);

@@ -43,10 +43,10 @@
  * \brief RGB8 color.
  */
 typedef struct s_Color {
-	int bytesPerComponent; /*!< Either 1 (RGB8) or 2 (RGB16).*/
-	uint16_t r; /*!< Red component.*/
-	uint16_t g; /*!< Green component.*/
-	uint16_t b; /*!< Blue component.*/
+	uint_fast8_t bytesPerComponent; /*!< Either 1 (RGB8) or 2 (RGB16).*/
+	uint_fast16_t r; /*!< Red component.*/
+	uint_fast16_t g; /*!< Green component.*/
+	uint_fast16_t b; /*!< Blue component.*/
 } Color;
 
 /**
@@ -61,7 +61,7 @@ typedef struct s_Color {
 Color ColorFromUint32(uint32_t color);
 
 /**
- * \fn Color ColorFromUint32(uint32_t color)
+ * \fn Color ColorFromUint64(uint64_t color)
  * \brief Convert a uint64_t color to Color structure.
  *
  * Create an RGB16 Color structure.
@@ -86,5 +86,43 @@ Color ColorFromUint64(uint64_t color);
  * \return Result of the mixing of colors C1 and C2 according to given weights.
  */
 Color MixColors(Color C1, FLOAT weight1, Color C2, FLOAT weight2);
+
+/**
+ * \fn FLOAT ColorManhattanDistance(Color C1, Color C2)
+ * \brief Compute manhattan distance between two colors.
+ *
+ * Distance is normalized (i.e. between 0 and 1).
+ *
+ * \param C1 First color.
+ * \param C2 Second color.
+ * \return Manhattan distance between colors C1 and C2.
+ */
+FLOAT ColorManhattanDistance(Color C1, Color C2);
+
+/**
+ * \fn FLOAT QuadAvgDissimilarity(Color C[4])
+ * \brief Compute average dissimilarity of a quadrilateral given its corner colors.
+ *
+ * Result is normalized (between 0 and 1).
+ *
+ * \param C Point to colors at the four corners.
+ * \return Quadrilateral average anhattan dissimilarity.
+ */
+FLOAT QuadAvgDissimilarity(Color C[4]);
+
+/**
+ * \fn Color QuadLinearInterpolation(Color C[4], FLOAT x, FLOAT y)
+ * \brief Interpolate linearly some color of a quadrilateral.
+ *
+ * Interpolate color at point (x,y) according to its corner colors.
+ * Coordinates x and y are relative (i.e. must be between 0 and 1) :
+ * (0,0 is the top left corner, (1,0) the top right, etc...
+ *
+ * \param C Quadrilateral corner colors.
+ * \param x X (relative) coordinate of quad point to interpolate.
+ * \param y Y (relative) coordinate of quad point to interpolate.
+ * \return Linearly interpolated color at point (x,y) of quadrilateral.
+ */
+Color QuadLinearInterpolation(Color C[4], FLOAT x, FLOAT y);
 
 #endif

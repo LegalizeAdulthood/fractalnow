@@ -34,18 +34,18 @@
  * \brief Basic rectangle type.
  */
 typedef struct s_Rectangle {
-	uint32_t x1;
+	uint_fast32_t x1;
  /*!< X coordinate of the rectangle's top left corner.*/
-	uint32_t y1;
+	uint_fast32_t y1;
  /*!< Y coordinate of the rectangle's top left corner.*/
-	uint32_t x2;
+	uint_fast32_t x2;
  /*!< X coordinate of the rectangle's bottom right corner.*/
-	uint32_t y2;
+	uint_fast32_t y2;
  /*!< Y coordinate of the rectangle's bottom right corner.*/
 } Rectangle;
 
 /**
- * \fn void InitRectangle(Rectangle *rectangle, uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2)
+ * \fn void InitRectangle(Rectangle *rectangle, uint_fast32_t x1, uint_fast32_t y1, uint_fast32_t x2, uint_fast32_t y2)
  * \brief Initialize rectangle.
  *
  * \param rectangle Pointer to rectangle structure to initialize.
@@ -54,7 +54,7 @@ typedef struct s_Rectangle {
  * \param x2 X coordinate of the rectangle's bottom right corner.
  * \param y2 Y coordinate of the rectangle's bottom right corner.
  */
-void InitRectangle(Rectangle *rectangle, uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2);
+void InitRectangle(Rectangle *rectangle, uint_fast32_t x1, uint_fast32_t y1, uint_fast32_t x2, uint_fast32_t y2);
 
 /**
  * \fn int CutRectangleInHalf(Rectangle rectangle, Rectangle *out1, Rectangle *out2)
@@ -71,7 +71,21 @@ void InitRectangle(Rectangle *rectangle, uint32_t x1, uint32_t y1, uint32_t x2, 
 int CutRectangleInHalf(Rectangle rectangle, Rectangle *out1, Rectangle *out2);
 
 /**
- * \fn int CutRectangleInN(Rectangle rectangle, uint32_t N, Rectangle *out)
+ * \fn void CutRectangleMaxSize(Rectangle src, uint_fast32_t size, Rectangle **out, uint_fast32_t *out_size)
+ * \brief Cut rectangle into smaller rectangles.
+ *
+ * Cut rectangle into smaller rectangles. Each of these rectangles are smaller
+ * (i.e. both width and height) than given size.
+ * 
+ * \param src Rectangle to be cut into smaller rectangles.
+ * \param size Maximum size of the small rectangles produced.
+ * \param out Pointer to a (not yet allocated) array of rectangles for the output.
+ * \param out_size Pointer to an integer to store the number of small rectangles produced.
+ */
+void CutRectangleMaxSize(Rectangle src, uint_fast32_t size, Rectangle **out, uint_fast32_t *out_size);
+
+/**
+ * \fn int CutRectangleInN(Rectangle rectangle, uint_fast32_t N, Rectangle *out)
  * \brief Cut rectangle in N parts.
  *
  * Cut rectangle into N rectangles.
@@ -82,6 +96,6 @@ int CutRectangleInHalf(Rectangle rectangle, Rectangle *out1, Rectangle *out2);
  * \param out Pointer to the (allocated) array in which to put the N cut rectangles.
  * \return 1 if rectangle cannot be cut in N, 0 otherwise.
  */
-int CutRectangleInN(Rectangle rectangle, uint32_t N, Rectangle *out);
+int CutRectangleInN(Rectangle rectangle, uint_fast32_t N, Rectangle *out);
 
 #endif

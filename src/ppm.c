@@ -20,6 +20,7 @@
  
 #include "ppm.h"
 #include "error.h"
+#include <inttypes.h>
 
 void aux_ExportPPM8(char *fileName, Image *image) {
 	FILE *file;
@@ -29,23 +30,18 @@ void aux_ExportPPM8(char *fileName, Image *image) {
 		open_error(fileName);
 	}
 
-	fprintf(file,"P6\n%lu %lu\n%lu\n",(unsigned long)image->width,
-					(unsigned long)image->height,
-					(unsigned long)255);
+	fprintf(file,"P6\n%"PRIuFAST32" %"PRIuFAST32"\n%"PRIu8"\n",
+		image->width, image->height, (uint8_t)UINT8_MAX);
 
-	Color *pixel = image->data;
-	for (uint32_t i=0; i<image->height; i++) {
-		for (uint32_t j=0; j<image->width; j++) {
-			fprintf(file, "%c%c%c", (uint8_t)pixel->r,
-				(uint8_t)pixel->g, (uint8_t)pixel->b);
-			pixel++;
-		}
-	}
+	uint8_t *bytes;
+	bytes = (uint8_t *)malloc(3*image->width*image->height*sizeof(uint8_t));
+	ImageToBytesArray(bytes, image);
+	fwrite(bytes, 3, image->width*image->height, file);
+	free(bytes);
 
 	if (fclose(file)) {
 		close_error(fileName);
 	}
-
 }
 
 void aux_ExportPPM16(char *fileName, Image *image) {
@@ -56,20 +52,14 @@ void aux_ExportPPM16(char *fileName, Image *image) {
 		open_error(fileName);
 	}
 
-	fprintf(file,"P6\n%lu %lu\n%lu\n",(unsigned long)image->width,
-					(unsigned long)image->height,
-					(unsigned long)65535);
+	fprintf(file,"P6\n%"PRIuFAST32" %"PRIuFAST32"\n%"PRIu16"\n",
+		image->width, image->height, (uint16_t)UINT16_MAX);
 
-	Color *pixel = image->data;
-	for (uint32_t i=0; i<image->height; i++) {
-		for (uint32_t j=0; j<image->width; j++) {
-			fprintf(file, "%c%c%c%c%c%c",
-				(uint8_t)(pixel->r >> 8),(uint8_t)(pixel->r & 0xFF),
-				(uint8_t)(pixel->g >> 8),(uint8_t)(pixel->g & 0xFF),
-				(uint8_t)(pixel->b >> 8),(uint8_t)(pixel->b & 0xFF));
-			pixel++;
-		}
-	}
+	uint8_t *bytes;
+	bytes = (uint8_t *)malloc(3*image->width*image->height*sizeof(uint16_t));
+	ImageToBytesArray(bytes, image);
+	fwrite(bytes, 6, image->width*image->height, file);
+	free(bytes);
 
 	if (fclose(file)) {
 		close_error(fileName);

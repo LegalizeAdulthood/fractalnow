@@ -19,5 +19,30 @@
  */
  
 #include "thread.h"
+#include "error.h"
+#include "misc.h"
+#include <stdlib.h>
 
-uint32_t nbThreads = DEFAULT_NB_THREADS;
+uint_fast32_t nbThreads = DEFAULT_NB_THREADS;
+
+void LaunchThreadsAndWait(uint_fast32_t N, void *args, size_t s_elem, void *(*routine)(void *))
+{
+        pthread_t *thread;
+	thread = (pthread_t *)safeMalloc("threads", N * sizeof(pthread_t)); 
+
+	uint8_t *c_arg = (uint8_t *)args;
+	for (uint_fast32_t i = 0; i < N; ++i, c_arg+=s_elem) {
+                safePThreadCreate(&(thread[i]),NULL,routine,c_arg);
+	}
+
+	void *status;
+	for (uint_fast32_t i = 0; i < N; ++i) {
+		safePThreadJoin(thread[i], &status);
+
+		if (status != NULL) {
+			error("Thread ended because of an error.\n");
+		}
+	}
+
+	free(thread);
+}

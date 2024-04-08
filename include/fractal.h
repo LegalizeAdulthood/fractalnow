@@ -21,6 +21,25 @@
  /**
   * \file fractal.h
   * \brief Header file related to fractals.
+  *
+  * How is a fractal point computed and colored (step by step) :
+  * - The orbit is computed by the fractal loop function
+  *   (iterating zn = f(z{n-1})+c).
+  * - If the coloring method is simple, the (still temporary) fractal
+  *   value is computed from the orbit using the iteration count function.
+  * - If the coloring method is average, the (temporary) fractal value
+  *   is computed from the orbit using the interpolation function,
+  *   (which itself uses the iteration count and addend functions).
+  *   Note that there is an interpolation function for "no interpolation",
+  *   which uses iteration count and addend functions like the other
+  *   _real_ interpolation functions (linear, spline, ...).
+  * - Transfer function is then applied, as well as multiplier.
+  * - Finally, the value is mapped to a color using the gradient.
+  *
+  * Note that points that belong to the fractal set (radius <= escape radius
+  * after the maximum number of iterations) do not go through all those
+  * steps : the color of fractal space is returned.
+  *
   * \author Marc Pegon
   */
  
@@ -28,11 +47,11 @@
 #define __FRACTAL_H__
 
 #include "floating_point.h"
-#include "float_table.h"
 #include "gradient.h"
 #include "image.h"
 #include "rectangle.h"
-#include "rendering_parameters.h"
+#include "fractal_orbit.h"
+#include "fractal_rendering_parameters.h"
 #include "thread.h"
 #include <complex.h>
 #include <stdint.h>
@@ -41,17 +60,25 @@
  * \def DEFAULT_QUAD_INTERPOLATION_SIZE
  * \brief Default maximum size of quadrilaterals for interpolation.
  *
- * \see ComputeFractalFast for more details.
+ * \see DrawFractalFast for more details.
  */
-#define DEFAULT_QUAD_INTERPOLATION_SIZE 10
+#define DEFAULT_QUAD_INTERPOLATION_SIZE (uint_fast32_t)(5)
 
 /**
- * \def DEFAULT_QUAD_DISSIMILARITY_THRESHOLD
- * \brief Default dissimilarity threshold for quad interpolation.
+ * \def DEFAULT_COLOR_DISSIMILARITY_THRESHOLD
+ * \brief Default color dissimilarity threshold for quad interpolation.
  *
- * \see ComputeFractalFast for more details.
+ * \see DrawFractalFast for more details.
  */
-#define DEFAULT_QUAD_DISSIMILARITY_THRESHOLD (FLOAT)(1.187988281E-1)
+#define DEFAULT_COLOR_DISSIMILARITY_THRESHOLD (FLOAT)(3.5E-3)
+
+/**
+ * \def DEFAULT_ADAPTIVE_AAM_THRESHOLD
+ * \brief Default threshold for adaptive anti-aliasing.
+ *
+ * \see AntiAliaseFractal for more details.
+ */
+#define DEFAULT_ADAPTIVE_AAM_THRESHOLD (FLOAT)(5.05E-2)
 
 /**
  * \enum e_FractalType
@@ -60,18 +87,38 @@
 typedef enum e_FractalType {
 	FRAC_MANDELBROT = 0,
  /*!< Mandelbrot fractal.*/
-	FRAC_JULIA
+	FRAC_MANDELBROTP,
+ /*!< Mandelbrot type fractal with custom p parameter.*/
+	FRAC_JULIA,
  /*!< Julia fractal.*/
+	FRAC_JULIAP,
+ /*!< Julia type fractal with custom p parameter.*/
+	FRAC_RUDY
+ /*!< Rudy fractal (with custom p parameter).*/
 } FractalType;
+
+/**
+ * \fn FractalType GetFractalType(const char *str)
+ * \brief Get fractal type from string.
+ *
+ * Function is case insensitive.
+ * Possible strings are :
+ * - "mandelbrot" for FRAC_MANDELBROT
+ * - "mandelbrotp" for FRAC_MANDELBROTP
+ * - "julia" for FRAC_JULIA
+ * - "juliap" for FRAC_JULIAP
+ * - "rudy" for FRAC_RUDY
+ * 
+ * Exit with error in case of failure (unknown fractal type).
+ *
+ * \param str String specifying fractal type.
+ * \return Corresponding fractal type.
+ */
+FractalType GetFractalType(const char *str);
+
 
 struct s_Fractal;
 typedef struct s_Fractal Fractal;
-
-/**
- * \typedef FractalComputeFunction
- * \brief Computation function for fractal (different for Julia & Mandelbrot).
- */
-typedef FLOAT (*FractalComputeFunction)(Fractal *fractal, FLOAT x, FLOAT y);
 
 /**
  * \struct s_Fractal
@@ -81,30 +128,57 @@ typedef FLOAT (*FractalComputeFunction)(Fractal *fractal, FLOAT x, FLOAT y);
  * for computation.
  */
 struct s_Fractal {
-	FractalComputeFunction computeFunction;
- /*!< Computation function of fractal.*/
+	FractalType fractalType;
+ /*!< Fractal type.*/
+	FLOAT p;
+ /*!< Parameter for some fractals (main power in iteration z = z^p + ...).*/
 	FLOAT complex c;
  /*!< Parameter for Julia fractal.*/
+	FLOAT complex d;
+ /*!< Parameter for Rudy fractal.*/
 	FLOAT x1;
  /*!< X coordinate of the upper left point of the fractal subset.*/
 	FLOAT y1;
  /*!< Y coordinate of the upper left point of the fractal subset.*/
 	FLOAT x2;
- /*!< X coordinate of the down left point of the fractal subset. */
+ /*!< X coordinate of the down left point of the fractal subset.*/
 	FLOAT y2;
- /*!< Y coordinate of the down left point of the fractal subset. */
+ /*!< Y coordinate of the down left point of the fractal subset.*/
+	FLOAT centerX;
+ /*< X coordinate of the center of the fractal subset.*/
+	FLOAT centerY;
+ /*< Y coordinate of the center of the fractal subset.*/
+	FLOAT spanX;
+ /*< X span of the fractal subset.*/
+	FLOAT spanY;
+ /*< Y span of the fractal subset.*/
 	FLOAT escapeRadius;
  /*!< Escape radius for computing fractal.*/
-	uint32_t maxIter;
+	uint_fast32_t maxIter;
  /*!< Maximum number of iterations for computing fractal.*/
+
+ /* Some parameters for internal use.*/
+	FLOAT logP;
+ /*!< Logarithm of p.*/
+	int p_is_integer;
+ /*!< 1 if p is integer, 0 otherwise.*/
+	uint_fast8_t p_int;
+ /*!< p as integer (if p is an integer).*/
+	FLOAT escapeRadius2;
+ /*!< Escape radius raised to the power of 2.*/
+	FLOAT escapeRadiusP;
+ /*!< Escape radius raised to the power of p.*/
+	FLOAT logEscapeRadius;
+ /*!< Logarithm of escape radius.*/
 };
 
 /**
- * \fn void InitFractal(Fractal *fractal, FractalType fractalType, FLOAT complex c, FLOAT x1, FLOAT y1, FLOAT x2, FLOAT y2, FLOAT escapeRadius, uint32_t maxIter)
+ * \fn void InitFractal(Fractal *fractal, FractalType fractalType, FLOAT p, FLOAT complex c, FLOAT x1, FLOAT y1, FLOAT x2, FLOAT y2, FLOAT escapeRadius, uint_fast32_t maxIter)
  * \brief Initialize fractal structure.
  *
  * \param fractal Pointer to fractal structure to initialize.
  * \param fractalType Fractal type.
+ * \param p (main power in iteration) parameter for fractal.
  * \param c Parameter for Julia fractal (will be ignored for Mandelbrot fractal).
  * \param x1 X coordinate of the upper left point of the fractal subset.
  * \param y1 Y coordinate of the upper left point of the fractal subset.
@@ -113,15 +187,17 @@ struct s_Fractal {
  * \param escapeRadius Escape radius for computing fractal.
  * \param maxIter Maximum number of iterations for computing fractal.
  */
-void InitFractal(Fractal *fractal, FractalType fractalType, FLOAT complex c, FLOAT x1,
-		FLOAT y1, FLOAT x2, FLOAT y2, FLOAT escapeRadius, uint32_t maxIter);
+void InitFractal(Fractal *fractal, FractalType fractalType, FLOAT p, FLOAT complex c,
+		FLOAT x1, FLOAT y1, FLOAT x2, FLOAT y2, FLOAT escapeRadius,
+		uint_fast32_t maxIter);
 
 /**
- * \fn void InitFractal2(Fractal *fractal, FractalType fractalType, FLOAT complex c, FLOAT centerX, FLOAT centerY, FLOAT spanX, FLOAT spanY, FLOAT escapeRadius, uint32_t maxIter)
+ * \fn void InitFractal2(Fractal *fractal, FractalType fractalType, FLOAT p, FLOAT complex c, FLOAT centerX, FLOAT centerY, FLOAT spanX, FLOAT spanY, FLOAT escapeRadius, uint_fast32_t maxIter)
  * \brief Initialize fractal structure.
  *
  * \param fractal Pointer to fractal structure to initialize.
  * \param fractalType Fractal type.
+ * \param p (main power in iteration) parameter for fractal.
  * \param c Parameter for Julia fractal (will be ignored for Mandelbrot fractal).
  * \param centerX X coordinate of the center of the fractal subset.
  * \param centerY Y coordinate of the center of the fractal subset.
@@ -130,8 +206,9 @@ void InitFractal(Fractal *fractal, FractalType fractalType, FLOAT complex c, FLO
  * \param escapeRadius Escape radius for computing fractal.
  * \param maxIter Maximum number of iterations for computing fractal.
  */
-void InitFractal2(Fractal *fractal, FractalType fractalType, FLOAT complex c, FLOAT centerX,
-		FLOAT centerY, FLOAT spanX, FLOAT spanY, FLOAT escapeRadius, uint32_t maxIter);
+void InitFractal2(Fractal *fractal, FractalType fractalType, FLOAT p, FLOAT complex c,
+		FLOAT centerX, FLOAT centerY, FLOAT spanX, FLOAT spanY,
+		FLOAT escapeRadius, uint_fast32_t maxIter);
 
 /**
  * \fn void ReadFractalFile(Fractal *fractal, char *fileName)
@@ -143,78 +220,85 @@ void InitFractal2(Fractal *fractal, FractalType fractalType, FLOAT complex c, FL
 void ReadFractalFile(Fractal *fractal, char *fileName);
 
 /**
- * \fn FLOAT ComputeFractalValue(Fractal *fractal, FLOAT complex z0, FLOAT complex c);
+ * \fn Color ComputeFractalColor(Fractal *fractal, RenderingParameters *render, FractalOrbit *orbit, FLOAT complex z);
  * \brief Compute some particular point of fractal.
  *
+ * Function will compute the partial orbit at given point and render it as
+ * an RGB color. Fractal orbit must already have been created.
+ * Depending on coloring method, the partial orbit can be filled only with
+ * iteration number and last complex norm (CM_SIMPLE), or with all the
+ * norms of the complex numbers in sequence (CM_AVERAGE).
+ * 
  * \param fractal Fractal to compute.
- * \param z0 Initial z value.
- * \param c c parameter.
- * @return Value of fractal at specified point.
+ * \param render Fractal rendering parameters.
+ * \param orbit Orbit to be filled.
+ * \param z Point in the complex plan to compute.
+ * @return Color of fractal at specified point.
  */
-FLOAT ComputeFractalValue(Fractal *fractal, FLOAT complex z0, FLOAT complex c);
+Color ComputeFractalColor(Fractal *fractal, RenderingParameters *render,
+				FractalOrbit *orbit, FLOAT complex z);
 
 /**
- * \fn FLOAT QuadLinearInterpolation(FLOAT v1, FLOAT v2, FLOAT v3, FLOAT v4, FLOAT x, FLOAT y)
- * \brief Interpolate linearly some value of a quadrilateral.
- *
- * Interpolate value at point (x,y) according to its corner values.
- * Coordinates x and y are relative (i.e. must be between 0 and 1) :
- * (0,0 is the top left corner, (1,0) the top right, etc...
- *
- * \param v Quadrilateral corner values
- * \param x X (relative) coordinate of quad point to interpolate.
- * \param y Y (relative) coordinate of quad point to interpolate.
- * \return Linearly interpolated value at point (x,y) of quadrilateral.
- */
-FLOAT QuadLinearInterpolation(FLOAT v[4], FLOAT x, FLOAT y);
-
-/**
- * \fn void ComputeFractalFast(FloatTable *fractal_table, Fractal *fractal,  uint32_t quadInterpolationSize, FLOAT interpolationThreshold)
- * \brief Compute fractal in a fast, approximate way.
+ * \fn void DrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render, uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold)
+ * \brief Draw fractal in a fast, approximate way.
  *
  * Details on the algorithm :
- * The float table is cut in quads (rectangles, actually) of size
+ * The image is cut in quads (rectangles, actually) of size
  * quadInterpolationSize (meaning width AND height <= size).
- * Then for each quad, its corner values are computed, and depending
- * on its dissimilarity (average difference of the corner values to the
- * average value of the corners), the quad is either computed or linearly
+ * Then for each quad, its corner colors are computed, and depending
+ * on its dissimilarity (average difference of the corner colors to the
+ * average color of the corners), the quad is either computed or linearly
  * interpolated.
  * Default values of quadInterpolationSize and interpolationThreshold
  * are good for no visible loss of quality.
  * This function is parallelized : number of threads is given
  * by nbThreads variable. \see threads.h
  *
- * \param fractal_table Float table in which to compute fractal subset.
+ * \param image Image in which to draw fractal subset.
  * \param fractal Fractal subset to compute.
+ * \param render Rendering parameters.
  * \param quadInterpolationSize Maximum quad size for interpolation.
  * \param interpolationThreshold Dissimilarity threshold for interpolation.
  */
-void ComputeFractalFast(FloatTable *fractal_table, Fractal *fractal,
-			uint32_t quadInterpolationSize, FLOAT interpolationThreshold);
+void DrawFractalFast(Image *image, Fractal *fractal, RenderingParameters *render,
+			uint_fast32_t quadInterpolationSize, FLOAT interpolationThreshold);
 
 /**
- * \fn void ComputeFractal(FloatTable *fractal_table, Fractal *fractal)
- * \brief Compute fractal in a (slow) non-approximate way.
+ * \fn void AntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *render, uint_fast32_t antiAliasingSize, FLOAT threshold)
+ * \brief AntiAliase fractal image.
  *
- * Note that this is equivalent to ComputeFractalFast(fractal_table,
+ * Details on the algorithm :
+ * Pixels that differ too much from neighbour pixels
+ * (difference greater than threshold) are recomputed.
+ * Several pixels (antiAliasingSize^2 to be precise) are computed
+ * for each of these preselected pixels, and averaged (with gaussian
+ * filter) to produce the new pixel value.
+ * Default threshold value is good to obtain a result similar to
+ * oversampling (computing a bigger image and downscaling it) with
+ * the same size factor.
+ * This function is parallelized : number of threads is given
+ * by nbThreads variable. \see threads.h
+ *
+ * \param image Fractal image (already drawn) to anti-aliase.
+ * \param fractal Fractal subset to compute.
+ * \param render Rendering parameters.
+ * \param antiAliasingSize Anti-aliasing size.
+ * \param threshold Dissimilarity threshold to determine pixels to recompute.
+ */
+void AntiAliaseFractal(Image *image, Fractal *fractal, RenderingParameters *render,
+			uint_fast32_t antiAliasingSize, FLOAT threshold);
+
+/**
+ * \fn void DrawFractal(Image *image, Fractal *fractal, RenderingParameters *render)
+ * \brief Draw fractal in a (slow) non-approximate way.
+ *
+ * Note that this is equivalent to DrawFractalFast(fractal_table,
  * fractal, 1, 0).
  *
- * \param fractal_table Float table in which to compute fractal subset.
+ * \param image Image in which to draw fractal subset.
  * \param fractal Fractal subset to compute.
+ * \param render Rendering parameters.
  */
-void ComputeFractal(FloatTable *fractal_table, Fractal *fractal);
-
-/**
- * \fn void RenderFractal(Image *image, FloatTable *fractal_table, Gradient *gradient, Color spaceColor, FLOAT multiplier)
- * \brief Render float table of a fractal into an image.
- *
- * Float table is typically the output of ComputeFractalFast/
- * ComputeFractal).
- *
- * \param image Image into which to render fractal.
- * \param fractal_table Fractal float table to render.
- * \param param Rendering parameters.
- */
-void RenderFractal(Image *image, FloatTable *fractal_table, RenderingParameters *param);
+void DrawFractal(Image *image, Fractal *fractal, RenderingParameters *render);
 
 #endif
