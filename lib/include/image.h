@@ -27,15 +27,14 @@
 #ifndef __IMAGE_H__
 #define __IMAGE_H__
 
+#include "error.h"
+#include "color.h"
+#include "task.h"
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "error.h"
-#include "color.h"
-#include "floating_point.h"
-#include "task.h"
-#include <stdint.h>
 
 /**
  * \struct Image
@@ -172,7 +171,7 @@ Color iGetPixel(const Image *image, int_fast64_t x, int_fast64_t y);
 void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color color);
 
 /**
- * \fn void ApplyGaussianBlur(Image *dst, const Image *src, FLOATT radius, Threads *threads)
+ * \fn void ApplyGaussianBlur(Image *dst, const Image *src, double radius, Threads *threads)
  * \brief Apply gaussian blur on image.
  *
  * This function does no work in place.\n
@@ -184,10 +183,10 @@ void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color color)
  * \param radius Gaussian blur radius.
  * \param threads Threads to be used for task.
  */
-void ApplyGaussianBlur(Image *dst, const Image *src, FLOATT radius, Threads *threads);
+void ApplyGaussianBlur(Image *dst, const Image *src, double radius, Threads *threads);
 
 /**
- * \fn Task *CreateApplyGaussianBlurTask(Image *dst, Image *temp, const Image *src, FLOATT radius,  uint_fast32_t nbThreads)
+ * \fn Task *CreateApplyGaussianBlurTask(Image *dst, Image *temp, const Image *src, double radius,  uint_fast32_t nbThreads)
  * \brief Create task applying a gaussian blur.
  *
  * Create task and return immediately.\n
@@ -203,7 +202,7 @@ void ApplyGaussianBlur(Image *dst, const Image *src, FLOATT radius, Threads *thr
  * \param nbThreads Number of threads that action will need to be launched.
  * \return Corresponding newly-allocated task.
  */
-Task *CreateApplyGaussianBlurTask(Image *dst, Image *temp, const Image *src, FLOATT radius, 
+Task *CreateApplyGaussianBlurTask(Image *dst, Image *temp, const Image *src, double radius, 
 						uint_fast32_t nbThreads);
 /**
  * \fn void DownscaleImage(Image *dst, const Image *src, Threads *threads)

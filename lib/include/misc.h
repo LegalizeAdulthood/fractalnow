@@ -27,13 +27,13 @@
 #ifndef __MISC_H__
 #define __MISC_H__
 
+#include "float_precision.h"
+#include <inttypes.h>
+#include <stdlib.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "floating_point.h"
-#include <inttypes.h>
-#include <stdlib.h>
 
 #ifndef complex
 #define complex _Complex
@@ -95,13 +95,52 @@ void *safeRealloc(const char *name, void *ptr, uint_least64_t size);
 void *safeCalloc(const char *name, uint_least64_t nmemb, uint_least64_t size);
 
 /**
- * \fn int isInteger(FLOATT complex x)
- * \brief Test whether or not FLOATT complex is an integer.
+ * \fn float complex cipowf(float complex x, uint_fast32_t y)
+ * \brief Compute positive integer power of a complex float.
  *
- * \param x FLOATT complex to test.
+ * \param x Complex float to be raised.
+ * \param y Exponent.
+ * \return x raised to the power y.
+ */
+float complex cipowf(float complex x, uint_fast32_t y);
+
+/**
+ * \fn double complex cipow(double complex x, uint_fast32_t y)
+ * \brief Compute positive integer power of a complex double.
+ *
+ * \param x Complex double to be raised to y.
+ * \param y Exponent.
+ * \return x raised to the power y.
+ */
+double complex cipow(double complex x, uint_fast32_t y);
+
+/**
+ * \fn long double complex cipowl(long double complex x, uint_fast32_t y)
+ * \brief Compute positive integer power of a complex long double.
+ *
+ * \param x Complex long double to be raised to y.
+ * \param y Exponent.
+ * \return x raised to the power y.
+ */
+long double complex cipowl(long double complex x, uint_fast32_t y);
+
+/**
+ * \fn int complexIsInteger(long double complex x)
+ * \brief Test if a long double complex is a (real) integer.
+ *
+ * \param x Complex to be tested.
+ * \return 1 if complex is a (real) integer, 0 otherwise.
+ */
+int complexIsInteger(long double complex x);
+
+/**
+ * \fn int mpcIsInteger(const mpc_t x)
+ * \brief Test whether or not mpc complex is an integer.
+ *
+ * \param x mpc complex to test.
  * \return 1 is x is an integer, 0 instead.
  */
-int isInteger(FLOATT complex x);
+int mpcIsInteger(const mpc_t x);
 
 #ifdef __cplusplus
 }

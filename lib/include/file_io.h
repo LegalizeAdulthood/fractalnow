@@ -27,13 +27,14 @@
 #ifndef __FILE_IO_H__
 #define __FILE_IO_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "color.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <mpfr.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * \fn int readString(FILE *file, char *dst)
@@ -56,14 +57,24 @@ int readString(FILE *file, char *dst);
 int readUint32(FILE *file, uint32_t *dst);
 
 /**
- * \fn int readFLOATT(FILE *file, FLOATT *dst)
- * \brief Read FLOATT from file.
+ * \fn int readDouble(FILE *file, double *dst)
+ * \brief Read double from file.
  *
- * \param file File from which to read FLOATT.
- * \param dst Destination FLOATT.
+ * \param file File from which to read long double.
+ * \param dst Destination double.
  * \return Number of elements successfully read or EOF (like fscanf).
  */
-int readFLOATT(FILE *file, FLOATT *dst);
+int readDouble(FILE *file, double *dst);
+
+/**
+ * \fn int readMPFR(FILE *file, mpfr_t dst)
+ * \brief Read mpfr_t from file.
+ *
+ * \param file File from which to read mpfr_t.
+ * \param dst Destination mpfr_t.
+ * \return Number of elements successfully read or EOF (like fscanf).
+ */
+int readMPFR(FILE *file, mpfr_t dst);
 
 /**
  * \fn int readColor(FILE *file, int_fast8_t bytesPerComponent, Color *dst)
@@ -101,15 +112,26 @@ int writeString(FILE *file, const char *src, const char *suffix);
 int writeUint32(FILE *file, uint32_t src, const char *suffix);
 
 /**
- * \fn int writeFLOATT(FILE *file, FLOATT src, const char *suffix)
- * \brief Write FLOATT into file.
+ * \fn int writeDouble(FILE *file, double src, const char *suffix)
+ * \brief Write double into file.
  *
  * \param file File to write into.
- * \param src Source FLOATT.
- * \param suffix Suffix to add after FLOATT.
+ * \param src Source double.
+ * \param suffix Suffix to add after double.
  * \return Number of characters written, negative in case of error (like fprintf).
  */
-int writeFLOATT(FILE *file, FLOATT src, const char *suffix);
+int writeDouble(FILE *file, double src, const char *suffix);
+
+/**
+ * \fn int writeMPFR(FILE *file, mpfr_t src, const char *suffix)
+ * \brief Write mpfr_t into file.
+ *
+ * \param file File to write into.
+ * \param src Source mpfr_t.
+ * \param suffix Suffix to add after mpfr_t.
+ * \return Number of characters written, negative in case of error (like fprintf).
+ */
+int writeMPFR(FILE *file, const mpfr_t src, const char *suffix);
 
 /**
  * \fn int writeColor(FILE *file, Color src, const char *suffix)

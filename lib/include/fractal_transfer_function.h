@@ -27,12 +27,11 @@
 #ifndef __FRACTAL_TRANSFER_FUNCTION_H__
 #define __FRACTAL_TRANSFER_FUNCTION_H__
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "floating_point.h"
-#include <stdint.h>
 
 /**
  * \enum e_TransferFunction
@@ -85,7 +84,7 @@ extern const char *transferFunctionDescStr[];
  * \typedef TransferFunctionPtr
  * \brief Transfer function ptr type.
  */
-typedef FLOATT (*TransferFunctionPtr)(FLOATT x);
+typedef double (*TransferFunctionPtr)(double x);
 
 /**
  * \fn int GetTransferFunction(TransferFunction *transferFunction, const char *str)

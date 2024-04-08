@@ -27,13 +27,13 @@
 #ifndef __GRADIENT_H__
 #define __GRADIENT_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "color.h"
 #include <stdint.h>
 #include <stdio.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * \def DEFAULT_GRADIENT_TRANSITIONS
@@ -67,14 +67,14 @@ typedef struct Gradient {
  /*!< Gradient data.*/
 	uint_fast32_t nbStops;
  /*!< Number of stops i.e. (pos,color) pairs used to build the gradient.*/
-	FLOATT *positionStop;
+	double *positionStop;
  /*!< Stops positions. */
 	Color *colorStop;
  /*!< Stops colors. */
 } Gradient;
 
 /**
- * \fn void GenerateGradient(Gradient *gradient, uint_fast32_t nbStops, FLOATT *positionStop, Color *colorStop, uint_fast32_t size)
+ * \fn void GenerateGradient(Gradient *gradient, uint_fast32_t nbStops, double *positionStop, Color *colorStop, uint_fast32_t size)
  * \brief Generate a gradient.
  *
  * Number of stops must be > 2 (exit program with error otherwise).\n
@@ -91,7 +91,7 @@ typedef struct Gradient {
  * \param colorStop Color stops.
  * \param size Gradient size.
  */
-void GenerateGradient(Gradient *gradient, uint_fast32_t nbStops, FLOATT *positionStop, Color *colorStop,
+void GenerateGradient(Gradient *gradient, uint_fast32_t nbStops, double *positionStop, Color *colorStop,
 				uint_fast32_t size);
 
 /**

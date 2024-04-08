@@ -27,12 +27,12 @@
 #ifndef __PPM_H__
 #define __PPM_H__
 
+#include "image.h"
+#include  <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "image.h"
-#include  <stdint.h>
 
 /**
  * \fn int ExportPPM(const char *fileName, const Image *image)

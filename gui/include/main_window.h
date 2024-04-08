@@ -28,15 +28,13 @@
 #ifndef __MAIN_WINDOW_H__
 #define __MAIN_WINDOW_H__
 
-#include "fractal.h"
-#include "fractal_rendering_parameters.h"
-#include "image.h"
-
 #include "command_line.h"
 #include "export_fractal_image_dialog.h"
 #include "fractal_config_widget.h"
 #include "fractal_explorer.h"
 #include "fractal_rendering_widget.h"
+
+#include "fractalnow.h"
 
 #include <QCheckBox>
 #include <QCloseEvent>
@@ -69,9 +67,13 @@ class MainWindow : public QMainWindow
 	FractalRenderingWidget *fractalRenderingWidget;
 	QSpinBox *preferredImageWidthSpinBox;
 	QSpinBox *preferredImageHeightSpinBox;
+	QCheckBox *solidGuessingCheckBox;
 	QCheckBox *useCacheCheckBox;
 	QSpinBox *cacheSizeSpinBox;
-	QCheckBox *solidGuessingCheckBox;
+	QComboBox *floatTypeComboBox;
+	QSpinBox *MPFloatPrecisionSpinBox;
+	QWidget *editMPFloatPrecisionWidget;
+
 	QAction *adaptExplorerToWindowAction;
 	uint_fast32_t fractalExplorerNbThreads;
 	uint_fast32_t exportImageNbThreads;
@@ -111,6 +113,8 @@ class MainWindow : public QMainWindow
 	void onPreferredImageWidthChanged();
 	void onPreferredImageHeightChanged();
 	void onCacheSizeChanged();
+	void onFloatTypeChanged(int index);
+	void editMPFloatPrecision();
 	void switchFullScreenMode(bool checked);
 	void escapeFullScreen();
 };

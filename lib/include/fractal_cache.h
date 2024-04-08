@@ -26,17 +26,17 @@
 #ifndef __FRACTAL_CACHE_H__
 #define __FRACTAL_CACHE_H__
 
+#include "color.h"
+#include "float_precision.h"
+#include "fractal_rendering_parameters.h"
+#include "image.h"
+#include "thread.h"
+#include <pthread.h>
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <pthread.h>
-#include <stdint.h>
-#include "color.h"
-#include "fractal_rendering_parameters.h"
-#include "floating_point.h"
-#include "image.h"
-#include "thread.h"
 
 /**
  * \def DEFAULT_FRACTAL_CACHE_SIZE
@@ -50,7 +50,7 @@ extern "C" {
  *
  * \see isArrayValueValid
  */
-#define DEFAULT_CACHE_WEIGHT_THRESHOLD (FLOATT)(0.)
+#define DEFAULT_CACHE_WEIGHT_THRESHOLD (FLOATTYPE(FP_LDOUBLE))(0.)
 
 /**
  * \struct CacheEntry
@@ -61,11 +61,13 @@ extern "C" {
  * \brief Convenient typedef for struct CacheEntry.
  */
 typedef struct CacheEntry {
-	FLOATT x;
+	FloatPrecision floatPrecision;
+ /*!< Float precision for x and y values.*/
+	MultiFloat x;
  /*!< x coordinate.*/
-	FLOATT y;
+	MultiFloat y;
  /*!< y coordinate.*/
-	FLOATT value;
+	double value;
  /*!< Value at point (x,y).*/
 } CacheEntry;
 
@@ -80,13 +82,13 @@ typedef struct CacheEntry {
 typedef struct ArrayValue {
 	uint_fast32_t state;
  /*!< Value state, used to test validity.*/
-	FLOATT r;
+	double r;
  /*!< Sum of weighted red values.*/
-	FLOATT g;
+	double g;
  /*!< Sum of weighted green values.*/
-	FLOATT b;
+	double b;
  /*!< Sum of weighted blue values.*/
-	FLOATT totalWeight;
+	double totalWeight;
  /*!< Total weight.*/
 } ArrayValue;
 
@@ -159,7 +161,7 @@ int CreateFractalCache(FractalCache *cache, uint_least64_t size);
 int ResizeCacheThreadSafe(FractalCache *cache, uint_least64_t size);
 
 /**
- * \fn void AddToCache(FractalCache *cache, FLOATT x, FLOATT y, FLOATT value)
+ * \fn void AddToCache(FractalCache *cache, CacheEntry entry)
  * \brief Add entry to cache.
  *
  * This function is not thread-safe (like most of the
@@ -167,14 +169,12 @@ int ResizeCacheThreadSafe(FractalCache *cache, uint_least64_t size);
  * \see AddToCacheThreadSafe
  *
  * \param cache Pointer to cache.
- * \param x X coordinate.
- * \param y Y coordinate.
- * \param value Value at point (x,y).
+ * \param entry Cache entry
  */
-void AddToCache(FractalCache *cache, FLOATT x, FLOATT y, FLOATT value);
+void AddToCache(FractalCache *cache, CacheEntry entry);
 
 /**
- * \fn void AddToCacheThreadSafe(FractalCache *cache, FLOATT x, FLOATT y, FLOATT value)
+ * \fn void AddToCacheThreadSafe(FractalCache *cache, CacheEntry)
  * \brief Add entry to cache (thread-safe).
  *
  * This function is thread-safe (unlike most of the
@@ -182,11 +182,9 @@ void AddToCache(FractalCache *cache, FLOATT x, FLOATT y, FLOATT value);
  * \see AddToCache
  *
  * \param cache Pointer to cache.
- * \param x X coordinate.
- * \param y Y coordinate.
- * \param value Value at point (x,y).
+ * \param entry Cache entry.
  */
-void AddToCacheThreadSafe(FractalCache *cache, FLOATT x, FLOATT y, FLOATT value);
+void AddToCacheThreadSafe(FractalCache *cache, CacheEntry entry);
 
 /**
  * \fn ArrayValue GetArrayValue(FractalCache *cache, uint_fast32_t x, uint_fast32_t y)
@@ -287,6 +285,14 @@ void FractalCachePreview(Image *dst, FractalCache *cache, const struct Fractal *
  * \param cache Pointer to cache structure to be free'd.
  */
 void FreeFractalCache(FractalCache *cache);
+
+/**
+ * \fn void FreeCacheEntry(CacheEntry entry)
+ * \brief Free a cache entry.
+ *
+ * \param entry CacheEntry structure to be freed.
+ */
+void FreeCacheEntry(CacheEntry entry);
 
 #ifdef __cplusplus
 }

@@ -27,16 +27,11 @@
 #ifndef __FRACTAL_ADDEND_FUNCTION_H__
 #define __FRACTAL_ADDEND_FUNCTION_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include "floating_point.h"
-#include <complex.h>
+#include "float_precision.h"
 #include <stdint.h>
 
-#ifndef complex
-#define complex _Complex
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 /**
@@ -105,156 +100,270 @@ extern const char *addendFunctionDescStr[];
 int GetAddendFunction(AddendFunction *addendFunction, const char *str);
 
 /******************AF_TRIANGLEINEQUALITY******************/
-#define LOOP_INIT_AF_TRIANGLEINEQUALITY(size) \
-uint_fast32_t zeros[size];\
-FLOATT complex prevZP = 0;\
-FLOATT nPrevZP = 0;\
-FLOATT mn=0, Mn=0, rn=0;\
-uint_fast32_t currentIndex = 0;\
-uint_fast32_t previousIndex = size-1;\
+#define ENGINE_DECL_VAR_AF_TRIANGLEINEQUALITY(size,fprec) \
+FLOATTYPE(fprec) shiftSN_AF[size];\
+uint_fast32_t zeros_AF[size];\
+uint_fast32_t shiftZeros_AF[size];\
+COMPLEX_FLOATTYPE(fprec) prevZP_AF;\
+FLOATTYPE(fprec) nPrevZP_AF;\
+FLOATTYPE(fprec) mn_AF;\
+FLOATTYPE(fprec) Mn_AF;\
+FLOATTYPE(fprec) rn_AF;\
+FLOATTYPE(fprec) diff_AF;\
+FLOATTYPE(fprec) absC_AF;\
+FLOATTYPE(fprec) tmp_AF;\
+uint_fast32_t currentIndex_AF;\
+uint_fast32_t previousIndex_AF;
+
+#define ENGINE_INIT_VAR_AF_TRIANGLEINEQUALITY(size,fprec) \
 for (uint_fast32_t i = 0; i < size; ++i) {\
-	SN[i] = 0;\
-	zeros[i] = 0;\
+	initF(fprec,data->shiftSN_AF[i]);\
+}\
+cinitF(fprec,data->prevZP_AF);\
+initF(fprec,data->nPrevZP_AF);\
+initF(fprec,data->mn_AF);\
+initF(fprec,data->Mn_AF);\
+initF(fprec,data->rn_AF);\
+initF(fprec,data->diff_AF);\
+initF(fprec,data->absC_AF);\
+initF(fprec,data->tmp_AF);
+
+#define ENGINE_CLEAR_VAR_AF_TRIANGLEINEQUALITY(size,fprec) \
+for (uint_fast32_t i = 0; i < size; ++i) {\
+	clearF(fprec,data->shiftSN_AF[i]);\
+}\
+cclearF(fprec,data->prevZP_AF);\
+clearF(fprec,data->nPrevZP_AF);\
+clearF(fprec,data->mn_AF);\
+clearF(fprec,data->Mn_AF);\
+clearF(fprec,data->rn_AF);\
+clearF(fprec,data->diff_AF);\
+clearF(fprec,data->absC_AF);\
+clearF(fprec,data->tmp_AF);
+
+#define LOOP_INIT_AF_TRIANGLEINEQUALITY(size,fprec) \
+cfromUiF(fprec, data->prevZP_AF, 0);\
+fromUiF(fprec, data->nPrevZP_AF, 0);\
+fromUiF(fprec, data->mn_AF, 0);\
+fromUiF(fprec, data->Mn_AF, 0);\
+fromUiF(fprec, data->rn_AF, 0);\
+fromUiF(fprec, data->diff_AF, 0);\
+cabsF(fprec,data->absC_AF,data->c);\
+data->currentIndex_AF = 0;\
+data->previousIndex_AF = size-1;\
+for (uint_fast32_t i = 0; i < size; ++i) {\
+	fromUiF(fprec, data->SN_IM[i], 0);\
+	data->zeros_AF[i] = 0;\
 }
 
-#define LOOP_ITERATION_AF_TRIANGLEINEQUALITY(size) \
+#define LOOP_ITERATION_AF_TRIANGLEINEQUALITY(size,fprec) \
+{\
 uint_fast32_t m = 1;\
-if (n >= m) {\
-	prevZP = z-c;\
-	nPrevZP = cabs(prevZP);\
-	mn = fabsF(nPrevZP-normC);\
-	Mn = nPrevZP+normC;\
-	rn = sqrtF(normZ2);\
-	FLOATT diff = Mn-mn;\
-	zeros[currentIndex] = zeros[previousIndex];\
-	SN[currentIndex] = SN[previousIndex];\
-	if (diff != 0) {\
+if (data->n >= m) {\
+	csubF(fprec,data->prevZP_AF,data->z,data->c);\
+	cabsF(fprec,data->nPrevZP_AF,data->prevZP_AF);\
+	subF(fprec,data->mn_AF,data->nPrevZP_AF,data->absC_AF);\
+	fabsF(fprec,data->mn_AF,data->mn_AF);\
+	addF(fprec,data->Mn_AF,data->nPrevZP_AF,data->absC_AF);\
+	sqrtF(fprec,data->rn_AF,data->normZ);\
+	subF(fprec,data->diff_AF,data->Mn_AF,data->mn_AF);\
+	data->zeros_AF[data->currentIndex_AF] = data->zeros_AF[data->previousIndex_AF];\
+	if (!eq_uiF(fprec,data->diff_AF,0)) {\
 		/* Avoid division by zero. */\
-		SN[currentIndex] += (rn - mn) / diff;\
+		subF(fprec,data->tmp_AF,data->rn_AF,data->mn_AF);\
+		divF(fprec,data->tmp_AF,data->tmp_AF,data->diff_AF);\
+		addF(fprec,data->SN_IM[data->currentIndex_AF],data->SN_IM[data->previousIndex_AF],data->tmp_AF);\
 	} else {\
+		assignF(fprec, data->SN_IM[data->currentIndex_AF], data->SN_IM[data->previousIndex_AF]);\
 		/* Counting zeros in order to divide by*/\
 		/* the exact number of terms added to SN.*/\
-		++zeros[currentIndex];\
+		++data->zeros_AF[data->currentIndex_AF];\
 	}\
-	previousIndex = currentIndex;\
-	currentIndex = (currentIndex + 1) % size;\
+	data->previousIndex_AF = data->currentIndex_AF;\
+	data->currentIndex_AF = (data->currentIndex_AF + 1) % size;\
+}\
 }
 
-#define LOOP_END_AF_TRIANGLEINEQUALITY(size) \
+#define LOOP_END_AF_TRIANGLEINEQUALITY(size,fprec) \
+{\
 uint_fast32_t m = 1;\
-if (n >= m+size-1) {\
-	FLOATT shiftSN[size];\
-	uint_fast32_t shiftZeros[size];\
+if (data->n >= m+size-1) {\
 	for (uint_fast32_t i = 0; i < size; ++i) {\
-		shiftSN[i] = SN[i];\
-		shiftZeros[i] = zeros[i];\
+		assignF(fprec, data->shiftSN_AF[i], data->SN_IM[i]);\
+		data->shiftZeros_AF[i] = data->zeros_AF[i];\
 	}\
 	for (uint_fast32_t i = 0; i < size; ++i) {\
-		zeros[i] = shiftZeros[(previousIndex+size-i) % size];\
-		if (zeros[i] == n-m-i) {\
-			SN[i] = 0;\
+		data->zeros_AF[i] = data->shiftZeros_AF[(data->previousIndex_AF+size-i) % size];\
+		if (data->zeros_AF[i] == data->n+1-m-i) {\
+			fromUiF(fprec, data->SN_IM[i], 0);\
 		} else {\
-			SN[i] = shiftSN[(previousIndex+size-i) % size] / (n+1-m-i-zeros[i]);\
+			div_uiF(fprec, data->SN_IM[i], data->shiftSN_AF[(data->previousIndex_AF+size-i) %\
+				size], data->n+1-m-i-data->zeros_AF[i]);\
 		}\
 	}\
 } else {\
 	/* Result undefined. 0 chosen. */\
 	for (uint_fast32_t i = 0; i < size; ++i) {\
-		SN[i] = 0;\
+		fromUiF(fprec, data->SN_IM[i], 0);\
 	}\
+}\
 }
 /*********************************************************/
 
 /***********************AF_CURVATURE**********************/
-#define LOOP_INIT_AF_CURVATURE(size) \
-uint_fast32_t zeros[size];\
-FLOATT complex znm1 = 0;\
-FLOATT complex znm2 = 0;\
-FLOATT complex diff = 0;\
-uint_fast32_t currentIndex = 0;\
-uint_fast32_t previousIndex = size-1;\
+#define ENGINE_DECL_VAR_AF_CURVATURE(size,fprec) \
+FLOATTYPE(fprec) shiftSN_AF[size];\
+uint_fast32_t zeros_AF[size];\
+uint_fast32_t shiftZeros_AF[size];\
+COMPLEX_FLOATTYPE(fprec) znm1_AF;\
+COMPLEX_FLOATTYPE(fprec) znm2_AF;\
+COMPLEX_FLOATTYPE(fprec) diff_AF;\
+COMPLEX_FLOATTYPE(fprec) ctmp_AF;\
+FLOATTYPE(fprec) tmp_AF;\
+uint_fast32_t currentIndex_AF;\
+uint_fast32_t previousIndex_AF;
+
+#define ENGINE_INIT_VAR_AF_CURVATURE(size,fprec) \
 for (uint_fast32_t i = 0; i < size; ++i) {\
-	SN[i] = 0;\
-	zeros[i] = 0;\
+	initF(fprec, data->shiftSN_AF[i]);\
+}\
+cinitF(fprec, data->znm1_AF);\
+cinitF(fprec, data->znm2_AF);\
+cinitF(fprec, data->diff_AF);\
+cinitF(fprec, data->ctmp_AF);\
+initF(fprec, data->tmp_AF);
+
+#define ENGINE_CLEAR_VAR_AF_CURVATURE(size,fprec) \
+cclearF(fprec, data->znm1_AF);\
+cclearF(fprec, data->znm2_AF);\
+cclearF(fprec, data->diff_AF);\
+cclearF(fprec, data->ctmp_AF);\
+clearF(fprec, data->tmp_AF);\
+for (uint_fast32_t i = 0; i < size; ++i) {\
+	clearF(fprec, data->shiftSN_AF[i]);\
 }
 
-#define LOOP_ITERATION_AF_CURVATURE(size) \
+#define LOOP_INIT_AF_CURVATURE(size,fprec) \
+cfromUiF(fprec, data->znm1_AF, 0);\
+cfromUiF(fprec, data->znm2_AF, 0);\
+cfromUiF(fprec, data->diff_AF, 0);\
+data->currentIndex_AF = 0;\
+data->previousIndex_AF = size-1;\
+for (uint_fast32_t i = 0; i < size; ++i) {\
+	fromUiF(fprec, data->SN_IM[i], 0);\
+	data->zeros_AF[i] = 0;\
+}
+
+#define LOOP_ITERATION_AF_CURVATURE(size,fprec) \
+{\
 uint_fast32_t m = 1;\
-if (n >= m+1) {\
-	diff = znm1-znm2;\
-	SN[currentIndex] = SN[previousIndex];\
-	zeros[currentIndex] = zeros[previousIndex];\
-	if (diff != 0) {\
+if (data->n >= m+1) {\
+	csubF(fprec,data->diff_AF,data->znm1_AF,data->znm2_AF);\
+	data->zeros_AF[data->currentIndex_AF] = data->zeros_AF[data->previousIndex_AF];\
+	if (!ceq_siF(fprec,data->diff_AF,0)) {\
 		/* Avoid division by zero. */\
-		SN[currentIndex] += fabsF(cargF((z-znm1) / diff));\
+		csubF(fprec,data->ctmp_AF,data->z,data->znm1_AF);\
+		cdivF(fprec,data->ctmp_AF,data->ctmp_AF,data->diff_AF);\
+		cargF(fprec,data->tmp_AF,data->ctmp_AF);\
+		fabsF(fprec,data->tmp_AF,data->tmp_AF);\
+		addF(fprec,data->SN_IM[data->currentIndex_AF],data->SN_IM[data->previousIndex_AF],data->tmp_AF);\
 	} else {\
+		assignF(fprec,data->SN_IM[data->currentIndex_AF],data->SN_IM[data->previousIndex_AF]);\
 		/* Counting zeros in order to divide by*/\
 		/* the exact number of terms added to SN.*/\
-		++zeros[currentIndex];\
+		++data->zeros_AF[data->currentIndex_AF];\
 	}\
-	previousIndex = currentIndex;\
-	currentIndex = (currentIndex + 1) % size;\
+	data->previousIndex_AF = data->currentIndex_AF;\
+	data->currentIndex_AF = (data->currentIndex_AF + 1) % size;\
 }\
-znm2 = znm1;\
-znm1 = z;
+cassignF(fprec, data->znm2_AF, data->znm1_AF);\
+cassignF(fprec, data->znm1_AF, data->z);\
+}
 
-#define LOOP_END_AF_CURVATURE(size) \
+#define LOOP_END_AF_CURVATURE(size,fprec) \
+{\
 uint_fast32_t m = 1;\
-if (n >= m+size) {\
-	FLOATT shiftSN[size];\
-	uint_fast32_t shiftZeros[size];\
+if (data->n >= m+size) {\
 	for (uint_fast32_t i = 0; i < size; ++i) {\
-		shiftSN[i] = SN[i];\
-		shiftZeros[i] = zeros[i];\
+		assignF(fprec, data->shiftSN_AF[i], data->SN_IM[i]);\
+		data->shiftZeros_AF[i] = data->zeros_AF[i];\
 	}\
 	for (uint_fast32_t i = 0; i < size; ++i) {\
-		zeros[i] = shiftZeros[(previousIndex+size-i) % size];\
-		if (zeros[i] == n-m-i) {\
-			SN[i] = 0;\
+		data->zeros_AF[i] = data->shiftZeros_AF[(data->previousIndex_AF+size-i) % size];\
+		if (data->zeros_AF[i] == data->n-m-i) {\
+			fromUiF(fprec, data->SN_IM[i], 0);\
 		} else {\
-			SN[i] = shiftSN[(previousIndex+size-i) % size] / (n-m-i-zeros[i]);\
+			div_uiF(fprec, data->SN_IM[i], data->shiftSN_AF[(data->previousIndex_AF+size-i) %\
+				size], data->n-m-i-data->zeros_AF[i]);\
 		}\
 	}\
 } else {\
 	/* Result undefined. 0 chosen. */\
 	for (uint_fast32_t i = 0; i < size; ++i) {\
-		SN[i] = 0;\
+		fromUiF(fprec, data->SN_IM[i], 0);\
 	}\
+}\
 }
 /*********************************************************/
 
 /************************AF_STRIPE************************/
-#define LOOP_INIT_AF_STRIPE(size) \
-uint_fast32_t currentIndex = 0;\
-uint_fast32_t previousIndex = size-1;\
+#define ENGINE_DECL_VAR_AF_STRIPE(size,fprec) \
+uint_fast32_t currentIndex_AF ;\
+uint_fast32_t previousIndex_AF;\
+FLOATTYPE(fprec) tmp_AF ;\
+FLOATTYPE(fprec) shiftSN_AF[size];
+
+#define ENGINE_INIT_VAR_AF_STRIPE(size,fprec) \
+initF(fprec, data->tmp_AF);\
 for (uint_fast32_t i = 0; i < size; ++i) {\
-	SN[i] = 0;\
+	initF(fprec, data->shiftSN_AF[i]);\
 }
 
-#define LOOP_ITERATION_AF_STRIPE(size) \
-uint_fast32_t m = 1;\
-if (n >= m) {\
-	SN[currentIndex] = SN[previousIndex] + sinF(render->stripeDensity*cargF(z))+1;\
-	previousIndex = currentIndex;\
-	currentIndex = (currentIndex + 1) % size;\
+#define ENGINE_CLEAR_VAR_AF_STRIPE(size,fprec) \
+clearF(fprec,data->tmp_AF);\
+for (uint_fast32_t i = 0; i < size; ++i) {\
+	clearF(fprec, data->shiftSN_AF[i]);\
 }
 
-#define LOOP_END_AF_STRIPE(size) \
+#define LOOP_INIT_AF_STRIPE(size,fprec) \
+data->currentIndex_AF = 0;\
+data->previousIndex_AF = size-1;\
+for (uint_fast32_t i = 0; i < size; ++i) {\
+	fromUiF(fprec, data->SN_IM[i], 0);\
+}
+
+#define LOOP_ITERATION_AF_STRIPE(size,fprec) \
+{\
 uint_fast32_t m = 1;\
-if (n >= m+size-1) {\
-	FLOATT shiftSN[size];\
+if (data->n >= m) {\
+	cargF(fprec,data->tmp_AF,data->z);\
+	mul_dF(fprec,data->tmp_AF,data->tmp_AF,render->stripeDensity);\
+	sinF(fprec,data->tmp_AF,data->tmp_AF);\
+	add_uiF(fprec,data->tmp_AF,data->tmp_AF,1);\
+	addF(fprec,data->SN_IM[data->currentIndex_AF],data->SN_IM[data->previousIndex_AF],data->tmp_AF);\
+	data->previousIndex_AF = data->currentIndex_AF;\
+	data->currentIndex_AF = (data->currentIndex_AF + 1) % size;\
+}\
+}
+
+#define LOOP_END_AF_STRIPE(size,fprec) \
+{\
+uint_fast32_t m = 1;\
+if (data->n >= m+size-1) {\
 	for (uint_fast32_t i = 0; i < size; ++i) {\
-		shiftSN[i] = SN[i];\
+		assignF(fprec, data->shiftSN_AF[i], data->SN_IM[i]);\
 	}\
 	for (uint_fast32_t i = 0; i < size; ++i) {\
-		SN[i] = shiftSN[(previousIndex+size-i) % size] / (2*(n+1-m-i));\
+		div_uiF(fprec, data->SN_IM[i], data->shiftSN_AF[(data->previousIndex_AF+size-i) %\
+			size], 2*(data->n+1-m-i));\
 	}\
 } else {\
 	/* Result undefined. 0 chosen. */\
 	for (uint_fast32_t i = 0; i < size; ++i) {\
-		SN[i] = 0;\
+		fromUiF(fprec, data->SN_IM[i], 0);\
 	}\
 }\
+}
 /*********************************************************/
 
 #ifdef __cplusplus

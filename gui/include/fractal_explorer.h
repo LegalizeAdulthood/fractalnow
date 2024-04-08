@@ -28,17 +28,15 @@
 #ifndef _FRACTAL_EXPLORER__H__
 #define _FRACTAL_EXPLORER__H__
 
+#include "main.h"
+
+#include "fractalnow.h"
+
 #include <QAction>
 #include <QFutureWatcher>
 #include <QImage>
 #include <QLabel>
 #include <QPaintEvent>
-#include "fractal.h"
-#include "fractal_config.h"
-#include "fractal_rendering_parameters.h"
-#include "image.h"
-#include "thread.h"
-#include "main.h"
 
 class FractalExplorer : public QLabel
 {
@@ -51,8 +49,8 @@ class FractalExplorer : public QLabel
 			uint_fast32_t maxAntiAliasingSize,
 			uint_fast32_t antiAliasingSizeIteration,
 			uint_fast32_t quadInterpolationSize,
-			FLOATT colorDissimilarityThreshold,
-			FLOATT adaptiveAAMThreshold,
+			double colorDissimilarityThreshold,
+			double adaptiveAAMThreshold,
 			uint_fast32_t nbThreads,
 			QWidget *parent = 0, Qt::WindowFlags f = 0);
 	const FractalConfig &getFractalConfig() const;
@@ -95,21 +93,21 @@ class FractalExplorer : public QLabel
 	void setSolidGuessingEnabled(bool enabled);
 
 	void setFractalFormula(int index);
-	void setPParam(double complex value);
-	void setPParamRe(double value);
-	void setPParamIm(double value);
-	void setCParamRe(double value);
-	void setCParamIm(double value);
-	void setCenterX(double value);
-	void setCenterY(double value);
-	void setSpanX(double value);
+	void setPParam(const mpc_t *value);
+	void setPParamRe(const mpfr_t *value);
+	void setPParamIm(const mpfr_t *value);
+	void setCParamRe(const mpfr_t *value);
+	void setCParamIm(const mpfr_t *value);
+	void setCenterX(const mpfr_t *value);
+	void setCenterY(const mpfr_t *value);
+	void setSpanX(const mpfr_t *value);
 	void setBailoutRadius(double value);
 	void setMaxIterations(int value);
 
 	void setAddendFunction(int index);
 	void setStripeDensity(int value);
 	void setColoringMethod(int index);
-	void setCountingFunction(int index);
+	void setIterationCount(int index);
 	void setInterpolationMethod(int index);
 	void setTransferFunction(int index);
 	void setColorScaling(double value);
@@ -120,6 +118,7 @@ class FractalExplorer : public QLabel
 	void setFractal(const Fractal &fractal);
 	void setRenderingParameters(const RenderingParameters &render);
 	void setGradient(const Gradient &gradient);
+	void setFloatPrecision(int index);
 
 	private:
 	void paintEvent(QPaintEvent *event);
@@ -134,11 +133,11 @@ class FractalExplorer : public QLabel
 	void adjustSpan();
 	void reInitFractal();
 	void reInitRenderingParameters();
-	void moveFractal(double dx, double dy, bool emitFractalChanged = false);
-	void zoomInFractal(double newSpanX, double zoomCenterX, double zoomCenterY,
-				bool emitFractalChanged = false);
-	void zoomOutFractal(double newSpanX, double zoomCenterX, double zoomCenterY,
-				bool emitFractalChanged = false);
+	void moveFractal(const mpfr_t dx, const mpfr_t dy, bool emitFractalChanged = false);
+	void zoomInFractal(const mpfr_t newSpanX, const mpfr_t zoomCenterX,
+			const mpfr_t zoomCenterY, bool emitFractalChanged = false);
+	void zoomOutFractal(const mpfr_t newSpanX, const mpfr_t zoomCenterX,
+			const mpfr_t zoomCenterY, bool emitFractalChanged = false);
 
 	enum ActionType {
 		A_FractalDrawing = 0,
@@ -151,7 +150,7 @@ class FractalExplorer : public QLabel
 	bool movingFractalDeferred;
 	bool movingFractalRealTime;
 	bool fractalMoved;
-	double fractalCenterXOnPress, fractalCenterYOnPress;
+	mpfr_t fractalCenterXOnPress, fractalCenterYOnPress;
 	QPointF prevMousePos;
 	QPointF mousePosOnPress;
 	QImage imageCopyOnPress;
@@ -161,8 +160,9 @@ class FractalExplorer : public QLabel
 	Fractal &fractal;
 	RenderingParameters &render;
 	uint_fast32_t quadInterpolationSize;
-	FLOATT colorDissimilarityThreshold;
-	FLOATT adaptiveAAMThreshold;
+	double colorDissimilarityThreshold;
+	double adaptiveAAMThreshold;
+	FloatPrecision floatPrecision;
 	bool solidGuessing;
 	FractalCache cache;
 	FractalCache *pCache;

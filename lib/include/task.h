@@ -27,12 +27,11 @@
 #ifndef __TASKS_H__
 #define __TASKS_H__
 
+#include "thread.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "thread.h"
-#include <signal.h>
 
 struct Task;
 /**
@@ -296,7 +295,7 @@ void PauseTask(Task *task);
 void ResumeTask(Task *task);
 
 /**
- * \fn FLOATT GetTaskProgress(const Task *task)
+ * \fn double GetTaskProgress(const Task *task)
  * \brief Get task progress.
  *
  * Progress is a value between 0 (just begun) and 1 (done).\n
@@ -305,7 +304,7 @@ void ResumeTask(Task *task);
  * \param task Task subject to request.
  * \return Task progress.
  */
-FLOATT GetTaskProgress(const Task *task);
+double GetTaskProgress(const Task *task);
 
 /**
  * \fn void FreeTask(Task *task)

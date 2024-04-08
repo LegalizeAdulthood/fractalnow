@@ -1,7 +1,10 @@
 FractalNow
-Version 0.7.5 (2012-04-12)
+Version 0.8.0 (2012-05-13)
 Copyright: 2011-2012 Marc Pegon <pe.marc@free.fr>
 Homepage: http://sourceforge.net/projects/fractalnow/
+
+Description
+===========
 
 FractalNow is an open source, multi-platform fractal
 generator.
@@ -14,6 +17,25 @@ intuitively and generate pictures.
 Both tools are entirely multi-threaded and implement advanced algorithms and
 heuristics that make computation very fast compared to most existing free
 fractal generators.
+
+Features
+========
+
+- Intuitive graphical user-interface (QFractalNow) to explore fractal space
+  easily
+- A command-line tool (FractalNow) that can work on machines without a
+  desktop, and could be used by scripts to produce animations
+- Several formulas available (Mandelbrot, Julia, Multibrot, Mandelbar,
+  Burning ship, Rudy, and more...)
+- Various types of coloring available (Iteration counts, Average coloring
+  methods)
+- Multiple anti-aliasing methods (Gaussian blur, Oversampling, Adaptive
+  (intelligent)) to produce high quality images
+- Advanced algorithms and heuristics to speed up computation (Solid
+  guessing, Adaptive anti-aliasing, Caching)
+- Entirely multi-threaded to work even faster on multi-core processors
+- Ability to save/load configuration and gradient files
+- Support for multiple precision (arbitrary precision) floats
 
 License
 =======

@@ -21,12 +21,12 @@
 #ifndef __HELP_H__
 #define __HELP_H__
 
+#include "fractalnow.h"
+#include <stdio.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "error.h"
-#include <stdio.h>
 
 /**
  * \fn void DisplayHelp()

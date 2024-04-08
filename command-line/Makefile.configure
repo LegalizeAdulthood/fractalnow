@@ -10,9 +10,6 @@ CC            = gcc
 LD            = gcc
 
 CFLAGS        = -std=c99 -pedantic -Wall -Wextra -D${SPINLOCK_DEFINE}
-ifdef FLOAT_PRECISION
-CFLAGS       += -DFLOAT_PRECISION=$(FLOAT_PRECISION)
-endif
 
 ifdef DEBUG
 	CFLAGS += -O0 -g -DDEBUG
@@ -21,7 +18,7 @@ else
 endif
 CFLAGS       += -I${INCLUDEDIR} -I${FRACTALLIBDIR}/include
 
-LDFLAGS   = ${STATIC_FLAG} -L${FRACTALLIBDIR}/bin -l${FRACTAL2D_LIB} -lm -lpthread 
+LDFLAGS   = ${STATIC_FLAG} -L${FRACTALLIBDIR}/bin -l${FRACTAL2D_LIB} -lmpc -lmpfr -lgmp -lm -lpthread 
 
 OBJECTS = \
 	$(OBJDIR)/anti_aliasing.o \

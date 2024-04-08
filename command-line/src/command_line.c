@@ -19,11 +19,8 @@
  */
  
 #include "command_line.h"
-#include "error.h"
-#include "fractal.h"
 #include "help.h"
-#include "misc.h"
-#include "thread.h"
+#include "fractalnow.h"
 #include <getopt.h>
 #include <inttypes.h>
 #include <string.h>
@@ -59,12 +56,14 @@ void ParseCommandLineArguments(CommandLineArguments *dst, int argc, char *argv[]
 	dst->antiAliasingSize = -1;
 	dst->adaptiveAAMThreshold = -1;
 	dst->nbThreads = -1;
+	dst->floatPrecision = FP_DOUBLE;
+	dst->MPFloatPrecision = fractalnow_mpfr_precision;
 
 	int widthSpecified = 0, heightSpecified = 0;
 	dst->width = 0;
 	dst->height = 0;
 	int o;
-	while ((o = getopt(argc, argv, "hqvda:c:f:g:i:j:o:p:r:s:t:x:y:")) != -1) {
+	while ((o = getopt(argc, argv, "hqvda:c:f:g:i:j:l:L:o:p:r:s:t:x:y:")) != -1) {
 		switch (o) {
 		case 'h':
 			help = 1;
@@ -104,6 +103,22 @@ debug mode.\n");
 		case 'g':
 			dst->gradientFileName = optarg;
 			break;
+		case 'l':
+			if (GetFloatPrecision(&dst->floatPrecision, optarg)) {
+				invalid_use_error("\n");
+			}
+			break;
+		case 'L':
+			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
+			}
+			if (tmp < MPFR_PREC_MIN || tmp > MPFR_PREC_MAX) {
+				invalid_use_error("MP floats precision must be between %ld and %ld.\n",
+					(long int)MPFR_PREC_MIN, (long int)MPFR_PREC_MAX);
+			} else {
+				dst->MPFloatPrecision = (mpfr_prec_t)tmp;
+			}
+			break;
 		case 'i':
 			if (sscanf(optarg, "%"SCNd64, &tmp) < 1) {
 				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
@@ -126,7 +141,7 @@ debug mode.\n");
 			dst->dstFileName = optarg;
 			break;
 		case 'p':
-			if (sscanf(optarg, "%"SCNFLOATT, &dst->adaptiveAAMThreshold) < 1) {
+			if (sscanf(optarg, "%lf", &dst->adaptiveAAMThreshold) < 1) {
 				invalid_use_error("Command-line argument \'%s\' is not a floating-point number.\n", optarg);
 			}
 			if (dst->adaptiveAAMThreshold < 0.) {
@@ -134,12 +149,12 @@ debug mode.\n");
 			} 
 			break;
 		case 's':
-			if (sscanf(optarg, "%"SCNFLOATT, &dst->antiAliasingSize) < 1) {
+			if (sscanf(optarg, "%lf", &dst->antiAliasingSize) < 1) {
 				invalid_use_error("Command-line argument \'%s\' is not a floating-point number.\n", optarg);
 			}
 			break;
 		case 't':
-			if (sscanf(optarg, "%"SCNFLOATT, &dst->colorDissimilarityThreshold) < 1) {
+			if (sscanf(optarg, "%lf", &dst->colorDissimilarityThreshold) < 1) {
 				invalid_use_error("Command-line argument \'%s\' is not a floating-point number.\n", optarg);
 			}
 			if (dst->colorDissimilarityThreshold < 0.) {
@@ -238,7 +253,7 @@ specified when anti-aliasing method is oversampling.\n");
 anti-aliasing.\n");
 		}
 
-		if (!isInteger(dst->antiAliasingSize)) {
+		if (!complexIsInteger(dst->antiAliasingSize)) {
 			invalid_use_error("Size parameter ('-s') for adaptive anti-aliasing \
 should be an integer.\n");
 		}

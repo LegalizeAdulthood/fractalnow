@@ -11,9 +11,6 @@ AR        = ar
 ARFLAGS = -r -c -s
 
 CFLAGS    = -std=c99 -pedantic -Wall -Wextra -D${SPINLOCK_DEFINE}
-ifdef FLOAT_PRECISION
-CFLAGS   += -DFLOAT_PRECISION=${FLOAT_PRECISION}
-endif
 ifdef VERSION_NUMBER
 CFLAGS   += -DVERSION_NUMBER=${VERSION_NUMBER}
 endif
@@ -26,14 +23,15 @@ endif
 CFLAGS    += -I${INCLUDEDIR}
 
 OBJECTS = \
+	$(OBJDIR)/float_precision.o \
 	$(OBJDIR)/fractal_addend_function.o \
 	$(OBJDIR)/fractal_cache.o \
 	$(OBJDIR)/fractal_coloring.o \
+	$(OBJDIR)/fractal_compute_engine.o \
 	$(OBJDIR)/fractal_config.o \
-	$(OBJDIR)/fractal_counting_function.o \
+	$(OBJDIR)/fractal_iteration_count.o \
 	$(OBJDIR)/fractal_formula.o \
 	$(OBJDIR)/error.o \
-	$(OBJDIR)/fractal_loop.o \
 	$(OBJDIR)/fractal_rendering_parameters.o \
 	$(OBJDIR)/fractal_transfer_function.o \
 	$(OBJDIR)/color.o \
@@ -45,7 +43,7 @@ OBJECTS = \
 	$(OBJDIR)/image.o \
 	$(OBJDIR)/misc.o \
 	$(OBJDIR)/ppm.o \
-	$(OBJDIR)/rectangle.o \
+	$(OBJDIR)/uirectangle.o \
 	$(OBJDIR)/task.o \
 	$(OBJDIR)/thread.o
 

@@ -27,6 +27,31 @@
 #ifndef __FRACTALNOW_H__
 #define __FRACTALNOW_H__
 
+#include "color.h"
+#include "error.h"
+#include "file_io.h"
+#include "filter.h"
+#include "float_precision.h"
+#include "fractal_addend_function.h"
+#include "fractal_cache.h"
+#include "fractal_coloring.h"
+#include "fractal_compute_engine.h"
+#include "fractal_config.h"
+#include "fractal_formula.h"
+#include "fractal.h"
+#include "fractal_iteration_count.h"
+#include "fractal_rendering_parameters.h"
+#include "fractal_transfer_function.h"
+#include "gradient.h"
+#include "image.h"
+#include "misc.h"
+#include "ppm.h"
+#include "uirectangle.h"
+#include "task.h"
+#include "thread.h"
+
+#include <mpfr.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -39,11 +64,17 @@ extern "C" {
 #define VERSION_NUMBER ?.?.?
 #endif
 
+#define DEFAULT_MPFR_PRECISION (mpfr_prec_t)(128)
+
+extern mpfr_prec_t fractalnow_mpfr_precision;
+
 /**
  * \fn const char *FractalNow_VersionNumber()
  * \brief Get FractalNow lib version number.
  */
 const char *FractalNow_VersionNumber();
+
+void FractalNow_Init();
 
 #ifdef __cplusplus
 }

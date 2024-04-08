@@ -27,15 +27,13 @@
 #ifndef __THREAD_H__
 #define __THREAD_H__
 
+#include <errno.h>
+#include <pthread.h>
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "floating_point.h"
-#include <errno.h>
-#include <pthread.h>
-#include <signal.h>
-#include <stdint.h>
 
 /**
  * \def DEFAULT_NB_THREADS

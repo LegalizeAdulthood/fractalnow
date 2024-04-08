@@ -12,15 +12,12 @@ DESTDIR = bin/
 FRACTALLIBPATH = ../lib
 DEPENDPATH += . include src
 INCLUDEPATH += . include $${FRACTALLIBPATH}/include
-LIBS += -L$${FRACTALLIBPATH}/bin -l$${FRACTAL2D_LIB} -lpthread
+LIBS += -L$${FRACTALLIBPATH}/bin -l$${FRACTAL2D_LIB} -lmpc -lmpfr -lgmp -lpthread -lm
 DEFINES += __STDC_LIMIT_MACROS __STDC_FORMAT_MACROS $${SPINLOCK_DEFINE}
 QMAKE_LFLAGS += $${STATIC_FLAG}
 CONFIG += warn_on qt
 CONFIG -= debug_and_release
 
-!isEmpty(FLOAT_PRECISION) {
-	DEFINES += FLOAT_PRECISION=$${FLOAT_PRECISION}
-}
 !isEmpty(DEBUG) {
 	DEFINES += DEBUG
 	CONFIG -= release
@@ -46,6 +43,7 @@ HEADERS += \
 	include/hoverpoints.h \
 	include/main_window.h \
 	include/main.h \
+	include/mpfr_spin_box.h \
 	include/shade_widget.h \
 	include/task_progress_dialog.h
 
@@ -64,6 +62,7 @@ SOURCES += \
 	src/hoverpoints.cpp \
 	src/main_window.cpp \
 	src/main.cpp \
+	src/mpfr_spin_box.cpp \
 	src/shade_widget.cpp \
 	src/task_progress_dialog.cpp
 

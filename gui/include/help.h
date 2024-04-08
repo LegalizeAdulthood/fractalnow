@@ -28,6 +28,8 @@
 #ifndef __HELP_H__
 #define __HELP_H__
 
+#include "fractalnow.h"
+
 #include <cstdio>
 
  //! To print help on the command line.

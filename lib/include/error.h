@@ -27,12 +27,12 @@
 #ifndef __ERROR_H__
 #define __ERROR_H__
 
+#include <stdlib.h>
+#include <stdio.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <stdlib.h>
-#include <stdio.h>
 
 /**
  * \enum e_TraceLevel

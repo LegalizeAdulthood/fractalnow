@@ -62,7 +62,7 @@ void aux_GenerateGradient(Gradient *gradient, uint_fast64_t begin_ind_tab, uint_
 	}
 }
 
-void GenerateGradient(Gradient *gradient, uint_fast32_t nbStops, FLOATT *positionStop,
+void GenerateGradient(Gradient *gradient, uint_fast32_t nbStops, double *positionStop,
 				Color *colorStop, uint_fast32_t size)
 {
 	FractalNow_message(stdout, T_NORMAL,"Generating gradient...\n");
@@ -74,8 +74,8 @@ void GenerateGradient(Gradient *gradient, uint_fast32_t nbStops, FLOATT *positio
 		FractalNow_error("Gradient size must be > 0.\n");
 	}
 
-	gradient->positionStop = (FLOATT *)safeMalloc("position stops copy", nbStops*sizeof(FLOATT));
-	memcpy(gradient->positionStop, positionStop, nbStops*sizeof(FLOATT));
+	gradient->positionStop = (double *)safeMalloc("position stops copy", nbStops*sizeof(double));
+	memcpy(gradient->positionStop, positionStop, nbStops*sizeof(double));
 	gradient->colorStop = (Color *)safeMalloc("color stops copy", nbStops*sizeof(Color));
 	memcpy(gradient->colorStop, colorStop, nbStops*sizeof(Color));
 	gradient->nbStops = nbStops;
@@ -102,9 +102,9 @@ void GenerateGradient2(Gradient *gradient, uint_fast32_t nbStops, Color *colorSt
 		FractalNow_error("Gradient number of transitions must be > 0.\n");
 	}
 
-	FLOATT *positionStop = (FLOATT *)malloc(nbStops * sizeof(FLOATT));
+	double *positionStop = (double *)malloc(nbStops * sizeof(double));
 	for (uint_fast32_t i = 0; i < nbStops; ++i) {
-		positionStop[i] = i / (FLOATT)(nbStops-1);
+		positionStop[i] = i / (double)(nbStops-1);
 	}
 
 	uint_fast64_t size = (nbStops-1) * nbTransitions;
@@ -121,8 +121,8 @@ Gradient CopyGradient(const Gradient *gradient)
 	res.data = (Color *)safeMalloc("gradient copy data", gradient->size*sizeof(Color));
 	memcpy(res.data, gradient->data, gradient->size*sizeof(Color));
 	res.nbStops = gradient->nbStops;
-	res.positionStop = (FLOATT *)safeMalloc("gradient position stop copy", gradient->nbStops*sizeof(FLOATT));
-	memcpy(res.positionStop, gradient->positionStop, gradient->nbStops*sizeof(FLOATT));
+	res.positionStop = (double *)safeMalloc("gradient position stop copy", gradient->nbStops*sizeof(double));
+	memcpy(res.positionStop, gradient->positionStop, gradient->nbStops*sizeof(double));
 	res.colorStop = (Color *)safeMalloc("gradient color stop copy", gradient->nbStops*sizeof(Color));
 	memcpy(res.colorStop, gradient->colorStop, gradient->nbStops*sizeof(Color));
 
@@ -183,12 +183,12 @@ int ReadGradientFileV073(Gradient *gradient, uint_fast8_t bytesPerComponent, con
 {
 	int res = 0;
 
-	FLOATT positionStop[257];
+	double positionStop[257];
 	Color colorStop[257];
 	uint_fast32_t nbStops=0;
 	int readRes;
 	while (1) {
-		readRes = readFLOATT(file, &positionStop[nbStops]);
+		readRes = readDouble(file, &positionStop[nbStops]);
 		if (readRes == EOF) {
 			break;
 		} else if (readRes != 1) {
@@ -342,7 +342,7 @@ int WriteGradientFileV073(const Gradient *gradient, const char *fileName, FILE *
 
 	const char *suffix = " ";
 	for (uint_fast32_t i = 0; i < gradient->nbStops; ++i) {
-		if (writeFLOATT(file, gradient->positionStop[i], " ") < 0) {
+		if (writeDouble(file, gradient->positionStop[i], " ") < 0) {
 			FractalNow_write_werror(fileName);
 		}
 		if (i == gradient->nbStops-1) {

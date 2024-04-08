@@ -29,6 +29,7 @@
 #define _GRADIENT_DIALOG__H__
 
 #include "gradient_editor.h"
+
 #include <QDialog>
 #include <QGradient>
 

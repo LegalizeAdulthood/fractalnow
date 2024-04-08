@@ -15,16 +15,16 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1DEFAULT_DECIMAL_NUMBER1, USA.
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
+#include "main.h"
 #include "fractal_config_widget.h"
-#include "floating_point.h"
-#include "fractal_formula.h"
+
 #include <limits>
+
 #include <QLabel>
 #include <QFormLayout>
-#include "main.h"
 
 FractalConfigWidget::FractalConfigWidget(const Fractal &fractal) : QWidget()
 {
@@ -33,40 +33,40 @@ FractalConfigWidget::FractalConfigWidget(const Fractal &fractal) : QWidget()
 		fractalFormulaComboBox->addItem(fractalFormulaDescStr[i]);
 	}
 
-	pParamReSpinBox = new QDoubleSpinBox;
-	pParamReSpinBox->setDecimals(DEFAULT_DECIMAL_NUMBER);
+	pParamReSpinBox = new MPFRSpinBox;
+	pParamReSpinBox->setDecimals(DEFAULT_DECIMALS_NUMBER);
 	pParamReSpinBox->setRange(0, 100);
 	pParamReSpinBox->setAccelerated(true);
 
-	pParamImSpinBox = new QDoubleSpinBox;
-	pParamImSpinBox->setDecimals(DEFAULT_DECIMAL_NUMBER);
+	pParamImSpinBox = new MPFRSpinBox;
+	pParamImSpinBox->setDecimals(DEFAULT_DECIMALS_NUMBER);
 	pParamImSpinBox->setRange(0, 100);
 	pParamImSpinBox->setAccelerated(true);
 
-	cParamReSpinBox = new QDoubleSpinBox;
-	cParamReSpinBox->setDecimals(DEFAULT_DECIMAL_NUMBER);
-	cParamReSpinBox->setRange(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
+	cParamReSpinBox = new MPFRSpinBox;
+	cParamReSpinBox->setDecimals(DEFAULT_DECIMALS_NUMBER);
+	cParamReSpinBox->setRange(-100, 100);
 	cParamReSpinBox->setAccelerated(true);
 
-	cParamImSpinBox = new QDoubleSpinBox;
-	cParamImSpinBox->setDecimals(DEFAULT_DECIMAL_NUMBER);
-	cParamImSpinBox->setRange(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
+	cParamImSpinBox = new MPFRSpinBox;
+	cParamImSpinBox->setDecimals(DEFAULT_DECIMALS_NUMBER);
+	cParamImSpinBox->setRange(-100, 100);
 	cParamImSpinBox->setAccelerated(true);
 
-	centerXSpinBox = new QDoubleSpinBox;
-	centerXSpinBox->setDecimals(DEFAULT_DECIMAL_NUMBER);
-	centerXSpinBox->setRange(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
+	centerXSpinBox = new MPFRSpinBox;
+	centerXSpinBox->setRange(-100, 100);
 	centerXSpinBox->setAccelerated(true);
+	centerXSpinBox->setNotation(MPFRSpinBox::ScientificNotation);
 
-	centerYSpinBox = new QDoubleSpinBox;
-	centerYSpinBox->setDecimals(DEFAULT_DECIMAL_NUMBER);
-	centerYSpinBox->setRange(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
+	centerYSpinBox = new MPFRSpinBox;
+	centerYSpinBox->setRange(-100, 100);
 	centerYSpinBox->setAccelerated(true);
+	centerYSpinBox->setNotation(MPFRSpinBox::ScientificNotation);
 
-	spanXSpinBox = new QDoubleSpinBox;
-	spanXSpinBox->setDecimals(DEFAULT_DECIMAL_NUMBER);
+	spanXSpinBox = new MPFRSpinBox;
 	spanXSpinBox->setRange(0, std::numeric_limits<double>::max());
 	spanXSpinBox->setAccelerated(true);
+	spanXSpinBox->setNotation(MPFRSpinBox::ScientificNotation);
 
 	bailoutRadiusSpinBox = new QDoubleSpinBox;
 	bailoutRadiusSpinBox->setDecimals(0);
@@ -96,9 +96,9 @@ FractalConfigWidget::FractalConfigWidget(const Fractal &fractal) : QWidget()
 	updateCParamImSingleStep();
 	updateBoxesEnabledValue();
 
-	connect(spanXSpinBox, SIGNAL(valueChanged(double)), this, SLOT(updateSpaceBoxesSingleSteps()));
-	connect(cParamReSpinBox, SIGNAL(valueChanged(double)), this, SLOT(updateCParamReSingleStep()));
-	connect(cParamImSpinBox, SIGNAL(valueChanged(double)), this, SLOT(updateCParamImSingleStep()));
+	connect(spanXSpinBox, SIGNAL(valueChanged(const mpfr_t *)), this, SLOT(updateSpaceBoxesSingleSteps()));
+	connect(cParamReSpinBox, SIGNAL(valueChanged(const mpfr_t *)), this, SLOT(updateCParamReSingleStep()));
+	connect(cParamImSpinBox, SIGNAL(valueChanged(const mpfr_t *)), this, SLOT(updateCParamImSingleStep()));
 	connect(fractalFormulaComboBox, SIGNAL(currentIndexChanged(int)),
 		this, SLOT(updateBoxesEnabledValue()));
 }
@@ -121,13 +121,13 @@ void FractalConfigWidget::updateBoxesValues(const Fractal &fractal)
 {
 	blockBoxesSignals(true);
 	fractalFormulaComboBox->setCurrentIndex((int)fractal.fractalFormula);
-	pParamReSpinBox->setValue(crealF(fractal.p));
-	pParamImSpinBox->setValue(cimagF(fractal.p));
-	cParamReSpinBox->setValue(crealF(fractal.c));
-	cParamImSpinBox->setValue(cimagF(fractal.c));
-	centerXSpinBox->setValue(fractal.centerX);
-	centerYSpinBox->setValue(fractal.centerY);
-	spanXSpinBox->setValue(fractal.spanX);
+	pParamReSpinBox->setValue(&mpc_realref(fractal.p));
+	pParamImSpinBox->setValue(&mpc_imagref(fractal.p));
+	cParamReSpinBox->setValue(&mpc_realref(fractal.c));
+	cParamImSpinBox->setValue(&mpc_imagref(fractal.c));
+	centerXSpinBox->setValue(&fractal.centerX);
+	centerYSpinBox->setValue(&fractal.centerY);
+	spanXSpinBox->setValue(&fractal.spanX);
 	bailoutRadiusSpinBox->setValue(fractal.escapeRadius);
 	maxIterationsSpinBox->setValue(fractal.maxIter);
 	updateBoxesEnabledValue();
@@ -139,35 +139,49 @@ void FractalConfigWidget::updateBoxesValues(const Fractal &fractal)
 
 void FractalConfigWidget::updateSpaceBoxesSingleSteps()
 {
-	double spanX = spanXSpinBox->value();
-	if (spanX <= 0) {
+	const mpfr_t * spanX = spanXSpinBox->value();
+	if (mpfr_cmp_ui(*spanX, 0) <= 0) {
 		centerXSpinBox->setSingleStep(MIN_SINGLE_STEP);
 		centerYSpinBox->setSingleStep(MIN_SINGLE_STEP);
 		spanXSpinBox->setSingleStep(MIN_SINGLE_STEP);
 	} else {
-		centerXSpinBox->setSingleStep(spanX / 5);
-		centerYSpinBox->setSingleStep(spanX / 5);
-		spanXSpinBox->setSingleStep(spanX * 0.3);
+		mpfr_t step;
+		mpfr_init(step);
+
+		mpfr_div_ui(step, *spanX, 5, MPFR_RNDN);
+		centerXSpinBox->setSingleStep(&step);
+		centerYSpinBox->setSingleStep(&step);
+		mpfr_mul_d(step, *spanX, 0.3, MPFR_RNDN);
+		spanXSpinBox->setSingleStep(&step);
+		mpfr_clear(step);
 	}
 }
 
 void FractalConfigWidget::updateCParamReSingleStep()
 {
-	double cParamRe = cParamReSpinBox->value();
-	if (cParamRe <= 0) {
+	const mpfr_t *cParamRe = cParamReSpinBox->value();
+	if (mpfr_cmp_ui(*cParamRe, 0) <= 0) {
 		cParamReSpinBox->setSingleStep(MIN_SINGLE_STEP);
 	} else {
-		cParamReSpinBox->setSingleStep(cParamRe / 5);
+		mpfr_t step;
+		mpfr_init(step);
+		mpfr_div_ui(step, *cParamRe, 5, MPFR_RNDN);
+		cParamReSpinBox->setSingleStep(&step);
+		mpfr_clear(step);
 	}
 }
 
 void FractalConfigWidget::updateCParamImSingleStep()
 {
-	double cParamIm = cParamImSpinBox->value();
-	if (cParamIm <= 0) {
+	const mpfr_t *cParamIm = cParamImSpinBox->value();
+	if (mpfr_cmp_ui(*cParamIm, 0) <= 0) {
 		cParamImSpinBox->setSingleStep(MIN_SINGLE_STEP);
 	} else {
-		cParamImSpinBox->setSingleStep(cParamIm / 5);
+		mpfr_t step;
+		mpfr_init(step);
+		mpfr_div_ui(step, *cParamIm, 5, MPFR_RNDN);
+		cParamImSpinBox->setSingleStep(&step);
+		mpfr_clear(step);
 	}
 }
 

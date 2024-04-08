@@ -20,22 +20,11 @@
  
 #include "main_window.h"
 #include "main.h"
-
-#include "error.h"
-#include "floating_point.h"
-#include "fractalnow.h"
-#include "fractal.h"
-#include "fractal_addend_function.h"
-#include "fractal_coloring.h"
-#include "fractal_config.h"
-#include "fractal_counting_function.h"
-#include "fractal_formula.h"
-#include "fractal_rendering_parameters.h"
-#include "fractal_transfer_function.h"
-#include "misc.h"
+#include "mpfr_spin_box.h"
 
 #include <clocale>
 #include <iostream>
+#include <limits>
 
 #include <QAction>
 #include <QApplication>
@@ -43,6 +32,7 @@
 #include <QFileDialog>
 #include <QFormLayout>
 #include <QGridLayout>
+#include <QInputDialog>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QSettings>
@@ -50,11 +40,12 @@
 #include <QTimer>
 #include <QThread>
 #include <QToolBar>
+#include <QToolButton>
 #include <QUrl>
 
 void initDefaultFractal(Fractal &fractal)
 {
-	InitFractal(&fractal, FRAC_MANDELBROT, 2, 0.4+I*0.25, -0.7, 0, 3, 3, 1E3, 1000);
+	InitFractal2(&fractal, FRAC_MANDELBROT, 2, 0.4+I*0.25, -0.7, 0, 3, 3, 1E3, 1000);
 }
 
 void initDefaultGradient(Gradient &gradient)
@@ -73,9 +64,9 @@ void initDefaultRenderingParameters(RenderingParameters &render)
 	initDefaultGradient(gradient);
 
 	/* Init rendering parameters. */
-	InitRenderingParameters(&render, 1, ColorFromUint32(0x0), CF_SMOOTH,
+	InitRenderingParameters(&render, 1, ColorFromUint32(0x0), IC_SMOOTH,
 				CM_ITERATIONCOUNT, AF_TRIANGLEINEQUALITY, 1,
-				IM_LINEAR, TF_LOG, 4.5E-1, 0.2, gradient);
+				IM_NONE, TF_LOG, 4.5E-1, 0.2, gradient);
 }
 
 inline void initDefaultConfig(FractalConfig &config)
@@ -105,6 +96,8 @@ void MainWindow::loadSettings()
 	cacheSize = settings.value("cacheSize",
 			(unsigned int)DEFAULT_FRACTAL_CACHE_SIZE).toUInt();
 	solidGuessing = settings.value("solidGuessing", true).toBool();
+	fractalnow_mpfr_precision = settings.value("MPFRPrec",
+		(unsigned int)DEFAULT_MPFR_PRECISION).toUInt();
 }
 
 void MainWindow::saveSettings()
@@ -122,6 +115,7 @@ void MainWindow::saveSettings()
 	settings.setValue("useCache", fractalExplorer->getFractalCacheEnabled());
 	settings.setValue("cacheSize", fractalExplorer->getFractalCacheSize());
 	settings.setValue("solidGuessing", fractalExplorer->getSolidGuessingEnabled());
+	settings.setValue("MPFRPrec", MPFloatPrecisionSpinBox->value());
 }
 
 MainWindow::MainWindow(int argc, char *argv[])
@@ -146,12 +140,16 @@ MainWindow::MainWindow(int argc, char *argv[])
 	/* Load settings. */
 	loadSettings();
 
+	/* Read arguments on command-line. */
+	CommandLineArguments args(argc, argv);
+	fractalnow_mpfr_precision = args.MPFloatPrecision;
+	mpfr_set_default_prec(fractalnow_mpfr_precision);
+
 	FractalConfig config;
 	Fractal &fractal = config.fractal;
 	RenderingParameters &render = config.render;
 
-	/* Read arguments on command-line. */
-	CommandLineArguments args(argc, argv);
+	/* Deal with arguments on command-line. */
 	initDefaultConfig(config);
 	if (args.fractalConfigFileName) {
 		/* Read config file. */
@@ -169,6 +167,7 @@ MainWindow::MainWindow(int argc, char *argv[])
 			initDefaultFractal(newFractal);
 		}
 		ResetFractal(&config, newFractal);
+		FreeFractal(newFractal);
 	}
 	if (args.renderingFileName) {
 		/* Read rendering file. */
@@ -178,6 +177,7 @@ MainWindow::MainWindow(int argc, char *argv[])
 			initDefaultRenderingParameters(newRender);
 		}
 		ResetRenderingParameters(&config, newRender);
+		FreeRenderingParameters(newRender);
 	}
 	if (args.gradientFileName) {
 		/* Read gradient file. */
@@ -187,11 +187,14 @@ MainWindow::MainWindow(int argc, char *argv[])
 			initDefaultGradient(newGradient);
 		}
 		ResetGradient(&render, newGradient);
+		FreeGradient(newGradient);
 	}
 	if (config.render.bytesPerComponent == 2) {
 		QMessageBox::critical(this, tr("Gradient color depth is 16 bits."),
 			tr("16-bits gradient will be converted to 8-bits gradient."));
-		ResetGradient(&config.render, Gradient8(&config.render.gradient));
+		Gradient newGradient = Gradient8(&config.render.gradient);
+		ResetGradient(&config.render, newGradient);
+		FreeGradient(newGradient);
 	}
 
 	uint_fast32_t explorerWidth = args.width;
@@ -203,24 +206,41 @@ MainWindow::MainWindow(int argc, char *argv[])
 	} 
 	if (explorerWidth == 0) {
 		/* If only width was omitted, compute it to keep ratio. */
-		explorerWidth = roundF(fractal.spanX * explorerHeight / fractal.spanY);
+		mpfr_t spanRatio;
+		mpfr_init(spanRatio);
+		mpfr_div(spanRatio, fractal.spanX, fractal.spanY, MPFR_RNDN);
+		explorerWidth = roundl(mpfr_get_ld(spanRatio, MPFR_RNDN) * explorerHeight);
+		mpfr_clear(spanRatio);
 	} else if (explorerHeight == 0) {
 		/* If only height was omitted, compute it to keep ratio. */
-		explorerHeight = roundF(fractal.spanY * explorerWidth / fractal.spanX);
+		mpfr_t spanRatio;
+		mpfr_init(spanRatio);
+		mpfr_div(spanRatio, fractal.spanX, fractal.spanY, MPFR_RNDN);
+		explorerHeight = roundl(explorerWidth / mpfr_get_ld(spanRatio,MPFR_RNDN));
+		mpfr_clear(spanRatio);
 	} else {
 		/* If both width and height were specified (or set do default),
 		 * adapt spanX and spanY.
 		 */
+		mpfr_t spanX, spanY;
+		mpfr_init(spanX);
+		mpfr_init(spanY);
 		if (explorerHeight / (double)explorerWidth < 1) {
-			fractal.spanX = explorerWidth * fractal.spanY / explorerHeight;
+			mpfr_mul_d(spanX, fractal.spanY, explorerWidth / (double)explorerHeight, MPFR_RNDN);
+			mpfr_set(spanY, fractal.spanY, MPFR_RNDN);
 		} else {
-			fractal.spanY = explorerHeight * fractal.spanX / explorerWidth;
+			mpfr_set(spanX, fractal.spanX, MPFR_RNDN);
+			mpfr_mul_d(spanY, fractal.spanX, explorerHeight / (double)explorerWidth, MPFR_RNDN);
 		}
 		/* Reinit fractal, since we changed spanX or spanY. */
-		InitFractal(&fractal, fractal.fractalFormula, fractal.p, fractal.c,
-				fractal.centerX, fractal.centerY,
-				fractal.spanX, fractal.spanY, 
+		Fractal newFractal;
+		InitFractal(&newFractal, fractal.fractalFormula, fractal.p, fractal.c,
+				fractal.centerX, fractal.centerY, spanX, spanY,
 				fractal.escapeRadius, fractal.maxIter);
+		ResetFractal(&config, newFractal);
+		FreeFractal(newFractal);
+		mpfr_clear(spanX);
+		mpfr_clear(spanY);
 	}
 
 	if (args.nbThreads <= 0) {
@@ -262,6 +282,7 @@ MainWindow::MainWindow(int argc, char *argv[])
 	fractalExplorer->setSolidGuessingEnabled(solidGuessing);
 	fractalExplorer->setFocus();
 
+	/* Make it the central widget with correct size policies. */
 	QWidget *centralWidget = new QWidget;
 	QGridLayout *centralLayout = new QGridLayout;
 	centralLayout->addWidget(fractalExplorer, 1, 1);
@@ -281,20 +302,20 @@ MainWindow::MainWindow(int argc, char *argv[])
 		fractalConfigWidget, SLOT(updateBoxesValues(const Fractal &)));
 	connect(fractalConfigWidget->fractalFormulaComboBox, SIGNAL(currentIndexChanged(int)),
 		fractalExplorer, SLOT(setFractalFormula(int)));
-	connect(fractalConfigWidget->pParamReSpinBox, SIGNAL(valueChanged(double)),
-		fractalExplorer, SLOT(setPParamRe(double)));
-	connect(fractalConfigWidget->pParamImSpinBox, SIGNAL(valueChanged(double)),
-		fractalExplorer, SLOT(setPParamIm(double)));
-	connect(fractalConfigWidget->cParamReSpinBox, SIGNAL(valueChanged(double)),
-		fractalExplorer, SLOT(setCParamRe(double)));
-	connect(fractalConfigWidget->cParamImSpinBox, SIGNAL(valueChanged(double)),
-		fractalExplorer, SLOT(setCParamIm(double)));
-	connect(fractalConfigWidget->centerXSpinBox, SIGNAL(valueChanged(double)),
-		fractalExplorer, SLOT(setCenterX(double)));
-	connect(fractalConfigWidget->centerYSpinBox, SIGNAL(valueChanged(double)),
-		fractalExplorer, SLOT(setCenterY(double)));
-	connect(fractalConfigWidget->spanXSpinBox, SIGNAL(valueChanged(double)),
-		fractalExplorer, SLOT(setSpanX(double)));
+	connect(fractalConfigWidget->pParamReSpinBox, SIGNAL(valueChanged(const mpfr_t *)),
+		fractalExplorer, SLOT(setPParamRe(const mpfr_t *)));
+	connect(fractalConfigWidget->pParamImSpinBox, SIGNAL(valueChanged(const mpfr_t *)),
+		fractalExplorer, SLOT(setPParamIm(const mpfr_t *)));
+	connect(fractalConfigWidget->cParamReSpinBox, SIGNAL(valueChanged(const mpfr_t *)),
+		fractalExplorer, SLOT(setCParamRe(const mpfr_t *)));
+	connect(fractalConfigWidget->cParamImSpinBox, SIGNAL(valueChanged(const mpfr_t *)),
+		fractalExplorer, SLOT(setCParamIm(const mpfr_t *)));
+	connect(fractalConfigWidget->centerXSpinBox, SIGNAL(valueChanged(const mpfr_t *)),
+		fractalExplorer, SLOT(setCenterX(const mpfr_t *)));
+	connect(fractalConfigWidget->centerYSpinBox, SIGNAL(valueChanged(const mpfr_t *)),
+		fractalExplorer, SLOT(setCenterY(const mpfr_t *)));
+	connect(fractalConfigWidget->spanXSpinBox, SIGNAL(valueChanged(const mpfr_t *)),
+		fractalExplorer, SLOT(setSpanX(const mpfr_t *)));
 	connect(fractalConfigWidget->bailoutRadiusSpinBox, SIGNAL(valueChanged(double)),
 		fractalExplorer, SLOT(setBailoutRadius(double)));
 	connect(fractalConfigWidget->maxIterationsSpinBox, SIGNAL(valueChanged(int)),
@@ -309,8 +330,8 @@ MainWindow::MainWindow(int argc, char *argv[])
 		fractalExplorer, SLOT(setAddendFunction(int)));
 	connect(fractalRenderingWidget->stripeDensitySpinBox, SIGNAL(valueChanged(int)),
 		fractalExplorer, SLOT(setStripeDensity(int)));
-	connect(fractalRenderingWidget->countingFunctionComboBox, SIGNAL(currentIndexChanged(int)),
-		fractalExplorer, SLOT(setCountingFunction(int)));
+	connect(fractalRenderingWidget->iterationCountComboBox, SIGNAL(currentIndexChanged(int)),
+		fractalExplorer, SLOT(setIterationCount(int)));
 	connect(fractalRenderingWidget->coloringMethodComboBox, SIGNAL(currentIndexChanged(int)),
 		fractalExplorer, SLOT(setColoringMethod(int)));
 	connect(fractalRenderingWidget->interpolationMethodComboBox, SIGNAL(currentIndexChanged(int)),
@@ -329,45 +350,78 @@ MainWindow::MainWindow(int argc, char *argv[])
 	/* Free fractal config (copied by fractal explorer). */
 	FreeFractalConfig(config);
 
+	/* Create "other" dock widget. */
+	/* Create content and connect signals to slots first. */
 	QWidget *otherParametersWidget = new QWidget;
 	QFormLayout *otherParamLayout = new QFormLayout;
 	preferredImageWidthSpinBox = new QSpinBox;
 	preferredImageWidthSpinBox->setRange(2, 2048);
 	preferredImageWidthSpinBox->setButtonSymbols(QAbstractSpinBox::NoButtons);
-	preferredImageWidthSpinBox->setValue((int)lastPreferredExplorerWidth);
 	connect(preferredImageWidthSpinBox, SIGNAL(editingFinished()), this,
 		SLOT(onPreferredImageWidthChanged()));
 	preferredImageHeightSpinBox = new QSpinBox;
 	preferredImageHeightSpinBox->setRange(2, 2048);
 	preferredImageHeightSpinBox->setButtonSymbols(QAbstractSpinBox::NoButtons);
-	preferredImageHeightSpinBox->setValue((int)lastPreferredExplorerHeight);
 	connect(preferredImageHeightSpinBox, SIGNAL(editingFinished()), this,
 		SLOT(onPreferredImageHeightChanged()));
 	solidGuessingCheckBox = new QCheckBox;
-	solidGuessingCheckBox->setChecked(fractalExplorer->getSolidGuessingEnabled());
-	connect(solidGuessingCheckBox, SIGNAL(clicked(bool)), fractalExplorer, SLOT(setSolidGuessingEnabled(bool)));
+	connect(solidGuessingCheckBox, SIGNAL(toggled(bool)),
+		fractalExplorer, SLOT(setSolidGuessingEnabled(bool)));
 	useCacheCheckBox = new QCheckBox;
-	useCacheCheckBox->setChecked(fractalExplorer->getFractalCacheEnabled());
-	connect(useCacheCheckBox, SIGNAL(clicked(bool)), fractalExplorer, SLOT(useFractalCache(bool)));
+	connect(useCacheCheckBox, SIGNAL(toggled(bool)), fractalExplorer, SLOT(useFractalCache(bool)));
 	cacheSizeSpinBox = new QSpinBox;
 	cacheSizeSpinBox->setRange(0, 10000000);
 	cacheSizeSpinBox->setButtonSymbols(QAbstractSpinBox::NoButtons);
-	cacheSizeSpinBox->setValue(fractalExplorer->getFractalCacheSize());
-	cacheSizeSpinBox->setEnabled(useCacheCheckBox->isChecked());
+	cacheSizeSpinBox->setEnabled(fractalExplorer->getFractalCacheEnabled());
 	connect(cacheSizeSpinBox, SIGNAL(editingFinished()), this, SLOT(onCacheSizeChanged()));
-	connect(useCacheCheckBox, SIGNAL(clicked(bool)), cacheSizeSpinBox, SLOT(setEnabled(bool)));
+	connect(useCacheCheckBox, SIGNAL(toggled(bool)), cacheSizeSpinBox, SLOT(setEnabled(bool)));
+	floatTypeComboBox = new QComboBox;
+	for (uint_fast32_t i = 0; i < nbFloatPrecisions; ++i) {
+		floatTypeComboBox->addItem(floatPrecisionDescStr[i]);
+	}
+	connect(floatTypeComboBox, SIGNAL(currentIndexChanged(int)),
+		fractalExplorer, SLOT(setFloatPrecision(int)));
+	QHBoxLayout *hBoxLayout = new QHBoxLayout;
+	MPFloatPrecisionSpinBox = new QSpinBox;
+	MPFloatPrecisionSpinBox->setRange(MPFR_PREC_MIN,
+		std::min<long long int>(std::numeric_limits<int>::max(),(long long int)MPFR_PREC_MAX));
+	MPFloatPrecisionSpinBox->setButtonSymbols(QAbstractSpinBox::NoButtons);
+	MPFloatPrecisionSpinBox->setReadOnly(true);
+	QToolButton *editMPFloatPrecisionButton = new QToolButton();
+	editMPFloatPrecisionButton->setText(tr("..."));
+	connect(editMPFloatPrecisionButton, SIGNAL(clicked()), this, SLOT(editMPFloatPrecision()));
+	hBoxLayout->addWidget(MPFloatPrecisionSpinBox);
+	hBoxLayout->addWidget(editMPFloatPrecisionButton);
+	hBoxLayout->setStretch(1, 0);
+	editMPFloatPrecisionWidget = new QWidget();
+	editMPFloatPrecisionWidget->setLayout(hBoxLayout);
+	editMPFloatPrecisionWidget->setEnabled((int)args.floatPrecision);
+	connect(floatTypeComboBox, SIGNAL(currentIndexChanged(int)),
+		this, SLOT(onFloatTypeChanged(int)));
+	connect(fractalExplorer, SIGNAL(fractalCacheSizeChanged(int)),
+		cacheSizeSpinBox, SLOT(setValue(int)));
+	/* Set widgets values... */
+	preferredImageWidthSpinBox->setValue((int)lastPreferredExplorerWidth);
+	preferredImageHeightSpinBox->setValue((int)lastPreferredExplorerHeight);
+	solidGuessingCheckBox->setChecked(fractalExplorer->getSolidGuessingEnabled());
+	useCacheCheckBox->setChecked(fractalExplorer->getFractalCacheEnabled());
+	cacheSizeSpinBox->setValue(fractalExplorer->getFractalCacheSize());
+	floatTypeComboBox->setCurrentIndex((int)args.floatPrecision);
+	MPFloatPrecisionSpinBox->setValue((int)fractalnow_mpfr_precision);
+	/* Add widgets to layout. */
 	otherParamLayout->addRow(tr("Preferred image width:"), preferredImageWidthSpinBox);
 	otherParamLayout->addRow(tr("Preferred image height:"), preferredImageHeightSpinBox);
 	otherParamLayout->addRow(tr("Solid guessing:"), solidGuessingCheckBox);
 	otherParamLayout->addRow(tr("Use cache:"), useCacheCheckBox);
 	otherParamLayout->addRow(tr("Cache size:"), cacheSizeSpinBox);
-	connect(fractalExplorer, SIGNAL(fractalCacheSizeChanged(int)),
-		cacheSizeSpinBox, SLOT(setValue(int)));
+	otherParamLayout->addRow(tr("Float type:"), floatTypeComboBox);
+	otherParamLayout->addRow(tr("MP Float precision:"), editMPFloatPrecisionWidget);
+	/* Set layout. */
 	otherParametersWidget->setLayout(otherParamLayout);
 	
 	/* Create dock widgets. */
-	fractalDock = new QDockWidget(tr("Fractal configuration"), this);
-	renderDock = new QDockWidget(tr("Rendering parameters"), this);
+	fractalDock = new QDockWidget(tr("Fractal"), this);
+	renderDock = new QDockWidget(tr("Rendering"), this);
 	otherDock = new QDockWidget(tr("Other"), this);
 	/* Set dock widget properties. */
 	fractalDock->setWidget(fractalConfigWidget);
@@ -549,6 +603,7 @@ void MainWindow::delayedInit()
 MainWindow::~MainWindow()
 {
 	saveSettings();
+	mpfr_free_cache();
 }
 
 void MainWindow::aboutQt()
@@ -663,6 +718,8 @@ void MainWindow::exportImage()
 	fractalExplorer->pauseDrawing();
 
 	exportFractalImageDialog->resetFractalConfig(fractalExplorer->getFractalConfig());
+	exportFractalImageDialog->setFloatPrecision((FloatPrecision)
+						floatTypeComboBox->currentIndex());
 	if (exportFractalImageDialog->exec()) {
 		imageDir = QFileInfo(exportFractalImageDialog->exportedFile()).absolutePath();
 	}
@@ -690,18 +747,24 @@ void MainWindow::saveConfigFile()
 
 	if (!fileName.isEmpty()) {
 		configDir = QFileInfo(fileName).absolutePath();
-		FractalConfig fractalConfig = CopyFractalConfig(&fractalExplorer->getFractalConfig());
-		Fractal &fractal = fractalConfig.fractal;
-		fractal.spanY = fractal.spanX;
-		/* Reinit fractal, since we changed spanY. */
-		InitFractal(&fractal, fractal.fractalFormula, fractal.p, fractal.c,
-				fractal.centerX, fractal.centerY,
-				fractal.spanX, fractal.spanY, 
-				fractal.escapeRadius, fractal.maxIter);
+		const Fractal &expFractal = fractalExplorer->getFractalConfig().fractal;
+		mpfr_t spanY;
+		mpfr_init(spanY);
+		mpfr_set(spanY, expFractal.spanX, MPFR_RNDN);
+		Fractal fractal;
+		InitFractal(&fractal, expFractal.fractalFormula, expFractal.p, expFractal.c,
+				expFractal.centerX, expFractal.centerY,
+				expFractal.spanX, spanY, 
+				expFractal.escapeRadius, expFractal.maxIter);
+		RenderingParameters render = CopyRenderingParameters(
+						&fractalExplorer->getFractalConfig().render);
+		FractalConfig fractalConfig;
+		InitFractalConfig(&fractalConfig, fractal, render);
 		if (WriteFractalConfigFile(&fractalConfig, fileName.toStdString().c_str())) {
 			QMessageBox::critical(this, tr("Failed to write configuration file"),
 				tr("Error occured while writing configuration file."));
 		}
+		mpfr_clear(spanY);
 		FreeFractalConfig(fractalConfig);
 	}
 }
@@ -762,6 +825,31 @@ void MainWindow::onPreferredImageHeightChanged()
 void MainWindow::onCacheSizeChanged()
 {
 	fractalExplorer->resizeFractalCache(cacheSizeSpinBox->value());
+}
+
+void MainWindow::onFloatTypeChanged(int index)
+{
+	if ((FloatPrecision)index == FP_MP) {
+		editMPFloatPrecisionWidget->setEnabled(true);
+	} else {
+		editMPFloatPrecisionWidget->setEnabled(false);
+	}
+}
+
+void MainWindow::editMPFloatPrecision()
+{
+	bool ok;
+	int new_mpfr_precision = QInputDialog::getInt(this, tr("Change value"), tr("MP Float Precision"),
+				MPFloatPrecisionSpinBox->value(), MPFR_PREC_MIN,
+				std::min<long long int>(std::numeric_limits<int>::max(),(long long int)MPFR_PREC_MAX),
+				1, &ok);
+	if (ok) {
+		MPFloatPrecisionSpinBox->setValue(new_mpfr_precision);
+		if (fractalnow_mpfr_precision != new_mpfr_precision) {
+			QMessageBox::information(this, tr("Restart application"),
+				tr("You must restart application to apply changes."));
+		}
+	}
 }
 
 enum MainWindow::FileType MainWindow::getFileType(const char *fileName)

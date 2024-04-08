@@ -41,7 +41,7 @@ const char *fractalFormulaDescStr[] = {
 	(const char *)"Julia (z^2+c)",
 	(const char *)"Multi Julia (z^p+c)",
 	(const char *)"Burning ship ((|Re(z)|+|Im(z)|)^p+c)",
-	(const char *)"Julia Burning ship ((|Re(z)|+|Im(z)|)^p+c)",
+	(const char *)"Julia B.ship ((|Re(z)|+|Im(z)|)^p+c)",
 	(const char *)"Mandelbar (conjugate(z)^p+c)",
 	(const char *)"Juliabar (conjugate(z)^p+c)",
 	(const char *)"Rudy (z^p + c*z + d)"

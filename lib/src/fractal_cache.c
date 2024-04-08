@@ -18,10 +18,12 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
+#include "float_precision.h"
 #include "fractal_cache.h"
 #include "fractal.h"
+#include "macro_build_floats.h"
 #include "misc.h"
-#include "rectangle.h"
+#include "uirectangle.h"
 #include "thread.h"
 
 #define HandleRequests(max_counter) \
@@ -32,6 +34,31 @@ if (counter == max_counter) {\
 	counter = 0;\
 } else {\
 	++counter;\
+}
+
+inline void FreeCacheEntry(CacheEntry entry)
+{
+	switch (entry.floatPrecision) {
+	case FP_SINGLE:
+		clearF(FP_SINGLE, entry.x.val_FP_SINGLE);
+		clearF(FP_SINGLE, entry.y.val_FP_SINGLE);
+		break;
+	case FP_DOUBLE:
+		clearF(FP_DOUBLE, entry.x.val_FP_DOUBLE);
+		clearF(FP_DOUBLE, entry.y.val_FP_DOUBLE);
+		break;
+	case FP_LDOUBLE:
+		clearF(FP_LDOUBLE, entry.x.val_FP_LDOUBLE);
+		clearF(FP_LDOUBLE, entry.y.val_FP_LDOUBLE);
+		break;
+	case FP_MP:
+		clearF(FP_MP, entry.x.val_FP_MP);
+		clearF(FP_MP, entry.y.val_FP_MP);
+		break;
+	default:
+		FractalNow_error("Unknown float precision.\n");
+		break;
+	}
 }
 
 int CreateFractalCache(FractalCache *cache, uint_least64_t size)
@@ -68,6 +95,11 @@ int ResizeCacheThreadSafe(FractalCache *cache, uint_least64_t size)
 	int res = 1;
 
 	safePThreadSpinLock(&cache->entryMutex);
+	if (size < cache->size) {
+		for (uint_fast32_t i = size; i < cache->size; ++i) {
+			FreeCacheEntry(cache->entry[i]);
+		}
+	}
 	void *newEntry = (CacheEntry *)realloc(cache->entry, size*sizeof(CacheEntry));
 	if (size == 0 || newEntry != NULL) {
 		res = 0;
@@ -85,30 +117,27 @@ int ResizeCacheThreadSafe(FractalCache *cache, uint_least64_t size)
 	return res;
 }
 
-inline void AddToCache(FractalCache *cache, FLOATT x, FLOATT y, FLOATT value)
+inline void AddToCache(FractalCache *cache, CacheEntry entry)
 {
 	if (cache->size == 0) {
 		return;
 	}
 
-	CacheEntry entry;
-	entry.x = x;
-	entry.y = y;
-	entry.value = value;
-
+	if (cache->nbInitialized < cache->size) {
+		++cache->nbInitialized;
+	} else {
+		FreeCacheEntry(cache->entry[cache->currentIndex]);
+	}
 	cache->entry[cache->currentIndex++] = entry;
 	if (cache->currentIndex >= cache->size) {
 		cache->currentIndex = 0;
 	}
-	if (cache->nbInitialized <= cache->size) {
-		++cache->nbInitialized;
-	}
 }
 
-void AddToCacheThreadSafe(FractalCache *cache, FLOATT x, FLOATT y, FLOATT value)
+void AddToCacheThreadSafe(FractalCache *cache, CacheEntry entry)
 {
 	safePThreadSpinLock(&cache->entryMutex);
-	AddToCache(cache, x, y, value);
+	AddToCache(cache, entry);
 	safePThreadSpinUnlock(&cache->entryMutex);
 }
 
@@ -130,7 +159,7 @@ typedef struct ClearCacheArrayArguments {
 	uint_fast32_t threadId;
 	FractalCache *cache;
 	uint_fast32_t nbRectangles;
-	Rectangle *rectangles;
+	UIRectangle *rectangles;
 } ClearCacheArrayArguments;
 
 void FreeClearCacheArrayArguments(void *arg)
@@ -149,7 +178,7 @@ void *ClearCacheArrayThreadRoutine(void *arg)
 
 	FractalCache *cache = c_arg->cache;
 	uint_fast32_t nbRectangles = c_arg->nbRectangles;
-	Rectangle *currentRect;
+	UIRectangle *currentRect;
 	uint_fast32_t rectHeight;
 	ArrayValue *aVal;
 	uint_fast32_t counter = 0;
@@ -207,10 +236,10 @@ Task *CreateClearCacheArrayTask(FractalCache *cache, uint_fast32_t width, uint_f
 	}
 	uint_fast32_t nbRectangles = nbThreadsNeeded*rectanglesPerThread;
 
-	Rectangle *rectangle;
-	rectangle = (Rectangle *)safeMalloc("rectangles", nbRectangles * sizeof(Rectangle));
-	InitRectangle(&rectangle[0], 0, 0, width-1, height-1);
-	if (CutRectangleInN(rectangle[0], nbRectangles, rectangle)) {
+	UIRectangle *rectangle;
+	rectangle = (UIRectangle *)safeMalloc("rectangles", nbRectangles * sizeof(UIRectangle));
+	InitUIRectangle(&rectangle[0], 0, 0, width-1, height-1);
+	if (CutUIRectangleInN(rectangle[0], nbRectangles, rectangle)) {
 		FractalNow_error("Could not cut rectangle ((%"PRIuFAST32",%"PRIuFAST32"),\
 (%"PRIuFAST32",%"PRIuFAST32") in %"PRIuFAST32" parts.\n", rectangle[0].x1, rectangle[0].y1,
 			rectangle[0].x2, rectangle[0].y2, nbRectangles);
@@ -243,7 +272,7 @@ void ClearCacheArray(FractalCache *cache, Threads *threads)
 	UNUSED(unused);
 }
 
-static inline Color ColorFromValue(FLOATT value, const RenderingParameters *render)
+static inline Color ColorFromValue(double value, const RenderingParameters *render)
 {
 	Color res;
 	if (value < 0) {
@@ -259,8 +288,8 @@ static inline Color ColorFromValue(FLOATT value, const RenderingParameters *rend
 
 static inline ArrayValue aux_PutIntoArray(FractalCache *cache,
 						uint_fast32_t x, uint_fast32_t y,
-						FLOATT r, FLOATT g, FLOATT b,
-						FLOATT weight)
+						double r, double g, double b,
+						double weight)
 {
 	ArrayValue *aVal = &cache->array[y][x];
 	if (aVal->state != cache->currentState) {
@@ -281,12 +310,12 @@ static inline ArrayValue aux_PutIntoArray(FractalCache *cache,
 static inline ArrayValue PutIntoArray(FractalCache *cache,
 					const RenderingParameters *render,
 					uint_fast32_t x, uint_fast32_t y,
-					FLOATT value, FLOATT weight)
+					double value, double weight)
 {
 	Color color = ColorFromValue(value, render);
-	FLOATT r = color.r * weight;
-	FLOATT g = color.g * weight;
-	FLOATT b = color.b * weight;
+	double r = color.r * weight;
+	double g = color.g * weight;
+	double b = color.b * weight;
 
 	return aux_PutIntoArray(cache, x, y, r, g, b, weight);
 }
@@ -294,12 +323,12 @@ static inline ArrayValue PutIntoArray(FractalCache *cache,
 static inline ArrayValue PutIntoArrayThreadSafe(FractalCache *cache,
 						const RenderingParameters *render,
 						uint_fast32_t x, uint_fast32_t y,
-						FLOATT value, FLOATT weight)
+						double value, double weight)
 {
 	Color color = ColorFromValue(value, render);
-	FLOATT r = color.r * weight;
-	FLOATT g = color.g * weight;
-	FLOATT b = color.b * weight;
+	double r = color.r * weight;
+	double g = color.g * weight;
+	double b = color.b * weight;
 	safePThreadSpinLock(&cache->arrayMutex);
 	ArrayValue res = aux_PutIntoArray(cache, x, y, r, g, b, weight);
 	safePThreadSpinUnlock(&cache->arrayMutex);
@@ -340,7 +369,8 @@ inline Color GetColorFromAVal(ArrayValue aVal, const RenderingParameters *render
 	return res;
 }
 
-static inline int isInsideArray(FLOATT x, FLOATT y, uint_fast32_t width, uint_fast32_t height)
+static inline int isInsideArray(FLOATTYPE(FP_LDOUBLE) x, FLOATTYPE(FP_LDOUBLE) y,
+				uint_fast32_t width, uint_fast32_t height)
 {
 	return (x >= 0 && x <= width-1 && y <= height-1 && y >= 0);
 }
@@ -422,6 +452,10 @@ typedef struct FillCacheArrayArguments {
 	const Fractal *fractal;
 	const RenderingParameters *render;
 	FractalCache *cache;
+	DECL_MULTI_FLOAT(spanX);
+	DECL_MULTI_FLOAT(spanY);
+	DECL_MULTI_FLOAT(x1);
+	DECL_MULTI_FLOAT(y1);
 } FillCacheArrayArguments;
 
 void FreeFillCacheArrayArguments(void *arg)
@@ -432,7 +466,46 @@ void FreeFillCacheArrayArguments(void *arg)
 		safePThreadSpinDestroy(c_arg->imageMutex);
 		free((void *)c_arg->imageMutex);
 	}
+	CLEAR_MULTI_FLOAT(c_arg->spanX);
+	CLEAR_MULTI_FLOAT(c_arg->spanY);
+	CLEAR_MULTI_FLOAT(c_arg->x1);
+	CLEAR_MULTI_FLOAT(c_arg->y1);
 }
+
+#define BUILD_GetImageCoordFromCacheEntry(fprec) \
+static void GetImageCoordFromCacheEntry_##fprec(CacheEntry *entry,\
+		double *outx, double *outy,\
+		FLOATTYPE(fprec) x, FLOATTYPE(fprec) y,\
+		uint_fast32_t width, uint_fast32_t height,\
+		FLOATTYPE(fprec) spanX, FLOATTYPE(fprec) spanY,\
+		FLOATTYPE(fprec) x1, FLOATTYPE(fprec) y1)\
+{\
+	subF(fprec, x, FLOAT_VAR(fprec,entry->x.val), x1);\
+	mul_uiF(fprec, x, x, width);\
+	divF(fprec, x, x, spanX);\
+	sub_dF(fprec, x, x, 0.5);\
+	*outx = toDoubleF(fprec, x);\
+\
+	subF(fprec, y, FLOAT_VAR(fprec,entry->y.val), y1);\
+	mul_uiF(fprec, y, y, height);\
+	divF(fprec, y, y, spanY);\
+	sub_dF(fprec, y, y, 0.5);\
+	*outy = toDoubleF(fprec, y);\
+}
+#undef MACRO_BUILD_FLOAT
+#define MACRO_BUILD_FLOAT(fprec) BUILD_GetImageCoordFromCacheEntry(fprec)
+MACRO_BUILD_FLOATS
+
+#define BUILD_SwitchCacheEntry(fprec)\
+case fprec:\
+	GetImageCoordFromCacheEntry_##fprec(&entry, &x, &y,\
+		FLOAT_VAR(fprec,multiX), FLOAT_VAR(fprec,multiY),\
+		cache->arrayWidth, cache->arrayHeight,\
+		FLOAT_VAR(fprec,c_arg->spanX), FLOAT_VAR(fprec,c_arg->spanY),\
+		FLOAT_VAR(fprec,c_arg->x1), FLOAT_VAR(fprec,c_arg->y1));\
+	break;
+#undef MACRO_BUILD_FLOAT
+#define MACRO_BUILD_FLOAT(fprec) BUILD_SwitchCacheEntry(fprec)
 
 void *FillCacheArrayThreadRoutine(void *arg)
 {
@@ -446,16 +519,22 @@ void *FillCacheArrayThreadRoutine(void *arg)
 	Image *image = c_arg->image;
 	pthread_spinlock_t *imageMutex = c_arg->imageMutex;
 	CacheEntry entry;
-	FLOATT x, y;
+	double x = 0, y = 0;
 	uint_least64_t nbEntries = c_arg->end-c_arg->begin+1;
 
 	uint_fast32_t counter = 0;
 	int cancelRequested = CancelTaskRequested(threadArgHeader);
-	FLOATT dx, dy;
+	double dx, dy;
 	uint_fast32_t intX, intY;
-	FLOATT sigma = 1./3;
-	FLOATT sigma2_x_2 = sigma*sigma*2;
-	FLOATT weight;
+	double sigma = 1./3;
+	double sigma2_x_2 = sigma*sigma*2;
+	double weight;
+	DECL_MULTI_FLOAT(multiX);
+	DECL_MULTI_FLOAT(multiY);
+	INIT_MULTI_FLOAT(multiX);
+	INIT_MULTI_FLOAT(multiY);
+	ASSIGN_MULTI_FLOAT(multiX, fractal->centerX);
+	ASSIGN_MULTI_FLOAT(multiY, fractal->centerY);
 	ArrayValue aVal;
 	Color color;
 	for (uint_least64_t i = c_arg->begin; i <= c_arg->end && !cancelRequested; ++i) {
@@ -463,16 +542,20 @@ void *FillCacheArrayThreadRoutine(void *arg)
 		HandleRequests(128);
 		entry = GetCacheEntry(cache, i);
 
-		x = (entry.x - fractal->x1) * cache->arrayWidth / fractal->spanX-0.5;
-		y = (entry.y - fractal->y1) * cache->arrayHeight / fractal->spanY-0.5;
+		switch(entry.floatPrecision) {
+		MACRO_BUILD_FLOATS
+		default:
+			FractalNow_error("Unknown float precision.\n");
+			break;
+		}
 
-		intX = roundF(x);
-		intY = roundF(y);
+		intX = roundl(x);
+		intY = roundl(y);
 		dx = x - intX;
 		dy = y - intY;
 		if (isInsideArray(intX, intY, cache->arrayWidth, cache->arrayHeight)) {
 
-			weight = expF(-(dx*dx+dy*dy)/sigma2_x_2);
+			weight = exp(-(dx*dx+dy*dy)/sigma2_x_2);
 			if (image != NULL) {
 				safePThreadSpinLock(imageMutex);
 				aVal = PutIntoArray(cache, render, intX, intY,
@@ -487,6 +570,8 @@ void *FillCacheArrayThreadRoutine(void *arg)
 			}
 		}
 	}
+	CLEAR_MULTI_FLOAT(multiX);
+	CLEAR_MULTI_FLOAT(multiY);
 	SetThreadProgress(threadArgHeader, 100);
 
 	int canceled = CancelTaskRequested(threadArgHeader);
@@ -512,10 +597,10 @@ Task *CreateFillCacheArrayTask(FractalCache *cache, Image *image, const Fractal 
 	}
 	uint_fast32_t nbRectangles = nbThreadsNeeded;
 
-	Rectangle *rectangle;
-	rectangle = (Rectangle *)safeMalloc("rectangles", nbRectangles * sizeof(Rectangle));
-	InitRectangle(&rectangle[0], 0, 0, nbEntries-1, 0);
-	if (CutRectangleInN(rectangle[0], nbRectangles, rectangle)) {
+	UIRectangle *rectangle;
+	rectangle = (UIRectangle *)safeMalloc("rectangles", nbRectangles * sizeof(UIRectangle));
+	InitUIRectangle(&rectangle[0], 0, 0, nbEntries-1, 0);
+	if (CutUIRectangleInN(rectangle[0], nbRectangles, rectangle)) {
 		FractalNow_error("Could not cut rectangle ((%"PRIuFAST32",%"PRIuFAST32"),\
 (%"PRIuFAST32",%"PRIuFAST32") in %"PRIuFAST32" parts.\n", rectangle[0].x1, rectangle[0].y1,
 			rectangle[0].x2, rectangle[0].y2, nbRectangles);
@@ -539,6 +624,14 @@ Task *CreateFillCacheArrayTask(FractalCache *cache, Image *image, const Fractal 
 		arg[i].render = render;
 		arg[i].begin = rectangle[i].x1;
 		arg[i].end = rectangle[i].x2;
+		INIT_MULTI_FLOAT(arg[i].spanX);
+		INIT_MULTI_FLOAT(arg[i].spanY);
+		INIT_MULTI_FLOAT(arg[i].x1);
+		INIT_MULTI_FLOAT(arg[i].y1);
+		ASSIGN_MULTI_FLOAT(arg[i].spanX, fractal->spanX);
+		ASSIGN_MULTI_FLOAT(arg[i].spanY, fractal->spanY);
+		ASSIGN_MULTI_FLOAT(arg[i].x1, fractal->x1);
+		ASSIGN_MULTI_FLOAT(arg[i].y1, fractal->y1);
 	}
 	Task *task = CreateTask(fillCacheArrayMessage, nbThreadsNeeded, arg, 
 				sizeof(FillCacheArrayArguments),
@@ -564,7 +657,7 @@ typedef struct FillImageFromCacheArrayArguments {
 	Image *image;
 	const RenderingParameters *render;
 	uint_fast32_t nbRectangles;
-	Rectangle *rectangles;
+	UIRectangle *rectangles;
 } FillImageFromCacheArrayArguments;
 
 void FreeFillImageFromCacheArrayArguments(void *arg)
@@ -587,7 +680,7 @@ void *FillImageFromCacheArrayThreadRoutine(void *arg)
 	const RenderingParameters *render = c_arg->render;
 
 	uint_fast32_t nbRectangles = c_arg->nbRectangles;
-	Rectangle *currentRect;
+	UIRectangle *currentRect;
 	uint_fast32_t rectHeight;
 	ArrayValue aVal;
 	uint_fast32_t counter = 0;
@@ -640,10 +733,10 @@ Task *CreateFillImageFromCacheArrayTask(Image *dst, FractalCache *cache,
 	}
 	uint_fast32_t nbRectangles = nbThreadsNeeded*rectanglesPerThread;
 
-	Rectangle *rectangle;
-	rectangle = (Rectangle *)safeMalloc("rectangles", nbRectangles * sizeof(Rectangle));
-	InitRectangle(&rectangle[0], 0, 0, dst->width-1, dst->height-1);
-	if (CutRectangleInN(rectangle[0], nbRectangles, rectangle)) {
+	UIRectangle *rectangle;
+	rectangle = (UIRectangle *)safeMalloc("rectangles", nbRectangles * sizeof(UIRectangle));
+	InitUIRectangle(&rectangle[0], 0, 0, dst->width-1, dst->height-1);
+	if (CutUIRectangleInN(rectangle[0], nbRectangles, rectangle)) {
 		FractalNow_error("Could not cut rectangle ((%"PRIuFAST32",%"PRIuFAST32"),\
 (%"PRIuFAST32",%"PRIuFAST32") in %"PRIuFAST32" parts.\n", rectangle[0].x1, rectangle[0].y1,
 			rectangle[0].x2, rectangle[0].y2, nbRectangles);
@@ -740,8 +833,8 @@ enum TaskType {
 static inline int PartCompareFractals(const Fractal *fractal1, const Fractal *fractal2)
 {
 	return (fractal1->fractalFormula != fractal2->fractalFormula ||
-		fractal1->p != fractal2->p ||
-		fractal1->c != fractal2->c ||
+		mpc_cmp(fractal1->p, fractal2->p) ||
+		mpc_cmp(fractal1->c, fractal2->c) ||
 		fractal1->escapeRadius != fractal2->escapeRadius ||
 		fractal1->maxIter != fractal2->maxIter);
 }
@@ -751,7 +844,7 @@ static inline int PartCompareRenderingParameters(const RenderingParameters *para
 {
 	return (param1->bytesPerComponent != param2->bytesPerComponent ||
 		CompareColors(param1->spaceColor, param2->spaceColor) ||
-		param1->countingFunction != param2->countingFunction ||
+		param1->iterationCount != param2->iterationCount ||
 		param1->coloringMethod != param2->coloringMethod ||
 		param1->addendFunction != param2->addendFunction ||
 		param1->stripeDensity != param2->stripeDensity ||
@@ -851,6 +944,9 @@ void FractalCachePreview(Image *dst, FractalCache *cache, const Fractal *fractal
 
 void FreeFractalCache(FractalCache *cache)
 {
+	for (uint_fast32_t i = 0; i < cache->nbInitialized; ++i) {
+		FreeCacheEntry(cache->entry[i]);
+	}
 	free(cache->entry);
 	for (uint_fast32_t i = 0; i < cache->arrayHeight; ++i) {
 		free(cache->array[i]);

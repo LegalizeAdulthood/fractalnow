@@ -27,12 +27,11 @@
 #ifndef __COLOR_H__
 #define __COLOR_H__
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <stdint.h>
-#include "floating_point.h"
 
 /**
  * \def GET_R8(x)
@@ -184,7 +183,7 @@ Color Color8(Color color);
 int CompareColors(const Color color1, const Color color2);
 
 /**
- * \fn Color MixColors(Color C1, FLOATT weight1, Color C2, FLOATT weight2)
+ * \fn Color MixColors(Color C1, double weight1, Color C2, double weight2)
  * \brief Mix two weighted colors.
  *
  * Both colors must have same number of bytes per component
@@ -196,10 +195,10 @@ int CompareColors(const Color color1, const Color color2);
  * \param weight2 Weight given to second color for mixing.
  * \return Result of the mixing of colors C1 and C2 according to given weights.
  */
-Color MixColors(Color C1, FLOATT weight1, Color C2, FLOATT weight2);
+Color MixColors(Color C1, double weight1, Color C2, double weight2);
 
 /**
- * \fn FLOATT ColorManhattanDistance(Color C1, Color C2)
+ * \fn double ColorManhattanDistance(Color C1, Color C2)
  * \brief Compute manhattan distance between two colors.
  *
  * Distance is normalized (i.e. between 0 and 1).\n
@@ -210,10 +209,10 @@ Color MixColors(Color C1, FLOATT weight1, Color C2, FLOATT weight2);
  * \param C2 Second color.
  * \return Manhattan distance between colors C1 and C2.
  */
-FLOATT ColorManhattanDistance(Color C1, Color C2);
+double ColorManhattanDistance(Color C1, Color C2);
 
 /**
- * \fn FLOATT QuadAvgDissimilarity(const Color C[4])
+ * \fn double QuadAvgDissimilarity(const Color C[4])
  * \brief Compute average dissimilarity of a quadrilateral given its corner colors.
  *
  * Result is normalized (between 0 and 1).\n
@@ -223,10 +222,10 @@ FLOATT ColorManhattanDistance(Color C1, Color C2);
  * \param C Point to colors at the four corners.
  * \return Quadrilateral average anhattan dissimilarity.
  */
-FLOATT QuadAvgDissimilarity(const Color C[4]);
+double QuadAvgDissimilarity(const Color C[4]);
 
 /**
- * \fn Color QuadLinearInterpolation(const Color C[4], FLOATT x, FLOATT y)
+ * \fn Color QuadLinearInterpolation(const Color C[4], double x, double y)
  * \brief Interpolate linearly some color of a quadrilateral.
  *
  * Interpolate color at point (x,y) according to its corner colors.\n
@@ -240,7 +239,7 @@ FLOATT QuadAvgDissimilarity(const Color C[4]);
  * \param y Y (relative) coordinate of quad point to interpolate.
  * \return Linearly interpolated color at point (x,y) of quadrilateral.
  */
-Color QuadLinearInterpolation(const Color C[4], FLOATT x, FLOATT y);
+Color QuadLinearInterpolation(const Color C[4], double x, double y);
 
 #ifdef __cplusplus
 }

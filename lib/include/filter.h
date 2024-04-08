@@ -30,14 +30,13 @@
 #ifndef __FILTER_H__
 #define __FILTER_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include "floating_point.h"
 #include "image.h"
 #include "thread.h"
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * \struct Filter
@@ -55,11 +54,11 @@ typedef struct Filter
 	uint_fast32_t sy; /*!< Number of rows.*/
 	uint_fast32_t cx; /*!< X coordinate of filter's center.*/
 	uint_fast32_t cy; /*!< Y coordinate of filter's center.*/
-	FLOATT *data; /*!< Filter data (the elements of the matrix).*/
+	double *data; /*!< Filter data (the elements of the matrix).*/
 } Filter;
 
 /**
- * \fn void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, uint_fast32_t cx, uint_fast32_t cy, FLOATT *data)
+ * \fn void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, uint_fast32_t cx, uint_fast32_t cy, double *data)
  * \brief Initialize filter.
  *
  * Data will be owned by filter, and freed when the filter is freed,
@@ -73,10 +72,10 @@ typedef struct Filter
  * \param data Filter data (NOT copied, and will be freed when the filter is freed).
  */
 void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy,
-		uint_fast32_t cx, uint_fast32_t cy, FLOATT *data);
+		uint_fast32_t cx, uint_fast32_t cy, double *data);
 
 /**
- * \fn void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOATT *data)
+ * \fn void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, double *data)
  * \brief Initialize filter without specifying center.
  *
  * The center is automatically computed : ((sx-1)/2, (sy-1)/2).\n
@@ -88,7 +87,7 @@ void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy,
  * \param sy Number of lines.
  * \param data Filter data (NOT copied, and will be freed when the filter is freed).
  */
-void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOATT *data);
+void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, double *data);
 
 /**
  * \fn Filter CopyFilter(const Filter *filter)
@@ -100,7 +99,7 @@ void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOATT *dat
 Filter CopyFilter(const Filter *filter);
 
 /**
- * \fn void CreateHorizontalGaussianFilter(Filter *filter, FLOATT sigma)
+ * \fn void CreateHorizontalGaussianFilter(Filter *filter, double sigma)
  * \brief Create a horizontal gaussian filter given sigma.
  *
  * sigma must be strictly positive (exit with error otherwise).
@@ -108,10 +107,10 @@ Filter CopyFilter(const Filter *filter);
  * \param filter Pointer to the filter structure to initialize.
  * \param sigma See Wikipedia (or others) for that.
  */
-void CreateHorizontalGaussianFilter(Filter *filter, FLOATT sigma);
+void CreateHorizontalGaussianFilter(Filter *filter, double sigma);
 
 /**
- * \fn void CreateHorizontalGaussianFilter2(Filter *filter, FLOATT radius)
+ * \fn void CreateHorizontalGaussianFilter2(Filter *filter, double radius)
  * \brief Create a horizontal gaussian filter given its radius.
  *
  * radius must be strictly positive (exit with error otherwise).
@@ -119,10 +118,10 @@ void CreateHorizontalGaussianFilter(Filter *filter, FLOATT sigma);
  * \param filter Pointer to the filter structure to initialize.
  * \param radius Blur radius.
  */
-void CreateHorizontalGaussianFilter2(Filter *filter, FLOATT radius);
+void CreateHorizontalGaussianFilter2(Filter *filter, double radius);
 
 /**
- * \fn void CreateVerticalGaussianFilter(Filter *filter, FLOATT sigma)
+ * \fn void CreateVerticalGaussianFilter(Filter *filter, double sigma)
  * \brief Create a vertical gaussian filter given sigma.
  *
  * sigma must be strictly positive (exit with error otherwise).
@@ -130,10 +129,10 @@ void CreateHorizontalGaussianFilter2(Filter *filter, FLOATT radius);
  * \param filter Pointer to the filter structure to initialize.
  * \param sigma See Wikipedia (or others) for that.
  */
-void CreateVerticalGaussianFilter(Filter *filter, FLOATT sigma);
+void CreateVerticalGaussianFilter(Filter *filter, double sigma);
 
 /**
- * \fn void CreateVerticalGaussianFilter2(Filter *filter, FLOATT radius)
+ * \fn void CreateVerticalGaussianFilter2(Filter *filter, double radius)
  * \brief Create a vertical gaussian filter given its radius.
  *
  * radius must be strictly positive (exit with error otherwise).
@@ -141,10 +140,10 @@ void CreateVerticalGaussianFilter(Filter *filter, FLOATT sigma);
  * \param filter Pointer to the filter structure to initialize.
  * \param radius Blur radius.
  */
-void CreateVerticalGaussianFilter2(Filter *filter, FLOATT radius);
+void CreateVerticalGaussianFilter2(Filter *filter, double radius);
 
 /**
- * \fn void CreateGaussianFilter(Filter *filter, FLOATT sigma)
+ * \fn void CreateGaussianFilter(Filter *filter, double sigma)
  * \brief Create a square gaussian filter given sigma.
  *
  * sigma must be strictly positive (exit with error otherwise).\n
@@ -156,10 +155,10 @@ void CreateVerticalGaussianFilter2(Filter *filter, FLOATT radius);
  * \param filter Pointer to the filter structure to initialize.
  * \param sigma See Wikipedia (or others) for that.
  */
-void CreateGaussianFilter(Filter *filter, FLOATT sigma);
+void CreateGaussianFilter(Filter *filter, double sigma);
 
 /**
- * \fn void CreateGaussianFilter2(Filter *filter, FLOATT radius)
+ * \fn void CreateGaussianFilter2(Filter *filter, double radius)
  * \brief Create a square gaussian filter given its radius.
  *
  * radius must be strictly positive (exit with error otherwise).\n
@@ -171,10 +170,10 @@ void CreateGaussianFilter(Filter *filter, FLOATT sigma);
  * \param filter Pointer to the filter structure to initialize.
  * \param radius Blur Radius
  */
-void CreateGaussianFilter2(Filter *filter, FLOATT radius);
+void CreateGaussianFilter2(Filter *filter, double radius);
 
 /**
- * \fn FLOATT GetFilterValueUnsafe(const Filter *filter, uint_fast32_t x, uint_fast32_t y)
+ * \fn double GetFilterValueUnsafe(const Filter *filter, uint_fast32_t x, uint_fast32_t y)
  * \brief Get some particular value of filter.
  *
  * Get value of filter at row x, column y.\n
@@ -186,10 +185,10 @@ void CreateGaussianFilter2(Filter *filter, FLOATT radius);
  * \param y Column of the filter value.
  * \return Value at position (x,y) of filter.
  */
-FLOATT GetFilterValueUnsafe(const Filter *filter, uint_fast32_t x, uint_fast32_t y);
+double GetFilterValueUnsafe(const Filter *filter, uint_fast32_t x, uint_fast32_t y);
 
 /**
- * \fn void MultiplyFilterByScalar(Filter *filter, FLOATT scalar)
+ * \fn void MultiplyFilterByScalar(Filter *filter, double scalar)
  * \brief Multiply whole filter by scalar.
  *
  * Multiply each filter's value by a scalar.
@@ -197,7 +196,7 @@ FLOATT GetFilterValueUnsafe(const Filter *filter, uint_fast32_t x, uint_fast32_t
  * \param filter Filter to be modified.
  * \param scalar Scalar to multiply the filter by.
  */
-void MultiplyFilterByScalar(Filter *filter, FLOATT scalar);
+void MultiplyFilterByScalar(Filter *filter, double scalar);
 
 /**
  * \fn int NormalizeFilter(Filter *filter)
@@ -208,7 +207,7 @@ void MultiplyFilterByScalar(Filter *filter, FLOATT scalar);
  * If the filter cannot be normalized, it will be left unchanged.
  *
  * \param filter Filter to normalize.
- * \return 1 if it cannot be normalized, 0 otherwize.
+ * \return 1 if it cannot be normalized, 0 otherwise.
  */
 int NormalizeFilter(Filter *filter);
 

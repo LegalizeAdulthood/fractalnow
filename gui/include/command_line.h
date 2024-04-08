@@ -28,7 +28,9 @@
 #define __COMMAND_LINE_H__
 
 #include "main.h"
-#include "floating_point.h"
+
+#include "fractalnow.h"
+
 #include <stdint.h>
 
  //! For storing command lines arguments.
@@ -67,9 +69,13 @@ class CommandLineArguments {
 	//! Quad interpolation size.
 	uint_fast32_t quadInterpolationSize;
 	//! Adaptive anti-aliasing threshold.
-	FLOATT adaptiveAAMThreshold;
+	double adaptiveAAMThreshold;
 	//! Color dissimilarity threshold.
-	FLOATT colorDissimilarityThreshold;
+	double colorDissimilarityThreshold;
+	//! Float precision for computing fractal.
+	FloatPrecision floatPrecision;
+	//! Precision (value) of Multiple Precision floats.
+	mpfr_prec_t MPFloatPrecision;
 };
 
 #endif

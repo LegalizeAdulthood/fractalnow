@@ -21,9 +21,8 @@
 #include "image.h"
 #include "filter.h"
 #include "misc.h"
-#include "rectangle.h"
+#include "uirectangle.h"
 #include <inttypes.h>
-#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -291,7 +290,7 @@ inline void PutPixelUnsafe(Image *image, uint_fast32_t x, uint_fast32_t y, Color
 
 char applyGaussianBlurMessage[] = "Applying gaussian blur";
 
-Task *CreateApplyGaussianBlurTask(Image *dst, Image *temp, const Image *src, FLOATT radius, 
+Task *CreateApplyGaussianBlurTask(Image *dst, Image *temp, const Image *src, double radius, 
 						uint_fast32_t nbThreads)
 {
 	Filter horizontalGaussianFilter;
@@ -310,7 +309,7 @@ Task *CreateApplyGaussianBlurTask(Image *dst, Image *temp, const Image *src, FLO
 	return res;
 }
 
-void ApplyGaussianBlur(Image *dst, const Image *src, FLOATT radius, Threads *threads)
+void ApplyGaussianBlur(Image *dst, const Image *src, double radius, Threads *threads)
 {
 	Image temp;
 	CreateImage(&temp, src->width, src->height, src->bytesPerComponent);
@@ -326,10 +325,10 @@ typedef struct s_DownscaleImageArguments {
 	uint_fast32_t threadId;
 	Image *dst;
 	uint_fast32_t nbRectangles;
-	Rectangle *rectangles;
+	UIRectangle *rectangles;
 	const Image *src;
-	FLOATT invScaleX;
-	FLOATT invScaleY;
+	double invScaleX;
+	double invScaleY;
 	Filter *horizontalGaussianFilter;
 	Filter *verticalGaussianFilter;
 } DownscaleImageArguments;
@@ -352,15 +351,15 @@ void *DownscaleImageThreadRoutine(void *arg)
 	DownscaleImageArguments *c_arg = (DownscaleImageArguments *)GetThreadArgBody(arg);
 	Image *dst = c_arg->dst;
 	const Image *src = c_arg->src;
-	FLOATT invScaleX = c_arg->invScaleX;
-	FLOATT invScaleY = c_arg->invScaleY;
+	double invScaleX = c_arg->invScaleX;
+	double invScaleY = c_arg->invScaleY;
 	Filter *horizontalGaussianFilter = c_arg->horizontalGaussianFilter;
 	Filter *verticalGaussianFilter = c_arg->verticalGaussianFilter;
 	Image tmpImage;
 	CreateImage(&tmpImage, horizontalGaussianFilter->sx, 1, src->bytesPerComponent);
 
 	uint_fast32_t nbRectangles = c_arg->nbRectangles;
-	Rectangle *dstRect;
+	UIRectangle *dstRect;
 	uint_fast32_t rectHeight;
 	uint_fast32_t counter = 0;
 	int cancelRequested = CancelTaskRequested(threadArgHeader);
@@ -406,8 +405,8 @@ Task *CreateDownscaleImageTask(Image *dst, const Image *src, uint_fast32_t nbThr
 		FractalNow_error("Downscaling to a bigger image makes no sense.\n");
 	}
 
-	FLOATT invScaleX = src->width / (FLOATT)dst->width;
-	FLOATT invScaleY = src->height / (FLOATT)dst->height;
+	double invScaleX = src->width / (double)dst->width;
+	double invScaleY = src->height / (double)dst->height;
 
 	Filter *horizontalGaussianFilter =
 		(Filter *)safeMalloc("horizontal gaussian filter", sizeof(Filter));
@@ -428,10 +427,10 @@ Task *CreateDownscaleImageTask(Image *dst, const Image *src, uint_fast32_t nbThr
 	}
 	uint_fast32_t nbRectangles = nbThreadsNeeded*rectanglesPerThread;
 
-	Rectangle *rectangle;
-	rectangle = (Rectangle *)safeMalloc("rectangles", nbRectangles * sizeof(Rectangle));
-	InitRectangle(&rectangle[0], 0, 0, dst->width-1, dst->height-1);
-	if (CutRectangleInN(rectangle[0], nbRectangles, rectangle)) {
+	UIRectangle *rectangle;
+	rectangle = (UIRectangle *)safeMalloc("rectangles", nbRectangles * sizeof(UIRectangle));
+	InitUIRectangle(&rectangle[0], 0, 0, dst->width-1, dst->height-1);
+	if (CutUIRectangleInN(rectangle[0], nbRectangles, rectangle)) {
 		FractalNow_error("Could not cut rectangle ((%"PRIuFAST32",%"PRIuFAST32"),\
 (%"PRIuFAST32",%"PRIuFAST32") in %"PRIuFAST32" parts.\n", rectangle[0].x1, rectangle[0].y1,
 				rectangle[0].x2, rectangle[0].y2, nbRectangles);

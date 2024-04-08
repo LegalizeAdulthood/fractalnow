@@ -62,13 +62,13 @@ FractalConfig CopyFractalConfig(const FractalConfig *config)
 void ResetFractal(FractalConfig *config, Fractal fractal)
 {
 	FreeFractal(config->fractal);
-	config->fractal = fractal;
+	config->fractal = CopyFractal(&fractal);
 }
 
 void ResetRenderingParameters(FractalConfig *config, RenderingParameters param)
 {
 	FreeRenderingParameters(config->render);
-	config->render = param;
+	config->render = CopyRenderingParameters(&param);
 }
 
 int ReadFractalConfigFileV075(FractalConfig *fractalConfig, const char *fileName, FILE *file)
@@ -282,5 +282,6 @@ int WriteFractalConfigFile(const FractalConfig *fractalConfig, const char *fileN
 
 void FreeFractalConfig(FractalConfig fractalConfig)
 {
+	FreeFractal(fractalConfig.fractal);
 	FreeRenderingParameters(fractalConfig.render);
 }

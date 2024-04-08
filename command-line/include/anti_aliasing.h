@@ -27,11 +27,11 @@
 #ifndef __ANTI_ALIASING_H__
 #define __ANTI_ALIASING_H__
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <stdint.h>
 
 /**
  * \enum e_AntiAliasingMethod

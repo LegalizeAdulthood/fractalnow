@@ -31,13 +31,13 @@
 #ifndef __FRACTAL_CONFIG_H__
 #define __FRACTAL_CONFIG_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "fractal.h"
 #include "fractal_rendering_parameters.h"
 #include <stdio.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * \struct FractalConfig

@@ -28,7 +28,10 @@
 #ifndef __FRACTAL_CONFIG_WIDGET_H__
 #define __FRACTAL_CONFIG_WIDGET_H__
 
-#include "fractal.h"
+#include "mpfr_spin_box.h"
+
+#include "fractalnow.h"
+
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QWidget>
@@ -41,13 +44,13 @@ class FractalConfigWidget : public QWidget
 	FractalConfigWidget(const Fractal &fractal);
 
 	QComboBox *fractalFormulaComboBox;
-	QDoubleSpinBox *pParamReSpinBox;
-	QDoubleSpinBox *pParamImSpinBox;
-	QDoubleSpinBox *cParamReSpinBox;
-	QDoubleSpinBox *cParamImSpinBox;
-	QDoubleSpinBox *centerXSpinBox;
-	QDoubleSpinBox *centerYSpinBox;
-	QDoubleSpinBox *spanXSpinBox;
+	MPFRSpinBox *pParamReSpinBox;
+	MPFRSpinBox *pParamImSpinBox;
+	MPFRSpinBox *cParamReSpinBox;
+	MPFRSpinBox *cParamImSpinBox;
+	MPFRSpinBox *centerXSpinBox;
+	MPFRSpinBox *centerYSpinBox;
+	MPFRSpinBox *spanXSpinBox;
 	QDoubleSpinBox *bailoutRadiusSpinBox;
 	QSpinBox *maxIterationsSpinBox;
 

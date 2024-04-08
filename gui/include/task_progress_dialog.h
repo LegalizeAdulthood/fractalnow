@@ -28,8 +28,10 @@
 #ifndef __ACTION_PROGRESS_DIALOG_H__
 #define __ACTION_PROGRESS_DIALOG_H__
 
-#include "task.h"
+#include "fractalnow.h"
+
 #include <QString>
+#include <QWidget>
 
 class TaskProgressDialog
 {

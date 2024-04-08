@@ -20,7 +20,9 @@
  
 #include "thread.h"
 #include "error.h"
+#include "fractalnow.h"
 #include "misc.h"
+#include <mpfr.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -63,6 +65,8 @@ Threads *CreateThreads(uint_fast32_t N)
 
 void *StartThreadRoutine(void *arg)
 {
+	mpfr_set_default_prec(fractalnow_mpfr_precision);
+
 	StartThreadArg *startThreadArg = (StartThreadArg *)arg;
 	Threads *threads = startThreadArg->threads;
 	do {
@@ -94,6 +98,8 @@ void *StartThreadRoutine(void *arg)
 		}
 		*(startThreadArg->result) = startThreadArg->startRoutine(startThreadArg->arg);
 	} while (1);
+
+	mpfr_free_cache();
 
 	return NULL;
 }

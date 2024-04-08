@@ -20,6 +20,7 @@
 
 #include "color.h"
 #include "error.h"
+#include <math.h>
 #include <stdlib.h>
 
 Color ColorFromRGB(uint8_t bytesPerComponent, uint16_t r, uint16_t g, uint16_t b)
@@ -66,9 +67,9 @@ Color Color16(Color color)
 		res = color;
 	} else {
 		res.bytesPerComponent = 2;
-		res.r = roundF(color.r * UINT16_MAX / UINT8_MAX);
-		res.g = roundF(color.g * UINT16_MAX / UINT8_MAX);
-		res.b = roundF(color.b * UINT16_MAX / UINT8_MAX);
+		res.r = round(color.r * UINT16_MAX / UINT8_MAX);
+		res.g = round(color.g * UINT16_MAX / UINT8_MAX);
+		res.b = round(color.b * UINT16_MAX / UINT8_MAX);
 	}
 
 	return res;
@@ -82,9 +83,9 @@ Color Color8(Color color)
 		res = color;
 	} else {
 		res.bytesPerComponent = 1;
-		res.r = roundF(color.r * UINT8_MAX / UINT16_MAX);
-		res.g = roundF(color.g * UINT8_MAX / UINT16_MAX);
-		res.b = roundF(color.b * UINT8_MAX / UINT16_MAX);
+		res.r = round(color.r * UINT8_MAX / UINT16_MAX);
+		res.g = round(color.g * UINT8_MAX / UINT16_MAX);
+		res.b = round(color.b * UINT8_MAX / UINT16_MAX);
 	}
 
 	return res;
@@ -98,7 +99,7 @@ int CompareColors(const Color color1, const Color color2)
 		color1.b != color2.b);
 }
 
-Color MixColors(Color C1, FLOATT weight1, Color C2, FLOATT weight2)
+Color MixColors(Color C1, double weight1, Color C2, double weight2)
 {
 	Color res;
 
@@ -110,18 +111,18 @@ Color MixColors(Color C1, FLOATT weight1, Color C2, FLOATT weight2)
 	return res;
 }
 
-inline FLOATT ColorManhattanDistance(Color C1, Color C2)
+inline double ColorManhattanDistance(Color C1, Color C2)
 {
-	FLOATT res = 0;
+	double res = 0;
 	uint_fast32_t sum = (labs(C1.r-(long int)C2.r)+labs(C1.g-(long int)C2.g)+
 			labs(C1.b-(long int)C2.b));
 
 	switch (C1.bytesPerComponent) {
 	case 1:
-		res = sum / (FLOATT)(3*UINT8_MAX);
+		res = sum / (double)(3*UINT8_MAX);
 		break;
 	case 2:
-		res = sum / (FLOATT)(3*UINT16_MAX);
+		res = sum / (double)(3*UINT16_MAX);
 		break;
 	default:
 		FractalNow_error("Invalid bytes per component.\n");
@@ -131,7 +132,7 @@ inline FLOATT ColorManhattanDistance(Color C1, Color C2)
 	return res;
 }
 
-inline FLOATT QuadAvgDissimilarity(const Color C[4])
+inline double QuadAvgDissimilarity(const Color C[4])
 {
 	Color avg;
 	avg.r = (C[0].r + C[1].r + C[2].r + C[3].r) / 4;
@@ -143,7 +144,7 @@ inline FLOATT QuadAvgDissimilarity(const Color C[4])
 		ColorManhattanDistance(C[3],avg)) / 4;
 }
 
-inline Color QuadLinearInterpolation(const Color C[4], FLOATT x, FLOATT y)
+inline Color QuadLinearInterpolation(const Color C[4], double x, double y)
 {
 	Color res;
 	res.bytesPerComponent = C[0].bytesPerComponent;
@@ -153,3 +154,4 @@ inline Color QuadLinearInterpolation(const Color C[4], FLOATT x, FLOATT y)
 
 	return res;
 }
+

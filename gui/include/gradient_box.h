@@ -28,8 +28,10 @@
 #ifndef __GRADIENT_BOX_H__
 #define __GRADIENT_BOX_H__
 
-#include "gradient.h"
 #include "gradient_label.h"
+
+#include "fractalnow.h"
+
 #include <QWidget>
 
 class GradientBox : public QWidget

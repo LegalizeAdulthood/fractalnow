@@ -20,8 +20,6 @@
  
 #include "fractal_explorer.h"
 
-#include "misc.h"
-
 #include <QApplication>
 #include <QMenu>
 #include <QMessageBox>
@@ -38,8 +36,8 @@ FractalExplorer::FractalExplorer(const FractalConfig &fractalConfig,
 					uint_fast32_t maxAntiAliasingSize,
 					uint_fast32_t antiAliasingSizeIteration,
 					uint_fast32_t quadInterpolationSize,
-					FLOATT colorDissimilarityThreshold,
-					FLOATT adaptiveAAMThreshold,
+					double colorDissimilarityThreshold,
+					double adaptiveAAMThreshold,
 					uint_fast32_t nbThreads,
 					QWidget *parent, Qt::WindowFlags f) :
 	QLabel(parent, f), fractal(this->fractalConfig.fractal),
@@ -51,11 +49,16 @@ FractalExplorer::FractalExplorer(const FractalConfig &fractalConfig,
 	setCursor(QCursor(Qt::OpenHandCursor));
 	setContextMenuPolicy(Qt::DefaultContextMenu);
 
+	mpfr_init(fractalCenterXOnPress);
+	mpfr_init(fractalCenterYOnPress);
+
 	this->fractalConfig = CopyFractalConfig(&fractalConfig);
 	if (fractalConfig.render.bytesPerComponent == 2) {
 		QMessageBox::critical(this, tr("Gradient color depth is 16 bits."),
 			tr("16-bits gradient will be converted to 8-bits gradient."));
-		ResetGradient(&this->render, Gradient8(&this->render.gradient));
+		Gradient newGradient = Gradient8(&this->render.gradient);
+		ResetGradient(&this->render, newGradient);
+		FreeGradient(newGradient);
 	}
 	this->initialFractalConfig = CopyFractalConfig(&this->fractalConfig);
 	this->initialWidth = width;
@@ -132,6 +135,7 @@ FractalExplorer::FractalExplorer(const FractalConfig &fractalConfig,
 	pCache = NULL;
 
 	solidGuessing = true;
+	floatPrecision = FP_DOUBLE;
 
 	threads = CreateThreads(nbThreads);
 	task = DoNothingTask();
@@ -152,6 +156,8 @@ FractalExplorer::~FractalExplorer()
 	FreeFractalConfig(initialFractalConfig);
 	FreeImage(fractalImage);
 	FreeFractalCache(&cache);
+	mpfr_clear(fractalCenterXOnPress);
+	mpfr_clear(fractalCenterYOnPress);
 	delete fractalQImage;
 }
 
@@ -220,8 +226,9 @@ void FractalExplorer::setFractalConfig(const FractalConfig &fractalConfig)
 	if (this->fractalConfig.render.bytesPerComponent == 2) {
 		QMessageBox::critical(this, tr("Gradient color depth is 16 bits."),
 			tr("16-bits gradient will be converted to 8-bits gradient."));
-		ResetGradient(&this->fractalConfig.render,
-				Gradient8(&this->fractalConfig.render.gradient));
+		Gradient newGradient = Gradient8(&this->fractalConfig.render.gradient);
+		ResetGradient(&this->fractalConfig.render, newGradient);
+		FreeGradient(newGradient);
 	}
 	FreeFractalConfig(oldFractalConfig);
 	adjustSpan();
@@ -235,7 +242,7 @@ void FractalExplorer::setFractal(const Fractal &fractal)
 {
 	cancelActionIfNotFinished();
 
-	ResetFractal(&fractalConfig, CopyFractal(&fractal));
+	ResetFractal(&fractalConfig, fractal);
 	adjustSpan();
 
 	emit fractalChanged(this->fractal);
@@ -250,9 +257,12 @@ void FractalExplorer::setRenderingParameters(const RenderingParameters &render)
 	if (newRender.bytesPerComponent == 2) {
 		QMessageBox::critical(this, tr("Gradient color depth is 16 bits."),
 			tr("16-bits gradient will be converted to 8-bits gradient."));
-		ResetGradient(&newRender, Gradient8(&newRender.gradient));
+		Gradient newGradient = Gradient8(&newRender.gradient);
+		ResetGradient(&newRender, newGradient);
+		FreeGradient(newGradient);
 	}
 	ResetRenderingParameters(&fractalConfig, newRender);
+	FreeRenderingParameters(newRender);
 	adjustSpan();
 
 	emit renderingParametersChanged(this->render);
@@ -267,7 +277,7 @@ void FractalExplorer::setGradient(const Gradient &gradient)
 		QMessageBox::critical(this, tr("Gradient color depth is 16 bits."),
 			tr("16-bits gradient will be converted to 8-bits gradient."));
 	}
-	ResetGradient(&fractalConfig.render, Gradient8(&gradient));
+	ResetGradient(&fractalConfig.render, gradient);
 	adjustSpan();
 
 	emit renderingParametersChanged(render);
@@ -281,9 +291,13 @@ void FractalExplorer::adjustSpan()
 
 	if (width != 0 && height != 0) {
 		if (height / (double)width < 1) {
-			fractal.spanX = width * fractal.spanY / height;
+			mpfr_set(fractal.spanX, fractal.spanY, MPFR_RNDN);
+			mpfr_mul_ui(fractal.spanX, fractal.spanX, width, MPFR_RNDN);
+			mpfr_div_ui(fractal.spanX, fractal.spanX, height, MPFR_RNDN);
 		} else {
-			fractal.spanY = height * fractal.spanX / width;
+			mpfr_set(fractal.spanY, fractal.spanX, MPFR_RNDN);
+			mpfr_mul_ui(fractal.spanY, fractal.spanY, height, MPFR_RNDN);
+			mpfr_div_ui(fractal.spanY, fractal.spanY, width, MPFR_RNDN);
 		}
 		reInitFractal();
 	}
@@ -312,20 +326,23 @@ const RenderingParameters &FractalExplorer::getRender() const
 void FractalExplorer::resizeImage(uint_fast32_t width, uint_fast32_t height)
 {
 	if (height == 0) {
-		if (fractal.spanX == 0) {
+		if (mpfr_cmp_ui(fractal.spanX, 0) == 0) {
 			height = width;
 		} else {
-			height = width * fractal.spanY / fractal.spanX;
+			mpfr_t tmp;
+			mpfr_div(tmp, fractal.spanY, fractal.spanX, MPFR_RNDN);
+			mpfr_mul_ui(tmp, tmp, width, MPFR_RNDN);
+			height = mpfr_get_ld(tmp, MPFR_RNDN);
 		}
 	}
 
 	double dx = width - (double)fractalImage.width;
 	double dy = height - (double)fractalImage.height;
 	if (fractalImage.width != 0) {
-		fractal.spanX +=  dx * fractal.spanX / fractalImage.width;
+		mpfr_mul_d(fractal.spanX, fractal.spanX, 1. + dx/fractalImage.width, MPFR_RNDN);
 	}
 	if (fractalImage.height != 0) {
-		fractal.spanY +=  dy * fractal.spanY / fractalImage.height;
+		mpfr_mul_d(fractal.spanY, fractal.spanY, 1. + dy/fractalImage.height, MPFR_RNDN);
 	}
 	reInitFractal();
 
@@ -393,16 +410,20 @@ QSize FractalExplorer::sizeHint() const
 
 void FractalExplorer::reInitFractal()
 {
-	InitFractal(&fractal, fractal.fractalFormula, fractal.p, fractal.c,
+	Fractal newFractal;
+	InitFractal(&newFractal, fractal.fractalFormula, fractal.p, fractal.c,
 			fractal.centerX, fractal.centerY,
 			fractal.spanX, fractal.spanY, 
 			fractal.escapeRadius, fractal.maxIter);
+	Fractal oldFractal = fractal;
+	fractal = newFractal;
+	FreeFractal(oldFractal);
 }
 
 void FractalExplorer::reInitRenderingParameters()
 {
 	InitRenderingParameters(&render, render.bytesPerComponent, render.spaceColor,
-				render.countingFunction, render.coloringMethod,
+				render.iterationCount, render.coloringMethod,
 				render.addendFunction, render.stripeDensity,
 				render.interpolationMethod, render.transferFunction,
 				render.multiplier, render.offset, render.gradient);
@@ -419,7 +440,7 @@ void FractalExplorer::launchFractalDrawing()
 	lastActionType = A_FractalDrawing;
 	task = CreateDrawFractalTask(&fractalImage, &fractal, &render,
 				solidGuessing ? quadInterpolationSize : 1,
-				colorDissimilarityThreshold,
+				colorDissimilarityThreshold, floatPrecision,
 				pCache, threads->N);
 	LaunchTask(task, threads);
 	if (drawingPaused) {
@@ -434,7 +455,7 @@ void FractalExplorer::launchFractalAntiAliasing()
 	lastActionType = A_FractalAntiAliasing;
 	task = CreateAntiAliaseFractalTask(&fractalImage, &fractal, &render,
 			currentAntiAliasingSize, adaptiveAAMThreshold,
-			pCache, threads->N);
+			floatPrecision, NULL, threads->N);
 	LaunchTask(task, threads);
 	if (drawingPaused) {
 		PauseTask(task);
@@ -505,29 +526,53 @@ void FractalExplorer::refresh()
 	update();
 }
 
-void FractalExplorer::moveFractal(double dx, double dy, bool emitFractalChanged)
+void FractalExplorer::moveFractal(const mpfr_t dx, const mpfr_t dy, bool emitFractalChanged)
 {
 	cancelActionIfNotFinished();
+	mpfr_t absdx, absdy;
+	mpfr_init(absdx);
+	mpfr_init(absdy);
+	mpfr_abs(absdx, dx, MPFR_RNDN);
+	mpfr_abs(absdy, dy, MPFR_RNDN);
 
-	if (fractal.spanX == 0 || fractal.spanY == 0
-		|| fabs(dx) >= fractal.spanX || fabs(dy) > fractal.spanY) {
+	if (mpfr_cmp_ui(fractal.spanX, 0) == 0 || mpfr_cmp_ui(fractal.spanY, 0) == 0
+		|| mpfr_cmp(absdx, fractal.spanX) >= 0 || mpfr_cmp(absdy, fractal.spanY) >= 0) {
 		fractalQImage->fill(0);
 	} else {
 		QImage copiedImage(fractalQImage->copy());
 		fractalQImage->fill(0);
 		QPainter painter(fractalQImage);
 		painter.setRenderHint(QPainter::SmoothPixmapTransform);
-		double ddx = fractalQImage->width() * dx / fractal.spanX;
-		double ddy = fractalQImage->height() * dy / fractal.spanY;
-		QRectF srcRect = QRectF(std::max((double)0, ddx), std::max((double)0, ddy),
-				fractalImage.width-fabs(ddx), fractalImage.height-fabs(ddy));
-		QRectF dstRect = QRectF(std::max((double)0, -ddx), std::max((double)0, -ddy),
-				fractalImage.width-fabs(ddx), fractalImage.height-fabs(ddy));
-		painter.drawImage(dstRect, copiedImage, srcRect);
-	}
+		mpfr_t imgdx, imgdy;
+		mpfr_init(imgdx);
+		mpfr_init(imgdy);
 
-	fractal.centerX += dx;
-	fractal.centerY += dy;
+		mpfr_div(imgdx, dx, fractal.spanX, MPFR_RNDN);
+		mpfr_mul_ui(imgdx, imgdx, fractalQImage->width(), MPFR_RNDN);
+
+		mpfr_div(imgdy, dy, fractal.spanY, MPFR_RNDN);
+		mpfr_mul_ui(imgdy, imgdy, fractalQImage->height(), MPFR_RNDN);
+		
+		long double ddx = mpfr_get_ld(imgdx, MPFR_RNDN);
+		long double ddy = mpfr_get_ld(imgdy, MPFR_RNDN);
+
+		QRectF srcRect = QRectF(std::max((long double)0, ddx), std::max((long double)0, ddy),
+				fractalImage.width-fabsl(ddx), fractalImage.height-fabsl(ddy));
+		QRectF dstRect = QRectF(std::max((long double)0, -ddx), std::max((long double)0, -ddy),
+				fractalImage.width-fabsl(ddx), fractalImage.height-fabsl(ddy));
+		painter.drawImage(dstRect, copiedImage, srcRect);
+
+		mpfr_clear(imgdx);
+		mpfr_clear(imgdy);
+	}
+	mpfr_clear(absdx);
+	mpfr_clear(absdy);
+
+	mpfr_add(fractal.centerX, fractal.centerX, dx, MPFR_RNDN);
+	mpfr_add(fractal.centerY, fractal.centerY, dy, MPFR_RNDN);
+
+	//fractal.centerX += dx;
+	//fractal.centerY += dy;
 	reInitFractal();
 	if (emitFractalChanged) {
 		emit fractalChanged(fractal);
@@ -537,87 +582,151 @@ void FractalExplorer::moveFractal(double dx, double dy, bool emitFractalChanged)
 
 void FractalExplorer::moveLeftFractal()
 {
-	double dx;
-	if (fractal.spanX == 0) {
-		dx = -MIN_SINGLE_STEP;
+	mpfr_t dx, tmp;
+	mpfr_init(dx);
+	mpfr_init(tmp);
+	if (mpfr_cmp_ui(fractal.spanX, 0) == 0) {
+		mpfr_set_ld(dx, -MIN_SINGLE_STEP, MPFR_RNDN);
 	} else {
 		/* We use modf to have a multiple of image width,
 		 * so that the temporary qimage matches the
 		 * fractal image that will be computed exactly.
 		 */
-		modf(-0.2 * fractalImage.width, &dx);
-		dx *= fractal.spanX / fractalImage.width;
+		mpfr_set_ld(tmp, -0.2 * fractalImage.width, MPFR_RNDN);
+		mpfr_modf(dx, tmp, tmp, MPFR_RNDN);
+		mpfr_mul(dx, dx, fractal.spanX, MPFR_RNDN);
+		mpfr_div_ui(dx, dx, fractalImage.width, MPFR_RNDN);
 	}
-	moveFractal(dx, 0, true);
+	mpfr_set_ui(tmp, 0, MPFR_RNDN);
+	moveFractal(dx, tmp, true);
+
+	mpfr_clear(dx);
+	mpfr_clear(tmp);
 }
 
 void FractalExplorer::moveRightFractal()
 {
-	double dx;
-	if (fractal.spanX == 0) {
-		dx = MIN_SINGLE_STEP;
+	mpfr_t dx, tmp;
+	mpfr_init(dx);
+	mpfr_init(tmp);
+	if (mpfr_cmp_ui(fractal.spanX, 0) == 0) {
+		mpfr_set_ld(dx, MIN_SINGLE_STEP, MPFR_RNDN);
 	} else {
-		modf(0.2 * fractalImage.width, &dx);
-		dx *= fractal.spanX / fractalImage.width;
+		mpfr_set_ld(tmp, 0.2 * fractalImage.width, MPFR_RNDN);
+		mpfr_modf(dx, tmp, tmp, MPFR_RNDN);
+		mpfr_mul(dx, dx, fractal.spanX, MPFR_RNDN);
+		mpfr_div_ui(dx, dx, fractalImage.width, MPFR_RNDN);
 	}
-	moveFractal(dx, 0, true);
+	mpfr_set_ui(tmp, 0, MPFR_RNDN);
+	moveFractal(dx, tmp, true);
+
+	mpfr_clear(dx);
+	mpfr_clear(tmp);
 }
 
 void FractalExplorer::moveUpFractal()
 {
-	double dy;
-	if (fractal.spanY == 0) {
-		dy = -MIN_SINGLE_STEP;
+	mpfr_t dy, tmp;
+	mpfr_init(dy);
+	mpfr_init(tmp);
+	if (mpfr_cmp_ui(fractal.spanY,0) == 0) {
+		mpfr_set_ld(dy, -MIN_SINGLE_STEP, MPFR_RNDN);
 	} else {
-		modf(-0.2 * fractalImage.height, &dy);
-		dy *= fractal.spanY / fractalImage.height;
+		mpfr_set_ld(tmp, -0.2 * fractalImage.height, MPFR_RNDN);
+		mpfr_modf(dy, tmp, tmp, MPFR_RNDN);
+		mpfr_mul(dy, dy, fractal.spanY, MPFR_RNDN);
+		mpfr_div_ui(dy, dy, fractalImage.height, MPFR_RNDN);
 	}
-	moveFractal(0, dy, true);
+	mpfr_set_ui(tmp, 0, MPFR_RNDN);
+	moveFractal(tmp, dy, true);
+
+	mpfr_clear(dy);
+	mpfr_clear(tmp);
 }
 
 void FractalExplorer::moveDownFractal()
 {
-	double dy;
-	if (fractal.spanY == 0) {
-		dy = MIN_SINGLE_STEP;
+	mpfr_t dy, tmp;
+	mpfr_init(dy);
+	mpfr_init(tmp);
+	if (mpfr_cmp_ui(fractal.spanY,0) == 0) {
+		mpfr_set_ld(dy, MIN_SINGLE_STEP, MPFR_RNDN);
 	} else {
-		modf(0.2 * fractalImage.height, &dy);
-		dy *= fractal.spanY / fractalImage.height;
+		mpfr_set_ld(tmp, 0.2 * fractalImage.height, MPFR_RNDN);
+		mpfr_modf(dy, tmp, tmp, MPFR_RNDN);
+		mpfr_mul(dy, dy, fractal.spanY, MPFR_RNDN);
+		mpfr_div_ui(dy, dy, fractalImage.height, MPFR_RNDN);
 	}
-	moveFractal(0, dy, true);
+	mpfr_set_ui(tmp, 0, MPFR_RNDN);
+	moveFractal(tmp, dy, true);
+
+	mpfr_clear(dy);
+	mpfr_clear(tmp);
 }
 
-void FractalExplorer::zoomInFractal(double newSpanX, double zoomCenterX, double zoomCenterY,
+void FractalExplorer::zoomInFractal(const mpfr_t newSpanX, const mpfr_t zoomCenterX, const mpfr_t zoomCenterY,
 					bool emitFractalChanged)
 {
 	cancelActionIfNotFinished();
 
-	if (newSpanX == 0) {
+	if (mpfr_cmp_ui(newSpanX, 0) == 0) {
 		fractalQImage->fill(0);
-		fractal.spanX = 0;
-		fractal.spanY = 0;
+		mpfr_set_ui(fractal.spanX, 0, MPFR_RNDN);
+		mpfr_set_ui(fractal.spanY, 0, MPFR_RNDN);
 	} else {
-		double newSpanY = newSpanX * fractalImage.height / fractalImage.width;
-		double newCenterX = zoomCenterX + newSpanX * (fractal.centerX - zoomCenterX)
-					/ fractal.spanX;
-		double newCenterY = zoomCenterY + newSpanY * (fractal.centerY - zoomCenterY)
-					/ fractal.spanY;
+		mpfr_t newSpanY, newCenterX, newCenterY, ratioSpanX;
+		mpfr_init(newSpanY);
+		mpfr_init(newCenterX);
+		mpfr_init(newCenterY);
+		mpfr_init(ratioSpanX);
+
+		mpfr_div(ratioSpanX, newSpanX, fractal.spanX, MPFR_RNDN);
+
+		mpfr_mul_ui(newSpanY, newSpanX, fractalImage.height, MPFR_RNDN);
+		mpfr_div_ui(newSpanY, newSpanY, fractalImage.width, MPFR_RNDN);
+
+		mpfr_sub(newCenterX, fractal.centerX, zoomCenterX, MPFR_RNDN);
+		mpfr_mul(newCenterX, newCenterX, ratioSpanX, MPFR_RNDN);
+		mpfr_add(newCenterX, newCenterX, zoomCenterX, MPFR_RNDN);
+
+		mpfr_sub(newCenterY, fractal.centerY, zoomCenterY, MPFR_RNDN);
+		mpfr_mul(newCenterY, newCenterY, newSpanY, MPFR_RNDN);
+		mpfr_div(newCenterY, newCenterY, fractal.spanY, MPFR_RNDN);
+		mpfr_add(newCenterY, newCenterY, zoomCenterY, MPFR_RNDN);
 
 		QImage copiedImage(fractalQImage->copy());
 		fractalQImage->fill(0);
 		QPainter painter(fractalQImage);
 		painter.setRenderHint(QPainter::SmoothPixmapTransform);
 		QRect dstRect(fractalQImage->rect());
-		QRectF srcRect(0, 0, dstRect.width() * newSpanX / fractal.spanX,
-					dstRect.height() * newSpanX / fractal.spanX); 
-		srcRect.moveCenter(QPointF((fractalQImage->width())*(newCenterX-fractal.x1)/fractal.spanX,
-					(fractalQImage->height())*(newCenterY-fractal.y1)/fractal.spanY));
+
+		QRectF srcRect(0, 0, dstRect.width() * mpfr_get_ld(ratioSpanX,MPFR_RNDN),
+					dstRect.height() * mpfr_get_ld(ratioSpanX,MPFR_RNDN)); 
+
+		mpfr_t srcRectCenterX, srcRectCenterY;
+		mpfr_init(srcRectCenterX);
+		mpfr_init(srcRectCenterY);
+		mpfr_sub(srcRectCenterX, newCenterX, fractal.x1, MPFR_RNDN);
+		mpfr_div(srcRectCenterX, srcRectCenterX, fractal.spanX, MPFR_RNDN);
+		mpfr_mul_ui(srcRectCenterX, srcRectCenterX, fractalQImage->width(), MPFR_RNDN);
+		mpfr_sub(srcRectCenterY, newCenterY, fractal.y1, MPFR_RNDN);
+		mpfr_div(srcRectCenterY, srcRectCenterY, fractal.spanY, MPFR_RNDN);
+		mpfr_mul_ui(srcRectCenterY, srcRectCenterY, fractalQImage->height(), MPFR_RNDN);
+
+		srcRect.moveCenter(QPointF(mpfr_get_ld(srcRectCenterX, MPFR_RNDN), mpfr_get_ld(srcRectCenterY, MPFR_RNDN)));
 		painter.drawImage(dstRect, copiedImage, srcRect);
 
-		fractal.centerX= newCenterX;
-		fractal.centerY= newCenterY;
-		fractal.spanX = newSpanX;
-		fractal.spanY = newSpanY;
+		mpfr_set(fractal.centerX, newCenterX, MPFR_RNDN);
+		mpfr_set(fractal.centerY, newCenterY, MPFR_RNDN);
+		mpfr_set(fractal.spanX, newSpanX, MPFR_RNDN);
+		mpfr_set(fractal.spanY, newSpanY, MPFR_RNDN);
+
+		mpfr_clear(newSpanY);
+		mpfr_clear(newCenterX);
+		mpfr_clear(newCenterY);
+		mpfr_clear(ratioSpanX);
+		mpfr_clear(srcRectCenterX);
+		mpfr_clear(srcRectCenterY);
 	}
 	reInitFractal();
 	if (emitFractalChanged) {
@@ -626,26 +735,38 @@ void FractalExplorer::zoomInFractal(double newSpanX, double zoomCenterX, double 
 	refresh();
 }
 
-void FractalExplorer::zoomOutFractal(double newSpanX, double zoomCenterX, double zoomCenterY,
+void FractalExplorer::zoomOutFractal(const mpfr_t newSpanX, const mpfr_t zoomCenterX, const mpfr_t zoomCenterY,
 					bool emitFractalChanged)
 {
 	cancelActionIfNotFinished();
 
-	if (newSpanX == 0) {
+	if (mpfr_cmp_ui(newSpanX,0) == 0) {
 		fractalQImage->fill(0);
-		fractal.spanX = 0;
-		fractal.spanY = 0;
+		mpfr_set_ui(fractal.spanX, 0, MPFR_RNDN);
+		mpfr_set_ui(fractal.spanY, 0, MPFR_RNDN);
 	} else {
-		double newSpanY = newSpanX * fractalImage.height / fractalImage.width;
-		double newCenterX, newCenterY;
-		if (fractal.spanX == 0 || fractal.spanY == 0) {
-			newCenterX = zoomCenterX;
-			newCenterY = zoomCenterY;
+		mpfr_t newSpanY, newCenterX, newCenterY, ratioSpanX;
+		mpfr_init(newSpanY);
+		mpfr_init(newCenterX);
+		mpfr_init(newCenterY);
+		mpfr_init(ratioSpanX);
+
+		mpfr_div(ratioSpanX, newSpanX, fractal.spanX, MPFR_RNDN);
+
+		mpfr_mul_ui(newSpanY, newSpanX, fractalImage.height, MPFR_RNDN);
+		mpfr_div_ui(newSpanY, newSpanY, fractalImage.width, MPFR_RNDN);
+		if (mpfr_cmp_ui(fractal.spanX,0) == 0 || mpfr_cmp_ui(fractal.spanY,0) == 0) {
+			mpfr_set(newCenterX, zoomCenterX, MPFR_RNDN);
+			mpfr_set(newCenterY, zoomCenterY, MPFR_RNDN);
 		} else {
-			newCenterX = zoomCenterX + newSpanX * (fractal.centerX - zoomCenterX)
-					/ fractal.spanX;
-			newCenterY = zoomCenterY + newSpanY * (fractal.centerY - zoomCenterY)
-					/ fractal.spanY;
+			mpfr_sub(newCenterX, fractal.centerX, zoomCenterX, MPFR_RNDN);
+			mpfr_mul(newCenterX, newCenterX, ratioSpanX, MPFR_RNDN);
+			mpfr_add(newCenterX, newCenterX, zoomCenterX, MPFR_RNDN);
+
+			mpfr_sub(newCenterY, fractal.centerY, zoomCenterY, MPFR_RNDN);
+			mpfr_mul(newCenterY, newCenterY, newSpanY, MPFR_RNDN);
+			mpfr_div(newCenterY, newCenterY, fractal.spanY, MPFR_RNDN);
+			mpfr_add(newCenterY, newCenterY, zoomCenterY, MPFR_RNDN);
 		}
 
 		QImage copiedImage(fractalQImage->copy());
@@ -653,19 +774,40 @@ void FractalExplorer::zoomOutFractal(double newSpanX, double zoomCenterX, double
 		QPainter painter(fractalQImage);
 		painter.setRenderHint(QPainter::SmoothPixmapTransform);
 		QRect srcRect(fractalQImage->rect());
-		QRectF dstRect(0, 0, srcRect.width() * fractal.spanX / newSpanX, srcRect.height()
-					* fractal.spanX / newSpanX); 
-		dstRect.moveCenter(QPointF(srcRect.width()*(fractal.centerX-(newCenterX-newSpanX/2))
-					/ newSpanX, srcRect.height()
-					*(fractal.centerY-(newCenterY-newSpanY/2)) / newSpanY));
+		QRectF dstRect(0, 0, srcRect.width() / mpfr_get_ld(ratioSpanX, MPFR_RNDN),
+				srcRect.height() / mpfr_get_ld(ratioSpanX, MPFR_RNDN)); 
+
+		mpfr_t dstRectCenterX, dstRectCenterY;
+		mpfr_init(dstRectCenterX);
+		mpfr_init(dstRectCenterY);
+
+		mpfr_div_ui(dstRectCenterX, newSpanX, 2, MPFR_RNDN);
+		mpfr_sub(dstRectCenterX, newCenterX, dstRectCenterX, MPFR_RNDN);
+		mpfr_sub(dstRectCenterX, fractal.centerX, dstRectCenterX, MPFR_RNDN);
+		mpfr_div(dstRectCenterX, dstRectCenterX, newSpanX, MPFR_RNDN);
+		mpfr_mul_ui(dstRectCenterX, dstRectCenterX, srcRect.width(), MPFR_RNDN);
+
+		mpfr_div_ui(dstRectCenterY, newSpanY, 2, MPFR_RNDN);
+		mpfr_sub(dstRectCenterY, newCenterY, dstRectCenterY, MPFR_RNDN);
+		mpfr_sub(dstRectCenterY, fractal.centerY, dstRectCenterY, MPFR_RNDN);
+		mpfr_div(dstRectCenterY, dstRectCenterY, newSpanY, MPFR_RNDN);
+		mpfr_mul_ui(dstRectCenterY, dstRectCenterY, srcRect.height(), MPFR_RNDN);
+		
+		dstRect.moveCenter(QPointF(mpfr_get_ld(dstRectCenterX, MPFR_RNDN), mpfr_get_ld(dstRectCenterY, MPFR_RNDN)));
 
 		painter.drawImage(dstRect, copiedImage, srcRect);
 
-		fractal.centerX= newCenterX;
-		fractal.centerY= newCenterY;
-		fractal.spanX = newSpanX;
-		fractal.spanY = newSpanY;
+		mpfr_set(fractal.centerX, newCenterX, MPFR_RNDN);
+		mpfr_set(fractal.centerY, newCenterY, MPFR_RNDN);
+		mpfr_set(fractal.spanX, newSpanX, MPFR_RNDN);
+		mpfr_set(fractal.spanY, newSpanY, MPFR_RNDN);
 
+		mpfr_clear(newSpanY);
+		mpfr_clear(newCenterX);
+		mpfr_clear(newCenterY);
+		mpfr_clear(ratioSpanX);
+		mpfr_clear(dstRectCenterX);
+		mpfr_clear(dstRectCenterY);
 	}
 	reInitFractal();
 	if (emitFractalChanged) {
@@ -676,26 +818,38 @@ void FractalExplorer::zoomOutFractal(double newSpanX, double zoomCenterX, double
 
 void FractalExplorer::zoomInFractal()
 {
-	double newSpanX;
-	if (fractal.spanX == 0) {
-		newSpanX = MIN_SINGLE_STEP;
+	mpfr_t newSpanX, tmp;
+	mpfr_init(newSpanX);
+	mpfr_init(tmp);
+	if (mpfr_cmp_ui(fractal.spanX,0) == 0) {
+		mpfr_set_ld(newSpanX, MIN_SINGLE_STEP, MPFR_RNDN);
 	} else {
-		modf((1 - 0.3) * fractalImage.width, &newSpanX);
-		newSpanX *= fractal.spanX / fractalImage.width;
+		mpfr_set_ld(tmp, (1 - 0.3) * fractalImage.width, MPFR_RNDN);
+		mpfr_modf(newSpanX, tmp, tmp, MPFR_RNDN);
+		mpfr_mul(newSpanX, newSpanX, fractal.spanX, MPFR_RNDN);
+		mpfr_div_ui(newSpanX, newSpanX, fractalImage.width, MPFR_RNDN);
 	}
 	zoomInFractal(newSpanX, fractal.centerX, fractal.centerY, true);
+	mpfr_clear(newSpanX);
+	mpfr_clear(tmp);
 }
 
 void FractalExplorer::zoomOutFractal()
 {
-	double newSpanX;
-	if (fractal.spanX == 0) {
-		newSpanX = MIN_SINGLE_STEP;
+	mpfr_t newSpanX, tmp;
+	mpfr_init(newSpanX);
+	mpfr_init(tmp);
+	if (mpfr_cmp_ui(fractal.spanX,0) == 0) {
+		mpfr_set_ld(newSpanX, MIN_SINGLE_STEP, MPFR_RNDN);
 	} else {
-		modf((1 + 0.3) * fractalImage.width, &newSpanX);
-		newSpanX *= fractal.spanX / fractalImage.width;
+		mpfr_set_ld(tmp, (1 + 0.3) * fractalImage.width, MPFR_RNDN);
+		mpfr_modf(newSpanX, tmp, tmp, MPFR_RNDN);
+		mpfr_mul(newSpanX, newSpanX, fractal.spanX, MPFR_RNDN);
+		mpfr_div_ui(newSpanX, newSpanX, fractalImage.width, MPFR_RNDN);
 	}
 	zoomOutFractal(newSpanX, fractal.centerX, fractal.centerY, true);
+	mpfr_clear(newSpanX);
+	mpfr_clear(tmp);
 }
 
 void FractalExplorer::mousePressEvent(QMouseEvent *event)
@@ -712,8 +866,8 @@ void FractalExplorer::mousePressEvent(QMouseEvent *event)
 	switch (event->button()) {
 	case Qt::LeftButton:
 		movingFractalDeferred = true;
-		fractalCenterXOnPress = fractal.centerX;
-		fractalCenterYOnPress = fractal.centerY;
+		mpfr_set(fractalCenterXOnPress, fractal.centerX, MPFR_RNDN);
+		mpfr_set(fractalCenterYOnPress, fractal.centerY, MPFR_RNDN);
 		mousePosOnPress = event->posF();
 		QApplication::setOverrideCursor(Qt::ClosedHandCursor);
 		break;
@@ -761,8 +915,16 @@ void FractalExplorer::mouseMoveEvent(QMouseEvent *event)
 		}
 		fractalMoved = true;
 		QVector2D vect(event->posF()-mousePosOnPress);
-		double dx = vect.x() * fractal.spanX / fractalImage.width;
-		double dy = vect.y() * fractal.spanY / fractalImage.height;
+		mpfr_t dx, dy;
+		mpfr_init(dx);
+		mpfr_init(dy);
+
+		mpfr_mul_d(dx, fractal.spanX, vect.x(), MPFR_RNDN);
+		mpfr_div_ui(dx, dx, fractalImage.width, MPFR_RNDN);
+
+		mpfr_mul_d(dy, fractal.spanY, vect.y(), MPFR_RNDN);
+		mpfr_div_ui(dy, dy, fractalImage.height, MPFR_RNDN);
+
 		fractalQImage->fill(0);
 		QPainter painter(fractalQImage);
 		painter.setRenderHint(QPainter::SmoothPixmapTransform);
@@ -774,17 +936,31 @@ void FractalExplorer::mouseMoveEvent(QMouseEvent *event)
 				fractalImage.width - fabs(ddx), fractalImage.height - fabs(ddy));
 		painter.drawImage(dstRect, imageCopyOnPress, srcRect);
 
-		fractal.centerX = fractalCenterXOnPress-dx;
-		fractal.centerY = fractalCenterYOnPress-dy;
+		mpfr_sub(fractal.centerX, fractalCenterXOnPress, dx, MPFR_RNDN);
+		mpfr_sub(fractal.centerY, fractalCenterYOnPress, dy, MPFR_RNDN);
+
+		mpfr_clear(dx);
+		mpfr_clear(dy);
 		
 		reInitFractal();
 		emit fractalChanged(fractal);
 	} else if (movingFractalRealTime) {
 		QVector2D vect(event->posF()-prevMousePos);
-		double dx = vect.x() * fractal.spanX / fractalImage.width;
-		double dy = vect.y() * fractal.spanY / fractalImage.height;
-		moveFractal(-dx, -dy, true);
+		mpfr_t dx, dy;
+		mpfr_init(dx);
+		mpfr_init(dy);
+
+		mpfr_mul_d(dx, fractal.spanX, -vect.x(), MPFR_RNDN);
+		mpfr_div_ui(dx, dx, fractalImage.width, MPFR_RNDN);
+
+		mpfr_mul_d(dy, fractal.spanY, -vect.y(), MPFR_RNDN);
+		mpfr_div_ui(dy, dy, fractalImage.height, MPFR_RNDN);
+
+		moveFractal(dx, dy, true);
 		prevMousePos = event->posF();
+
+		mpfr_clear(dx);
+		mpfr_clear(dy);
 	} else {
 		QLabel::mouseMoveEvent(event);
 	}
@@ -812,27 +988,34 @@ void FractalExplorer::wheelEvent(QWheelEvent *event)
 	double numSteps = numDegrees / 15;
 
 	if (event->orientation() == Qt::Vertical) {
-		double newSpanX;
-		if (fractal.spanX == 0) {
-			newSpanX = MIN_SINGLE_STEP;
+		mpfr_t newSpanX;
+		mpfr_init(newSpanX);
+		if (mpfr_cmp_ui(fractal.spanX, 0) == 0) {
+			mpfr_set_ld(newSpanX, MIN_SINGLE_STEP, MPFR_RNDN);
 		} else {
-			newSpanX = fractal.spanX * powl(1 - signl(numSteps)*0.3, fabsl(numSteps));
+			mpfr_mul_d(newSpanX, fractal.spanX, powl(1 - signl(numSteps)*0.3, fabsl(numSteps)), MPFR_RNDN);
 		}
-		double zoomCenterX, zoomCenterY;
-		if (fractal.spanX == 0 || fractal.spanY == 0) {
-			zoomCenterX = fractal.centerX;
-			zoomCenterY = fractal.centerY;
+		mpfr_t zoomCenterX, zoomCenterY;
+		mpfr_init(zoomCenterX);
+		mpfr_init(zoomCenterY);
+		if (mpfr_cmp_ui(fractal.spanX,0) == 0 || mpfr_cmp_ui(fractal.spanY,0) == 0) {
+			mpfr_set(zoomCenterX, fractal.centerX, MPFR_RNDN);
+			mpfr_set(zoomCenterY, fractal.centerY, MPFR_RNDN);
 		} else {
-			zoomCenterX = (event->x() + 0.5) * fractal.spanX
-					/ fractalImage.width + fractal.x1;
-			zoomCenterY = (event->y() + 0.5) * fractal.spanY
-					/ fractalImage.height + fractal.y1;
+			mpfr_mul_d(zoomCenterX, fractal.spanX, (event->x() + 0.5) / fractalImage.width, MPFR_RNDN);
+			mpfr_add(zoomCenterX, zoomCenterX, fractal.x1, MPFR_RNDN);
+
+			mpfr_mul_d(zoomCenterY, fractal.spanY, (event->y() + 0.5) / fractalImage.height, MPFR_RNDN);
+			mpfr_add(zoomCenterY, zoomCenterY, fractal.y1, MPFR_RNDN);
 		}
 		if (numSteps > 0) {
 			zoomInFractal(newSpanX, zoomCenterX, zoomCenterY, true);
 		} else {
 			zoomOutFractal(newSpanX, zoomCenterX, zoomCenterY, true);
 		}
+		mpfr_clear(newSpanX);
+		mpfr_clear(zoomCenterX);
+		mpfr_clear(zoomCenterY);
 	}
 	event->accept();
 	update();
@@ -849,76 +1032,110 @@ void FractalExplorer::setFractalFormula(int index)
 	refresh();
 }
 
-void FractalExplorer::setPParam(double complex value)
+void FractalExplorer::setPParam(const mpc_t *value)
 {
 	cancelActionIfNotFinished();
 
-	fractal.p = value;
+	mpc_set(fractal.p, *value, MPC_RNDNN);
 	reInitFractal();
 
 	refresh();
 }
 
-void FractalExplorer::setPParamRe(double value)
+void FractalExplorer::setPParamRe(const mpfr_t *value)
 {
 	cancelActionIfNotFinished();
 
-	fractal.p = value + I*cimagF(fractal.p);
+	mpfr_t im;
+	mpfr_init(im);
+	mpfr_set(im, mpc_imagref(fractal.p), MPFR_RNDN);
+	mpc_set_fr_fr(fractal.p, *value, im, MPC_RNDNN);
+	mpfr_clear(im);
 	reInitFractal();
 
 	refresh();
 }
 
-void FractalExplorer::setPParamIm(double value)
+void FractalExplorer::setPParamIm(const mpfr_t *value)
 {
 	cancelActionIfNotFinished();
 
-	fractal.p = crealF(fractal.p) + I*value;
+	mpfr_t re;
+	mpfr_init(re);
+	mpfr_set(re, mpc_realref(fractal.p), MPFR_RNDN);
+	mpc_set_fr_fr(fractal.p, re, *value, MPC_RNDNN);
+	mpfr_clear(re);
 	reInitFractal();
 
 	refresh();
 }
 
-void FractalExplorer::setCParamRe(double value)
+void FractalExplorer::setCParamRe(const mpfr_t *value)
 {
 	cancelActionIfNotFinished();
 
-	fractal.c = value + I*cimagF(fractal.c);
+	mpfr_t im;
+	mpfr_init(im);
+	mpfr_set(im, mpc_imagref(fractal.c), MPFR_RNDN);
+	mpc_set_fr_fr(fractal.c, *value, im, MPC_RNDNN);
+	mpfr_clear(im);
 	reInitFractal();
 
 	refresh();
 }
 
-void FractalExplorer::setCParamIm(double value)
+void FractalExplorer::setCParamIm(const mpfr_t *value)
 {
 	cancelActionIfNotFinished();
 
-	fractal.c = crealF(fractal.c) + I*value;
+	mpfr_t re;
+	mpfr_init(re);
+	mpfr_set(re, mpc_realref(fractal.c), MPFR_RNDN);
+	mpc_set_fr_fr(fractal.c, re, *value, MPC_RNDNN);
+	mpfr_clear(re);
 	reInitFractal();
 
 	refresh();
 }
 
-void FractalExplorer::setCenterX(double value)
+void FractalExplorer::setCenterX(const mpfr_t *value)
 {
-	double dx = value - fractal.centerX;
-	moveFractal(dx, 0);
+	mpfr_t dx, dy;
+	mpfr_init(dx);
+	mpfr_init(dy);
+
+	mpfr_sub(dx, *value, fractal.centerX, MPFR_RNDN);
+	mpfr_set_ui(dy, 0, MPFR_RNDN);
+
+	moveFractal(dx, dy);
+
+	mpfr_clear(dx);
+	mpfr_clear(dy);
 }
 
-void FractalExplorer::setCenterY(double value)
+void FractalExplorer::setCenterY(const mpfr_t *value)
 {
-	double dy = value - fractal.centerY;
-	moveFractal(0, dy);
+	mpfr_t dx, dy;
+	mpfr_init(dx);
+	mpfr_init(dy);
+
+	mpfr_set_ui(dx, 0, MPFR_RNDN);
+	mpfr_sub(dy, *value, fractal.centerY, MPFR_RNDN);
+
+	moveFractal(dx, dy);
+
+	mpfr_clear(dx);
+	mpfr_clear(dy);
 }
 
-void FractalExplorer::setSpanX(double value)
+void FractalExplorer::setSpanX(const mpfr_t *value)
 {
-	if (value > fractal.spanX) {
+	if (mpfr_cmp(*value, fractal.spanX) > 0) {
 		/* Zoom out */
-		zoomOutFractal(value, fractal.centerX, fractal.centerY);
+		zoomOutFractal(*value, fractal.centerX, fractal.centerY);
 	} else {
 		/* Zoom in */
-		zoomInFractal(value, fractal.centerX, fractal.centerY);
+		zoomInFractal(*value, fractal.centerX, fractal.centerY);
 	}
 }
 
@@ -972,11 +1189,11 @@ void FractalExplorer::setColoringMethod(int index)
 	refresh();
 }
 
-void FractalExplorer::setCountingFunction(int index)
+void FractalExplorer::setIterationCount(int index)
 {
 	cancelActionIfNotFinished();
 
-	render.countingFunction = (CountingFunction)index;
+	render.iterationCount = (IterationCount)index;
 	reInitRenderingParameters();
 
 	refresh();
@@ -1080,7 +1297,7 @@ void FractalExplorer::setGradient(const QGradientStops &gradientStops)
 	}
 
 	/* Now gradient FractalNow gradient from well formed gradient.*/
-	FLOATT positionStop[wellFormedGradientStops.size()];
+	double positionStop[wellFormedGradientStops.size()];
 	Color colorStop[wellFormedGradientStops.size()];
 	QGradientStop currentStop;
 	for (int i = 0; i < wellFormedGradientStops.size(); ++i) {
@@ -1100,6 +1317,15 @@ void FractalExplorer::setGradient(const QGradientStops &gradientStops)
 	if (!wellFormed) {
 		emit renderingParametersChanged(render);
 	}
+}
+
+void FractalExplorer::setFloatPrecision(int index)
+{
+	cancelActionIfNotFinished();
+
+	floatPrecision = (FloatPrecision)index;
+
+	refresh();
 }
 
 void FractalExplorer::contextMenuEvent(QContextMenuEvent *event)

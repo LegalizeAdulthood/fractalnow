@@ -35,8 +35,8 @@
 #include <QLineEdit>
 #include <QRadioButton>
 #include <QSpinBox>
-#include "fractal.h"
-#include "fractal_config.h"
+
+#include "fractalnow.h"
 
 class ExportFractalImageDialog : public QDialog
 {
@@ -48,11 +48,11 @@ class ExportFractalImageDialog : public QDialog
 					QString imageDir = QString(),
 					QWidget *parent = 0, Qt::WindowFlags f = 0);
 	void resetFractalConfig(const FractalConfig &config);
+	void setFloatPrecision(FloatPrecision floatPrecision);
 	QString exportedFile();
 	~ExportFractalImageDialog();
 
 	private:
-	void reInitFractal(Fractal &fractal);
 	void TaskProgressBar(Task *task, QString labelText, QString cancelButtonText);
 
 	enum AntiAliasingMethod {
@@ -69,6 +69,7 @@ class ExportFractalImageDialog : public QDialog
 	Fractal &fractal;
 	RenderingParameters &render;
 	Threads *threads;
+	FloatPrecision floatPrecision;
 	QComboBox *colorDepthBox;
 	QLineEdit *outputFileEdit;
 	QRadioButton *noAAMButton;

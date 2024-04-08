@@ -21,10 +21,6 @@
 #include "command_line.h"
 #include "help.h"
 
-#include "error.h"
-#include "fractal.h"
-#include "thread.h"
-
 #include <getopt.h>
 #include <inttypes.h>
 
@@ -48,7 +44,7 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 	FractalNow_debug = 0;
 	int help = 0;
 
-	long int tmp;
+	long int tmp = 0;
 	fractalConfigFileName = NULL;
 	fractalFileName = NULL;
 	renderingFileName = NULL;
@@ -60,11 +56,13 @@ CommandLineArguments::CommandLineArguments(int argc, char *argv[])
 	colorDissimilarityThreshold = DEFAULT_COLOR_DISSIMILARITY_THRESHOLD;
 	quadInterpolationSize = DEFAULT_QUAD_INTERPOLATION_SIZE;
 	nbThreads = -1;
+	floatPrecision = FP_DOUBLE;
+	MPFloatPrecision = fractalnow_mpfr_precision;
 
 	width = 0;
 	height = 0;
 	int o;
-	while ((o = getopt(argc, argv, "hvda:f:i:j:m:nM:r:x:y:t:c:g:r:p:q")) != -1) {
+	while ((o = getopt(argc, argv, "hvda:f:i:j:l:L:m:nM:r:x:y:t:c:g:r:p:q")) != -1) {
 		switch (o) {
 		case 'h':
 			help = 1;
@@ -94,6 +92,22 @@ debug mode.\n", QApplication::applicationName().toStdString().c_str());
 			break;
 		case 'g':
 			gradientFileName = optarg;
+			break;
+		case 'l':
+			if (GetFloatPrecision(&floatPrecision, optarg)) {
+				invalid_use_error("\n");
+			}
+			break;
+		case 'L':
+			if (sscanf(optarg, "%ld", &tmp) < 1) {
+				invalid_use_error("Command-line argument \'%s\' is not a number.\n", optarg);
+			}
+			if (tmp < MPFR_PREC_MIN || tmp > MPFR_PREC_MAX) {
+				invalid_use_error("MP floats precision must be between %ld and %ld.\n",
+					(long int)MPFR_PREC_MIN, (long int)MPFR_PREC_MAX);
+			} else {
+				MPFloatPrecision = (mpfr_prec_t)tmp;
+			}
 			break;
 		case 'i':
 			if (sscanf(optarg, "%ld", &tmp) < 1) {
@@ -165,7 +179,7 @@ debug mode.\n", QApplication::applicationName().toStdString().c_str());
 			}
 			break;
 		case 'p':
-			if (sscanf(optarg, "%"SCNFLOATT, &adaptiveAAMThreshold) < 1) {
+			if (sscanf(optarg, "%lf", &adaptiveAAMThreshold) < 1) {
 				invalid_use_error("Command-line argument \'%s\' is not a floating-point number.\n", optarg);
 			}
 			if (adaptiveAAMThreshold < 0.) {
@@ -173,7 +187,7 @@ debug mode.\n", QApplication::applicationName().toStdString().c_str());
 			} 
 			break;
 		case 't':
-			if (sscanf(optarg, "%"SCNFLOATT, &colorDissimilarityThreshold) < 1) {
+			if (sscanf(optarg, "%lf", &colorDissimilarityThreshold) < 1) {
 				invalid_use_error("Command-line argument \'%s\' is not a floating-point number.\n", optarg);
 			}
 			if (colorDissimilarityThreshold < 0.) {

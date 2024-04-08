@@ -19,8 +19,7 @@
  */
 
 #include "anti_aliasing.h"
-#include "error.h"
-#include "misc.h"
+#include "fractalnow.h"
 #include <stdlib.h>
 #include <string.h>
 

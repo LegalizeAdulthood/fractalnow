@@ -20,6 +20,7 @@
  
 #include "file_io.h"
 #include "error.h"
+#include <float.h>
 #include <inttypes.h>
 
 int readString(FILE *file, char *dst)
@@ -44,9 +45,14 @@ int readUint32(FILE *file, uint32_t *dst)
 	return res;
 }
 
-int readFLOATT(FILE *file, FLOATT *dst)
+int readDouble(FILE *file, double *dst)
 {
-	return fscanf(file,"%"SCNFLOATT,dst);
+	return fscanf(file,"%lf",dst);
+}
+
+int readMPFR(FILE *file, mpfr_t dst)
+{
+	return (mpfr_inp_str(dst, file, 10, MPFR_RNDN) == 0) ? -1 : 1;
 }
 
 int readColor(FILE *file, int_fast8_t bytesPerComponent, Color *dst)
@@ -86,9 +92,14 @@ int writeUint32(FILE *file, uint32_t src, const char *suffix)
 	return fprintf(file, "%"PRIu32"%s", src, suffix);
 }
 
-int writeFLOATT(FILE *file, FLOATT src, const char *suffix)
+int writeDouble(FILE *file, double src, const char *suffix)
 {
-	return fprintf(file, "%"PRIFLOATT"%s", FLOATT_DIG, src, suffix);
+	return fprintf(file, "%.*lG%s", DBL_DIG, src, suffix);
+}
+
+int writeMPFR(FILE *file, const mpfr_t src, const char *suffix)
+{
+	return mpfr_fprintf(file, "%RE%s", src, suffix);
 }
 
 int writeColor(FILE *file, Color src, const char *suffix)

@@ -27,16 +27,12 @@
 #ifndef __FRACTAL_FORMULA_H__
 #define __FRACTAL_FORMULA_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include "floating_point.h"
+#include "float_precision.h"
 #include <complex.h>
 #include <stdint.h>
 
-#ifndef complex
-#define complex _Complex
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 /**
@@ -45,7 +41,7 @@ extern "C" {
  */
 /**
  * \typedef FractalFormula
- * \brief Convenient typedef for enum FractalFormula.
+ * \brief Convenient typedef for enum e_FractalFormula.
  */
 typedef enum e_FractalFormula {
 	FRAC_MANDELBROT = 0,
@@ -93,7 +89,7 @@ extern const char *fractalFormulaDescStr[];
  * Function is case insensitive.
  * Possible strings are :
  * - "mandelbrot" for FRAC_MANDELBROT
- * - "mandelbrotp" for FRAC_MANDELBROTP
+ * - "mandelbrotp" for FRAC_MULTIBROT
  * - "julia" for FRAC_JULIA
  * - "juliap" for FRAC_JULIAP
  * - "burningship" for FRAC_BURNINGSHIP
@@ -108,111 +104,197 @@ extern const char *fractalFormulaDescStr[];
  */
 int GetFractalFormula(FractalFormula *fractalFormula, const char *str);
 
-/* Function assumes that y >= 1 and computes x^y. */
-static inline FLOATT complex cipowF(FLOATT complex x, uint_fast32_t y)
-{
-	if (y == 0) {
-		return 1;
-	}
+#define cpowPINT(fprec,res,x,y) cipowF(fprec,res,x,y)
+#define cpowPFLOATT(fprec,res,x,y) cpowF(fprec,res,x,y)
+#define cpowPTYPE(ptype,fprec,res,x,y) cpow##ptype(fprec,res,x,y)
 
-	FLOATT complex rem = 1, res = x;
-	while (y > 1) {
-		if (y % 2) {
-			rem *= res;
-			--y;
-		}
-		y >>= 1;
-		res *= res;
-	}
-
-	return res*rem;
-}
-
-#define cpowPINT(x,y) cipowF(x,y)
-#define cpowPFLOATT(x,y) cpowF(x,y)
+#define fractalP_PINT data->fractalP_INT
+#define fractalP_PFLOATT data->fractalP
+#define fractalP(ptype) fractalP_##ptype
 
 /*********************FRAC_MANDELBROT*********************/
-#define LOOP_INIT_FRAC_MANDELBROT \
-z = 0;\
-c = pixel;
+#define ENGINE_DECL_VAR_FRAC_MANDELBROT(fprec)
 
-#define LOOP_ITERATION_FRAC_MANDELBROT(ptype) \
-z = z*z+c;
+#define ENGINE_INIT_VAR_FRAC_MANDELBROT(fprec) \
+(void)NULL;
+
+#define ENGINE_CLEAR_VAR_FRAC_MANDELBROT(fprec) \
+(void)NULL;
+
+#define LOOP_INIT_FRAC_MANDELBROT(fprec) \
+cfromUiF(fprec, data->z, 0);\
+cassignF(fprec, data->c, data->pixel);
+
+#define LOOP_ITERATION_FRAC_MANDELBROT(ptype,fprec) \
+csqrF(fprec,data->z,data->z);\
+caddF(fprec,data->z,data->z,data->c);
 /*********************************************************/
-
 
 /**********************FRAC_MULTIBROT*********************/
-#define LOOP_INIT_FRAC_MULTIBROT \
-z = 0;\
-c = pixel;
+#define ENGINE_DECL_VAR_FRAC_MULTIBROT(fprec)
 
-#define LOOP_ITERATION_FRAC_MULTIBROT(ptype) \
-z = cpow##ptype(z,fractal->p##ptype)+c;
+#define ENGINE_INIT_VAR_FRAC_MULTIBROT(fprec) \
+(void)NULL;
+
+#define ENGINE_CLEAR_VAR_FRAC_MULTIBROT(fprec) \
+(void)NULL;
+
+#define LOOP_INIT_FRAC_MULTIBROT(fprec) \
+cfromUiF(fprec, data->z, 0);\
+cassignF(fprec, data->c, data->pixel);
+
+#define LOOP_ITERATION_FRAC_MULTIBROT(ptype,fprec) \
+cpowPTYPE(ptype,fprec,data->z,data->z,fractalP(ptype));\
+caddF(fprec,data->z,data->z,data->c);
 /*********************************************************/
-
 
 /***********************FRAC_JULIA************************/
-#define LOOP_INIT_FRAC_JULIA \
-z = pixel;\
-c = fractal->c;
+#define ENGINE_DECL_VAR_FRAC_JULIA(fprec)
 
-#define LOOP_ITERATION_FRAC_JULIA(ptype) \
-z = z*z+c;
+#define ENGINE_INIT_VAR_FRAC_JULIA(fprec) \
+(void)NULL;
+
+#define ENGINE_CLEAR_VAR_FRAC_JULIA(fprec) \
+(void)NULL;
+
+#define LOOP_INIT_FRAC_JULIA(fprec) \
+cassignF(fprec, data->z, data->pixel);\
+cassignF(fprec, data->c, data->fractalC);
+
+#define LOOP_ITERATION_FRAC_JULIA(ptype,fprec) \
+csqrF(fprec,data->z,data->z);\
+caddF(fprec,data->z,data->z,data->c);
 /*********************************************************/
 
-
 /*********************FRAC_MULTIJULIA*********************/
-#define LOOP_INIT_FRAC_MULTIJULIA \
-z = pixel;\
-c = fractal->c;
+#define ENGINE_DECL_VAR_FRAC_MULTIJULIA(fprec)
 
-#define LOOP_ITERATION_FRAC_MULTIJULIA(ptype) \
-z = cpow##ptype(z,fractal->p##ptype)+c;
+#define ENGINE_INIT_VAR_FRAC_MULTIJULIA(fprec) \
+(void)NULL;
+
+#define ENGINE_CLEAR_VAR_FRAC_MULTIJULIA(fprec) \
+(void)NULL;
+
+#define LOOP_INIT_FRAC_MULTIJULIA(fprec) \
+cassignF(fprec, data->z, data->pixel);\
+cassignF(fprec, data->c, data->fractalC);
+
+#define LOOP_ITERATION_FRAC_MULTIJULIA(ptype,fprec) \
+cpowPTYPE(ptype,fprec,data->z,data->z,fractalP(ptype));\
+caddF(fprec,data->z,data->z,data->c);
 /*********************************************************/
 
 /*********************FRAC_BURNINGSHIP********************/
-#define LOOP_INIT_FRAC_BURNINGSHIP \
-z = 0;\
-c = pixel;
+#define ENGINE_DECL_VAR_FRAC_BURNINGSHIP(fprec) \
+FLOATTYPE(fprec) absRealZ_FRAC;\
+FLOATTYPE(fprec) absImagZ_FRAC;
 
-#define LOOP_ITERATION_FRAC_BURNINGSHIP(ptype) \
-z = cpow##ptype(fabsF(crealF(z))+I*fabsF(cimagF(z)),fractal->p##ptype)+c;
+#define ENGINE_INIT_VAR_FRAC_BURNINGSHIP(fprec) \
+initF(fprec, data->absRealZ_FRAC);\
+initF(fprec, data->absImagZ_FRAC);
+
+#define ENGINE_CLEAR_VAR_FRAC_BURNINGSHIP(fprec) \
+clearF(fprec, data->absRealZ_FRAC);\
+clearF(fprec, data->absImagZ_FRAC);
+
+#define LOOP_INIT_FRAC_BURNINGSHIP(fprec) \
+cfromUiF(fprec, data->z, 0);\
+cassignF(fprec, data->c, data->pixel);
+
+#define LOOP_ITERATION_FRAC_BURNINGSHIP(ptype,fprec) \
+crealF(fprec, data->absRealZ_FRAC, data->z);\
+fabsF(fprec, data->absRealZ_FRAC, data->absRealZ_FRAC);\
+cimagF(fprec, data->absImagZ_FRAC, data->z);\
+fabsF(fprec, data->absImagZ_FRAC, data->absImagZ_FRAC);\
+cfromReImF(fprec, data->z, data->absRealZ_FRAC, data->absImagZ_FRAC);\
+cpowPTYPE(ptype,fprec,data->z,data->z,fractalP(ptype));\
+caddF(fprec,data->z,data->z,data->c);
 /*********************************************************/
 
 /*******************FRAC_JULIABURNINGSHIP******************/
-#define LOOP_INIT_FRAC_JULIABURNINGSHIP \
-z = pixel;\
-c = fractal->c;
+#define ENGINE_DECL_VAR_FRAC_JULIABURNINGSHIP(fprec) \
+FLOATTYPE(fprec) absRealZ_FRAC;\
+FLOATTYPE(fprec) absImagZ_FRAC;
 
-#define LOOP_ITERATION_FRAC_JULIABURNINGSHIP(ptype) \
-z = cpow##ptype(fabsF(crealF(z))+I*fabsF(cimagF(z)),fractal->p##ptype)+c;
+#define ENGINE_INIT_VAR_FRAC_JULIABURNINGSHIP(fprec) \
+initF(fprec, data->absRealZ_FRAC);\
+initF(fprec, data->absImagZ_FRAC);
+
+#define ENGINE_CLEAR_VAR_FRAC_JULIABURNINGSHIP(fprec) \
+clearF(fprec, data->absRealZ_FRAC);\
+clearF(fprec, data->absImagZ_FRAC);
+
+#define LOOP_INIT_FRAC_JULIABURNINGSHIP(fprec) \
+cassignF(fprec, data->z, data->pixel);\
+cassignF(fprec, data->c, data->fractalC);
+
+#define LOOP_ITERATION_FRAC_JULIABURNINGSHIP(ptype,fprec) \
+crealF(fprec, data->absRealZ_FRAC, data->z);\
+fabsF(fprec, data->absRealZ_FRAC, data->absRealZ_FRAC);\
+cimagF(fprec, data->absImagZ_FRAC, data->z);\
+fabsF(fprec, data->absImagZ_FRAC, data->absImagZ_FRAC);\
+cfromReImF(fprec, data->z, data->absRealZ_FRAC, data->absImagZ_FRAC);\
+cpowPTYPE(ptype,fprec,data->z,data->z,fractalP(ptype));\
+caddF(fprec,data->z,data->z,data->c);
 /*********************************************************/
 
 /**********************FRAC_MANDELBAR*********************/
-#define LOOP_INIT_FRAC_MANDELBAR \
-z = 0;\
-c = pixel;
+#define ENGINE_DECL_VAR_FRAC_MANDELBAR(fprec)
 
-#define LOOP_ITERATION_FRAC_MANDELBAR(ptype) \
-z = cpow##ptype(conjF(z),fractal->p##ptype)+c;
+#define ENGINE_INIT_VAR_FRAC_MANDELBAR(fprec) \
+(void)NULL;
+
+#define ENGINE_CLEAR_VAR_FRAC_MANDELBAR(fprec) \
+(void)NULL;
+
+#define LOOP_INIT_FRAC_MANDELBAR(fprec) \
+cfromUiF(fprec, data->z, 0);\
+cassignF(fprec, data->c, data->pixel);
+
+#define LOOP_ITERATION_FRAC_MANDELBAR(ptype,fprec) \
+conjF(fprec, data->z, data->z);\
+cpowPTYPE(ptype,fprec,data->z,data->z,fractalP(ptype));\
+caddF(fprec,data->z,data->z,data->c);
 /*********************************************************/
 
 /**********************FRAC_JULIABAR**********************/
-#define LOOP_INIT_FRAC_JULIABAR \
-z = pixel;\
-c = fractal->c;
+#define ENGINE_DECL_VAR_FRAC_JULIABAR(fprec)
 
-#define LOOP_ITERATION_FRAC_JULIABAR(ptype) \
-z = cpow##ptype(conjF(z),fractal->p##ptype)+c;
+#define ENGINE_INIT_VAR_FRAC_JULIABAR(fprec) \
+(void)NULL;
+
+#define ENGINE_CLEAR_VAR_FRAC_JULIABAR(fprec) \
+(void)NULL;
+
+#define LOOP_INIT_FRAC_JULIABAR(fprec) \
+cassignF(fprec, data->z, data->pixel);\
+cassignF(fprec, data->c, data->fractalC);
+
+#define LOOP_ITERATION_FRAC_JULIABAR(ptype,fprec) \
+conjF(fprec, data->z, data->z);\
+cpowPTYPE(ptype,fprec,data->z,data->z,fractalP(ptype));\
+caddF(fprec,data->z,data->z,data->c);
 /*********************************************************/
 
 /************************FRAC_RUDY************************/
-#define LOOP_INIT_FRAC_RUDY \
-z = 0;\
-c = pixel;
+#define ENGINE_DECL_VAR_FRAC_RUDY(fprec) \
+COMPLEX_FLOATTYPE(fprec) cz_FRAC;
 
-#define LOOP_ITERATION_FRAC_RUDY(ptype) \
-z = cpow##ptype(z,fractal->p##ptype)+fractal->c*z+c;
+#define ENGINE_INIT_VAR_FRAC_RUDY(fprec) \
+cinitF(fprec, data->cz_FRAC);
+
+#define ENGINE_CLEAR_VAR_FRAC_RUDY(fprec) \
+cclearF(fprec, data->cz_FRAC);
+
+#define LOOP_INIT_FRAC_RUDY(fprec) \
+cfromUiF(fprec, data->z, 0);\
+cassignF(fprec, data->c, data->pixel);
+
+#define LOOP_ITERATION_FRAC_RUDY(ptype,fprec) \
+cmulF(fprec, data->cz_FRAC, data->fractalC, data->z);\
+cpowPTYPE(ptype,fprec,data->z,data->z,fractalP(ptype));\
+caddF(fprec,data->z,data->z,data->cz_FRAC);\
+caddF(fprec,data->z,data->z,data->c);\
 /*********************************************************/
 
 #ifdef __cplusplus

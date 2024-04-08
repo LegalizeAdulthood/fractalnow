@@ -19,11 +19,9 @@
  */
  
 #include "help.h"
-#include "fractal.h"
-#include "fractalnow.h"
-#include "floating_point.h"
 #include "main.h"
-#include "thread.h"
+
+#include <float.h>
 #include <inttypes.h>
 
 void Help::Print()
@@ -36,6 +34,7 @@ qfractalnow [-q|-v] [-d] [-j <NbThreads>] \n\
            [-c <ConfigFile>] [-f <FractalFile>] [-r \
 <RenderingFile>] [-g <GradientFile]\n\
            [-x <Width>|-y <Height>]\n\
+	  -l <FloatType> [-L <MPFloatPrecision>]\n\
            [-m <MinAAMSize> -M <MaxAAMSize>] [-p \
 <AdaptiveAAMThreshold>]\n\
            [-i <QuadSize>] [-t <Threshold>]\n\n\
@@ -71,6 +70,15 @@ overlapping parameters.\n\
 fractal space ratio if height is specified).\n\
   -y <Height>              Specify image height (by default \
 set to keep fractal space ratio).\n\
+  -l <FloatType>      Specify float precision:\n\
+                               single        Single precision.\n\
+                               double        Double precision.\n\
+                               ldouble       Long double \
+precision.\n\
+                               mp            Multiple \
+precision.\n\
+  -L <MPPrecision>         Specify precision for Multiple \
+Precision (MP) floats (%ld by default).\n\
   -m <MinAAMSize>          Specify minimum size of adaptive \
 anti-aliasing (%"PRIuFAST32" by default).\n\
                            Must be an integer strictly greater \
@@ -83,7 +91,7 @@ than 1.\n\
                            Anti-aliasing size will increase by \
 steps of AAMSizeIteration from MinAAMSize to MaxAAMSize.\n\
   -p <AAMThreshold>        Threshold for adaptive \
-anti-aliasing (%"PRIFLOATT" by default).\n\
+anti-aliasing (%.*lf by default).\n\
   -i <QuadSize>            Maximum size of quadrilaterals for \
 linear interpolation.\n\
                            %"PRIuFAST32" by default, which is \
@@ -92,17 +100,18 @@ good for no visible loss of quality.\n\
 pixels are computed).\n\
   -t <Threshold>           Dissimilarity threshold for quad \
 interpolation.\n\
-                           %"PRIFLOATT" by default, which is \
+                           %.*lf by default, which is \
 good for no visible loss of quality.\n\
                            A quadrilateral that shows too \
 dissimilar values at its corners will be computed, \n\
                            as opposed to interpolated.\n",
 	FractalNow_VersionNumber(),
 	DEFAULT_NB_THREADS,
+	(long int)DEFAULT_MPFR_PRECISION,
 	DEFAULT_MIN_ANTIALIASING_SIZE,
 	DEFAULT_MAX_ANTIALIASING_SIZE,
-	FLOATT_DIG, DEFAULT_ADAPTIVE_AAM_THRESHOLD,
+	DBL_DIG, DEFAULT_ADAPTIVE_AAM_THRESHOLD,
 	DEFAULT_QUAD_INTERPOLATION_SIZE,
-	FLOATT_DIG, DEFAULT_COLOR_DISSIMILARITY_THRESHOLD);
+	DBL_DIG, DEFAULT_COLOR_DISSIMILARITY_THRESHOLD);
 }
 

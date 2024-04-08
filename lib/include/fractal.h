@@ -41,11 +41,7 @@
 #ifndef __FRACTAL_H__
 #define __FRACTAL_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include "floating_point.h"
+#include "float_precision.h"
 #include "gradient.h"
 #include "image.h"
 #include "fractal_cache.h"
@@ -55,6 +51,10 @@ extern "C" {
 #include "thread.h"
 #include <complex.h>
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef complex
 #define complex _Complex
@@ -74,7 +74,7 @@ extern "C" {
  *
  * \see DrawFractalFast for more details.
  */
-#define DEFAULT_COLOR_DISSIMILARITY_THRESHOLD (FLOATT)(3.5E-3)
+#define DEFAULT_COLOR_DISSIMILARITY_THRESHOLD (double)(3.5E-3)
 
 /**
  * \def DEFAULT_ADAPTIVE_AAM_THRESHOLD
@@ -82,7 +82,7 @@ extern "C" {
  *
  * \see AntiAliaseFractal for more details.
  */
-#define DEFAULT_ADAPTIVE_AAM_THRESHOLD (FLOATT)(5.05E-2)
+#define DEFAULT_ADAPTIVE_AAM_THRESHOLD (double)(5.05E-2)
 
 /**
  * \struct Fractal
@@ -95,50 +95,32 @@ extern "C" {
 typedef struct Fractal {
 	FractalFormula fractalFormula;
  /*!< Fractal formula.*/
-	FLOATT complex p;
+	mpc_t p;
  /*!< Parameter for some fractals (main power in iteration z = z^p + ...).*/
-	FLOATT complex c;
+	mpc_t c;
  /*!< Parameter for Julia and Rudy fractal.*/
-	FLOATT centerX;
+	mpfr_t centerX;
  /*!< X coordinate of the center of the fractal subset.*/
-	FLOATT centerY;
+	mpfr_t centerY;
  /*!< Y coordinate of the center of the fractal subset.*/
-	FLOATT spanX;
+	mpfr_t spanX;
  /*!< X span of the fractal subset.*/
-	FLOATT spanY;
+	mpfr_t spanY;
  /*!< Y span of the fractal subset.*/
-	FLOATT escapeRadius;
+	double escapeRadius;
  /*!< Escape radius for computing fractal.*/
 	uint_fast32_t maxIter;
  /*!< Maximum number of iterations for computing fractal.*/
 
  /* Some parameters for internal use.*/
-	FLOATT x1;
+	mpfr_t x1;
  /*!< X coordinate of the upper left point of the fractal subset.*/
-	FLOATT y1;
+	mpfr_t y1;
  /*!< Y coordinate of the upper left point of the fractal subset.*/
-	FLOATT x2;
- /*!< X coordinate of the down left point of the fractal subset.*/
-	FLOATT y2;
- /*!< Y coordinate of the down left point of the fractal subset.*/
-	FLOATT logNormP;
- /*!< Logarithm of p.*/
-	int p_is_integer;
- /*!< 1 if p is integer, 0 otherwise.*/
-	FLOATT complex pPFLOATT;
- /*!< p as FLOATT complex.*/
-	uint_fast32_t pPINT;
- /*!< p as integer (if p is an integer).*/
-	FLOATT escapeRadius2;
- /*!< Escape radius raised to the power of 2.*/
-	FLOATT escapeRadiusP;
- /*!< Escape radius raised to the power of p.*/
-	FLOATT logEscapeRadius;
- /*!< Logarithm of escape radius.*/
 } Fractal;
 
 /**
- * \fn void InitFractal(Fractal *fractal, FractalFormula fractalFormula, FLOATT complex p, FLOATT complex c, FLOATT centerX, FLOATT centerY, FLOATT spanX, FLOATT spanY, FLOATT escapeRadius, uint_fast32_t maxIter)
+ * \fn void InitFractal(Fractal *fractal, FractalFormula fractalFormula, const mpc_t p, const mpc_t c, const mpfr_t centerX, const mpfr_t centerY, const mpfr_t spanX, const mpfr_t spanY, double escapeRadius, uint_fast32_t maxIter)
  * \brief Initialize fractal structure.
  *
  * \param fractal Pointer to fractal structure to initialize.
@@ -152,9 +134,30 @@ typedef struct Fractal {
  * \param escapeRadius Escape radius for computing fractal.
  * \param maxIter Maximum number of iterations for computing fractal.
  */
-void InitFractal(Fractal *fractal, FractalFormula fractalFormula, FLOATT complex p,
-		FLOATT complex c, FLOATT centerX, FLOATT centerY, FLOATT spanX,
-		FLOATT spanY, FLOATT escapeRadius, uint_fast32_t maxIter);
+void InitFractal(Fractal *fractal, FractalFormula fractalFormula, const mpc_t p, 
+			const mpc_t c, const mpfr_t centerX, const mpfr_t centerY,
+			const mpfr_t spanX, const mpfr_t spanY,
+			double escapeRadius, uint_fast32_t maxIter);
+
+/**
+ * \fn void InitFractal2(Fractal *fractal, FractalFormula fractalFormula, long double complex p, long double complex c, long double centerX, long double centerY, long double spanX, long double spanY, double escapeRadius, uint_fast32_t maxIter)
+ * \brief Initialize fractal structure.
+ *
+ * \param fractal Pointer to fractal structure to initialize.
+ * \param fractalFormula Fractal type.
+ * \param p (main power in iteration) parameter for fractal.
+ * \param c Parameter for Julia fractal (will be ignored for Mandelbrot fractal).
+ * \param centerX X coordinate of the center of the fractal subset.
+ * \param centerY Y coordinate of the center of the fractal subset.
+ * \param spanX
+ * \param spanY
+ * \param escapeRadius Escape radius for computing fractal.
+ * \param maxIter Maximum number of iterations for computing fractal.
+ */
+void InitFractal2(Fractal *fractal, FractalFormula fractalFormula, long double complex p,
+		long double complex c, long double centerX, long double centerY,
+		long double spanX, long double spanY, double escapeRadius,
+		uint_fast32_t maxIter);
 
 /**
  * \fn Fractal CopyFractal(const Fractal *fractal)
@@ -229,25 +232,7 @@ int WriteFractalFileBody(const Fractal *fractal, const char *fileName, FILE *fil
 int WriteFractalFile(const Fractal *fractal, const char *fileName);
 
 /**
- * \fn Color ComputeFractalColor(const Fractal *fractal, const RenderingParameters *render, FLOATT complex z, FractalCache *cache)
- * \brief Compute some particular point of fractal.
- *
- * Function will compute the RGB color at given point according
- * to fractal and rendering parameters.\n
- * Pointer to cache structure can be NULL if computed value
- * is not to be cached.
- *
- * \param fractal Fractal to compute.
- * \param render Fractal rendering parameters.
- * \param z Point in the complex plan to compute.
- * \param cache Cache structure to put computed value in.
- * @return Color of fractal at specified point.
- */
-Color ComputeFractalColor(const Fractal *fractal, const RenderingParameters *render,
-				FLOATT complex z, FractalCache *cache);
-
-/**
- * \fn void DrawFractal(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t quadInterpolationSize, FLOATT interpolationThreshold, FractalCache *cache, Threads* threads)
+ * \fn void DrawFractal(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t quadInterpolationSize, double interpolationThreshold, FloatPrecision floatPrecision, FractalCache *cache, Threads* threads)
  * \brief Draw fractal in a fast, approximate way.
  *
  * Image width and height must be >= 2 (does nothing otherwise).\n
@@ -271,15 +256,16 @@ Color ComputeFractalColor(const Fractal *fractal, const RenderingParameters *ren
  * \param render Rendering parameters.
  * \param quadInterpolationSize Maximum quad size for interpolation.
  * \param interpolationThreshold Dissimilarity threshold for interpolation.
+ * \param floatPrecision Float precision.
  * \param cache Cache structure to put computed values in.
  * \param threads Threads to be used for task.
  */
 void DrawFractal(Image *image, const Fractal *fractal, const RenderingParameters *render,
-			uint_fast32_t quadInterpolationSize, FLOATT interpolationThreshold,
-			FractalCache *cache, Threads* threads);
+			uint_fast32_t quadInterpolationSize, double interpolationThreshold,
+			FloatPrecision floatPrecision, FractalCache *cache, Threads* threads);
 
 /**
- * \fn Task *CreateDrawFractalTask(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t quadInterpolationSize, FLOATT interpolationThreshold, FractalCache *cache, uint_fast32_t nbThreads)
+ * \fn Task *CreateDrawFractalTask(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t quadInterpolationSize, double interpolationThreshold, FloatPrecision floatPrecision, FractalCache *cache, uint_fast32_t nbThreads)
  * \brief Create fractal drawing task.
  *
  * Create task and return immediately.\n
@@ -295,16 +281,18 @@ void DrawFractal(Image *image, const Fractal *fractal, const RenderingParameters
  * \param render Rendering parameters.
  * \param quadInterpolationSize Maximum quad size for interpolation.
  * \param interpolationThreshold Dissimilarity threshold for interpolation.
- * \param nbThreads Number of threads that action will need to be launched.
+ * \param floatPrecision Float precision.
  * \param cache Cache structure to put computed values in.
+ * \param nbThreads Number of threads that action will need to be launched.
  * \return Corresponding newly-allocated task.
  */
 Task *CreateDrawFractalTask(Image *image, const Fractal *fractal, const RenderingParameters *render,
-				uint_fast32_t quadInterpolationSize, FLOATT interpolationThreshold,
-				FractalCache *cache, uint_fast32_t nbThreads);
+				uint_fast32_t quadInterpolationSize, double interpolationThreshold,
+				FloatPrecision floatPrecision,  FractalCache *cache,
+				uint_fast32_t nbThreads);
 
 /**
- * \fn void AntiAliaseFractal(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t antiAliasingSize, FLOATT threshold, FractalCache *cache, Threads *threads)
+ * \fn void AntiAliaseFractal(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t antiAliasingSize, double threshold, FloatPrecision floatPrecision, FractalCache *cache, Threads *threads)
  * \brief AntiAliase fractal image.
  *
  * Image width and height must be >= 2 (does nothing otherwise).\n
@@ -329,16 +317,17 @@ Task *CreateDrawFractalTask(Image *image, const Fractal *fractal, const Renderin
  * \param render Rendering parameters.
  * \param antiAliasingSize Anti-aliasing size.
  * \param threshold Dissimilarity threshold to determine pixels to recompute.
+ * \param floatPrecision Float precision.
  * \param cache Cache structure to put computed values in.
  * \param threads Threads to be used for task.
  */
 void AntiAliaseFractal(Image *image, const Fractal *fractal, const RenderingParameters *render,
-			uint_fast32_t antiAliasingSize, FLOATT threshold, FractalCache *cache,
-			Threads *threads);
+			uint_fast32_t antiAliasingSize, double threshold,
+			FloatPrecision floatPrecision, FractalCache *cache, Threads *threads);
 
 /**
- * \fn Task *CreateAntiAliaseFractalTask(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t antiAliasingSize, FLOATT threshold, FractalCache *cache, uint_fast32_t nbThreads)
- * \brief Create task anti-aliasing fractal image.
+ * \fn Task *CreateAntiAliaseFractalTask(Image *image, const Fractal *fractal, const RenderingParameters *render, uint_fast32_t antiAliasingSize, double threshold, FloatPrecision floatPrecision, FractalCache *cache, uint_fast32_t nbThreads)
+ * \brief Create task anti-aliasing fractal image
  *
  * Create task and return immediately.\n
  * Image width and height must be >= 2 (does nothing otherwise).\n
@@ -351,13 +340,15 @@ void AntiAliaseFractal(Image *image, const Fractal *fractal, const RenderingPara
  * \param render Rendering parameters.
  * \param antiAliasingSize Anti-aliasing size.
  * \param threshold Dissimilarity threshold to determine pixels to recompute.
- * \param nbThreads Number of threads that action will need to be launched.
+ * \param floatPrecision Float precision.
  * \param cache Cache structure to put computed values in.
+ * \param nbThreads Number of threads that action will need to be launched.
  * \return Corresponding newly-allocated task.
  */
 Task *CreateAntiAliaseFractalTask(Image *image, const Fractal *fractal,
 					const RenderingParameters *render, uint_fast32_t antiAliasingSize,
-					FLOATT threshold, FractalCache *cache, uint_fast32_t nbThreads);
+					double threshold, FloatPrecision floatPrecision,
+					FractalCache *cache, uint_fast32_t nbThreads);
 
 /**
  * \fn void FreeFractal(Fractal fractal)

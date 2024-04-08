@@ -18,11 +18,11 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
  
-#include "rectangle.h"
+#include "uirectangle.h"
 #include "misc.h"
 #include <stdlib.h>
 
-inline void InitRectangle(Rectangle *rectangle, uint_fast32_t x1, uint_fast32_t y1, uint_fast32_t x2, uint_fast32_t y2)
+inline void InitUIRectangle(UIRectangle *rectangle, uint_fast32_t x1, uint_fast32_t y1, uint_fast32_t x2, uint_fast32_t y2)
 {
 	rectangle->x1 = x1;
 	rectangle->y1 = y1;
@@ -30,14 +30,14 @@ inline void InitRectangle(Rectangle *rectangle, uint_fast32_t x1, uint_fast32_t 
 	rectangle->y2 = y2;
 }
 
-Rectangle CopyRectangle(const Rectangle *rectangle)
+UIRectangle CopyUIRectangle(const UIRectangle *rectangle)
 {
-	Rectangle res;
-	InitRectangle(&res, rectangle->x1, rectangle->y1, rectangle->x2, rectangle->y2);
+	UIRectangle res;
+	InitUIRectangle(&res, rectangle->x1, rectangle->y1, rectangle->x2, rectangle->y2);
 	return res;
 }
 
-void CutRectangleMaxSize(Rectangle src, uint_fast32_t size, Rectangle **out, uint_fast32_t *out_size)
+void CutUIRectangleMaxSize(UIRectangle src, uint_fast32_t size, UIRectangle **out, uint_fast32_t *out_size)
 {
 	uint_fast32_t width = src.x2 - src.x1 + 1;
 	uint_fast32_t height = src.y2 - src.y1 + 1;
@@ -53,9 +53,9 @@ void CutRectangleMaxSize(Rectangle src, uint_fast32_t size, Rectangle **out, uin
 	}
 
 	*out_size = nb_x*nb_y;
-	*out = (Rectangle *)safeMalloc("rectangles", (*out_size)*sizeof(Rectangle));
+	*out = (UIRectangle *)safeMalloc("rectangles", (*out_size)*sizeof(UIRectangle));
 
-	Rectangle *p_out = *out;
+	UIRectangle *p_out = *out;
 	uint_fast32_t y1 = src.y1;
 	uint_fast32_t y2 = src.y1+size-1;
 	for (; y1 <= src.y2; y1+=size, y2+=size) {
@@ -75,7 +75,7 @@ void CutRectangleMaxSize(Rectangle src, uint_fast32_t size, Rectangle **out, uin
 	}
 }
 
-int CutRectangleInHalf(Rectangle rectangle, Rectangle *out1, Rectangle *out2)
+int CutUIRectangleInHalf(UIRectangle rectangle, UIRectangle *out1, UIRectangle *out2)
 {
 	uint_fast32_t width = rectangle.x2 - rectangle.x1;
 	uint_fast32_t height = rectangle.y2 - rectangle.y1;
@@ -86,18 +86,18 @@ int CutRectangleInHalf(Rectangle rectangle, Rectangle *out1, Rectangle *out2)
 
 	if (width >= height) {
 		width /= 2;
-		InitRectangle(out1, rectangle.x1, rectangle.y1, rectangle.x1 + width, rectangle.y2);
-		InitRectangle(out2, rectangle.x1 + width + 1, rectangle.y1, rectangle.x2, rectangle.y2);
+		InitUIRectangle(out1, rectangle.x1, rectangle.y1, rectangle.x1 + width, rectangle.y2);
+		InitUIRectangle(out2, rectangle.x1 + width + 1, rectangle.y1, rectangle.x2, rectangle.y2);
 	} else {
 		height /= 2;
-		InitRectangle(out1, rectangle.x1, rectangle.y1, rectangle.x2, rectangle.y1 + height);
-		InitRectangle(out2, rectangle.x1, rectangle.y1 + height + 1, rectangle.x2, rectangle.y2);
+		InitUIRectangle(out1, rectangle.x1, rectangle.y1, rectangle.x2, rectangle.y1 + height);
+		InitUIRectangle(out2, rectangle.x1, rectangle.y1 + height + 1, rectangle.x2, rectangle.y2);
 	}
 
 	return 0;
 }
 
-int CutRectangleInN(Rectangle rectangle, uint_fast32_t N, Rectangle *out)
+int CutUIRectangleInN(UIRectangle rectangle, uint_fast32_t N, UIRectangle *out)
 {
 	uint_fast32_t width = rectangle.x2 + 1 - rectangle.x1;
 	uint_fast32_t height = rectangle.y2 + 1 - rectangle.y1;
@@ -107,11 +107,11 @@ int CutRectangleInN(Rectangle rectangle, uint_fast32_t N, Rectangle *out)
 
 	uint_fast32_t nbRectangles = 1;
 	uint_fast32_t tmpNbRectangles;
-	InitRectangle(&out[0], rectangle.x1, rectangle.y1, rectangle.x2, rectangle.y2);
+	InitUIRectangle(&out[0], rectangle.x1, rectangle.y1, rectangle.x2, rectangle.y2);
 	while (nbRectangles < N) {
 		tmpNbRectangles = nbRectangles;
 		for (uint_fast32_t i = 0; i < tmpNbRectangles; i++) {
-			if (CutRectangleInHalf(out[i], &out[i], &out[nbRectangles])) {
+			if (CutUIRectangleInHalf(out[i], &out[i], &out[nbRectangles])) {
 				/* This particular rectangle could not be in half.
 				 * Assuming that the initial rectangle could be cut in N parts,
 				 * we know that there still exists a rectangle that can be cut

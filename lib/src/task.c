@@ -386,9 +386,9 @@ int ExecuteTaskBlocking(Task *task, Threads *threads)
 	return res;
 }
 
-FLOATT GetTaskProgress(const Task *task)
+double GetTaskProgress(const Task *task)
 {
-	FLOATT res;
+	double res;
 	if (!task->hasBeenLaunched) {
 		res = 0;
 	} else if (task->done) {

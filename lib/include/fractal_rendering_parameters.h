@@ -27,17 +27,18 @@
 #ifndef __FRACTAL_RENDERING_PARAMETERS_H__
 #define __FRACTAL_RENDERING_PARAMETERS_H__
 
+#include "color.h"
+#include "gradient.h"
+#include "float_precision.h"
+#include "fractal_addend_function.h"
+#include "fractal_coloring.h"
+#include "fractal_iteration_count.h"
+#include "fractal_transfer_function.h"
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "color.h"
-#include "gradient.h"
-#include "fractal_addend_function.h"
-#include "fractal_coloring.h"
-#include "fractal_counting_function.h"
-#include "fractal_transfer_function.h"
-#include <stdint.h>
 
 /**
  * \struct RenderingParameters
@@ -52,10 +53,8 @@ typedef struct RenderingParameters {
  /*!< Bytes per component matching gradient colors'.*/
 	Color spaceColor;
  /*!< Fractal space color.*/
-	CountingFunction countingFunction;
- /*!< Fractal counting function enum value.*/
-	CountingFunctionPtr countingFunctionPtr;
- /*!< Fractal counting function ptr.*/
+	IterationCount iterationCount;
+ /*!< Fractal iteration count enum value.*/
 	ColoringMethod coloringMethod;
  /*!< Fractal coloring method.*/
 	AddendFunction addendFunction;
@@ -68,22 +67,22 @@ typedef struct RenderingParameters {
  /*!< Fractal transfer function enum value (to make the values fit the gradient better).*/
 	TransferFunctionPtr transferFunctionPtr;
  /*!< Transfer function ptr.*/
-	FLOATT multiplier;
+	double multiplier;
  /*!< Value with which fractal values will be multiplied (to make the values fit the gradient better).*/
-	FLOATT offset;
+	double offset;
  /*!< Offset for mapping value to gradient.*/
 	Gradient gradient;
  /*!< Gradient for mapping float values to colors.*/
 
  /* For internal use.*/
-	FLOATT realMultiplier;
+	double realMultiplier;
  /*!< Real multiplier (scaled according to gradient size).*/
-	FLOATT realOffset;
+	double realOffset;
  /*!< Real offset (scaled according to gradient size).*/
 } RenderingParameters;
 
 /**
- * \fn void InitRenderingParameters(RenderingParameters *param, uint_fast8_t bytesPerComponent, Color spaceColor, CountingFunction countingFunction, ColoringMethod coloringMethod, AddendFunction addendFunction, uint_fast32_t stripeDensity, InterpolationMethod interpolationMethod, TransferFunction transferFunction, FLOATT multiplier, FLOATT offset, Gradient gradient)
+ * \fn void InitRenderingParameters(RenderingParameters *param, uint_fast8_t bytesPerComponent, Color spaceColor, IterationCount iterationCount, ColoringMethod coloringMethod, AddendFunction addendFunction, uint_fast32_t stripeDensity, InterpolationMethod interpolationMethod, TransferFunction transferFunction, double multiplier, double offset, Gradient gradient)
  * \brief Initialize rendering parameters.
  *
  * Bytes per component *must* agree with space color and gradient colors :
@@ -94,7 +93,7 @@ typedef struct RenderingParameters {
  * \param param Pointer to structure to initialize.
  * \param bytesPerComponent Bytes per component for colors of rendering.
  * \param spaceColor The color for fractal space.
- * \param countingFunction  Fractal counting function.
+ * \param iterationCount  Fractal iteration count.
  * \param coloringMethod Fractal coloring method.
  * \param addendFunction Fractal addend function (used only for average coloring method).
  * \param stripeDensity Stripe density (used only for AF_STRIPE addend function).
@@ -105,10 +104,10 @@ typedef struct RenderingParameters {
  * \param gradient Gradient for mapping float values to colors.
  */
 void InitRenderingParameters(RenderingParameters *param, uint_fast8_t bytesPerComponent, Color spaceColor,
-				CountingFunction countingFunction, ColoringMethod coloringMethod,
+				IterationCount iterationCount, ColoringMethod coloringMethod,
 				AddendFunction addendFunction, uint_fast32_t stripeDensity,
 				InterpolationMethod interpolationMethod, TransferFunction transferFunction,
-				FLOATT multiplier, FLOATT offset, Gradient gradient);
+				double multiplier, double offset, Gradient gradient);
 
 /**
  * \fn RenderingParameters CopyRenderingParameters(const RenderingParameters *render)

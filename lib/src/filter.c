@@ -20,9 +20,8 @@
  
 #include "filter.h"
 #include "misc.h"
-#include "rectangle.h"
+#include "uirectangle.h"
 #include <inttypes.h>
-#include <signal.h>
 #include <string.h>
 
 #define HandleRequests(max_counter) \
@@ -39,7 +38,7 @@ typedef struct s_ApplyFilterArguments {
 	uint_fast32_t threadId;
 	Image *dst;
 	uint_fast32_t nbRectangles;
-	Rectangle *rectangles;
+	UIRectangle *rectangles;
 	const Image *src;
 	Filter *filter;
 } ApplyFilterArguments;
@@ -55,7 +54,7 @@ void FreeApplyFilterArguments(void *arg)
 }
 
 void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy,
-		uint_fast32_t cx, uint_fast32_t cy, FLOATT *data)
+		uint_fast32_t cx, uint_fast32_t cy, double *data)
 {
 	filter->sx = sx;
 	filter->sy = sy;
@@ -64,7 +63,7 @@ void InitFilter(Filter *filter, uint_fast32_t sx, uint_fast32_t sy,
 	filter->data = data;
 }
 
-void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOATT *data)
+void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, double *data)
 {
 	filter->sx = sx;
 	filter->sy = sy;
@@ -76,34 +75,34 @@ void InitFilter2(Filter *filter, uint_fast32_t sx, uint_fast32_t sy, FLOATT *dat
 Filter CopyFilter(const Filter *filter)
 {
 	Filter res;
-	FLOATT *data = (FLOATT *)safeMalloc("filter data", filter->sx*filter->sy*sizeof(FLOATT));
-	memcpy(data, filter->data, filter->sx*filter->sy*sizeof(FLOATT));
+	double *data = (double *)safeMalloc("filter data", filter->sx*filter->sy*sizeof(double));
+	memcpy(data, filter->data, filter->sx*filter->sy*sizeof(double));
 
 	InitFilter(&res, filter->sx, filter->sy, filter->cx, filter->cy, data);
 
 	return res;
 }
 
-void CreateHorizontalGaussianFilter(Filter *filter, FLOATT sigma)
+void CreateHorizontalGaussianFilter(Filter *filter, double sigma)
 {
 	if (sigma <= 0) {
 		FractalNow_error("Sigma must be > 0.\n");
 	}
 
-	uint_fast32_t radius = floorF(3. * sigma);
+	uint_fast32_t radius = floor(3. * sigma);
 
 	filter->sx = radius*2+1;
 	filter->sy = 1;
 	filter->cx = radius;
 	filter->cy = 0;
-	filter->data = (FLOATT *)safeMalloc("filter", filter->sx*filter->sy*sizeof(FLOATT));
+	filter->data = (double *)safeMalloc("filter", filter->sx*filter->sy*sizeof(double));
 
-	FLOATT sigma2_x_2 = sigma*sigma*2;
-	FLOATT *value = filter->data;
+	double sigma2_x_2 = sigma*sigma*2;
+	double *value = filter->data;
 	int_fast64_t size = (int_fast64_t)filter->cx;
-	FLOATT sum = 0;
+	double sum = 0;
 	for (int_fast64_t i = -size; i <= size; ++i) {
-		*value = expF(-i*i/sigma2_x_2);
+		*value = exp(-i*i/sigma2_x_2);
 		sum += *(value++);
 	}
 	if (sum != 0.) {
@@ -111,7 +110,7 @@ void CreateHorizontalGaussianFilter(Filter *filter, FLOATT sigma)
 	}
 }
 
-inline void CreateHorizontalGaussianFilter2(Filter *filter, FLOATT radius)
+inline void CreateHorizontalGaussianFilter2(Filter *filter, double radius)
 {
 	if (radius <= 0) {
 		FractalNow_error("Radius must be > 0.\n");
@@ -120,26 +119,26 @@ inline void CreateHorizontalGaussianFilter2(Filter *filter, FLOATT radius)
 	CreateHorizontalGaussianFilter(filter, radius / 3.);
 }
 
-void CreateVerticalGaussianFilter(Filter *filter, FLOATT sigma)
+void CreateVerticalGaussianFilter(Filter *filter, double sigma)
 {
 	if (sigma <= 0) {
 		FractalNow_error("Sigma must be > 0.\n");
 	}
 
-	uint_fast32_t radius = floorF(3. * sigma);
+	uint_fast32_t radius = floor(3. * sigma);
 
 	filter->sx = 1;
 	filter->sy = radius*2+1;
 	filter->cx = 0;
 	filter->cy = radius;
-	filter->data = (FLOATT *)safeMalloc("filter", filter->sx*filter->sy*sizeof(FLOATT));
+	filter->data = (double *)safeMalloc("filter", filter->sx*filter->sy*sizeof(double));
 
-	FLOATT sigma2_x_2 = sigma*sigma*2;
-	FLOATT *value = filter->data;
+	double sigma2_x_2 = sigma*sigma*2;
+	double *value = filter->data;
 	int_fast64_t size = (int_fast64_t)filter->cy;
-	FLOATT sum = 0;
+	double sum = 0;
 	for (int_fast64_t i = -size; i <= size; ++i) {
-		*value = expF(-i*i/sigma2_x_2);
+		*value = exp(-i*i/sigma2_x_2);
 		sum += *(value++);
 	}
 	if (sum != 0.) {
@@ -147,7 +146,7 @@ void CreateVerticalGaussianFilter(Filter *filter, FLOATT sigma)
 	}
 }
 
-inline void CreateVerticalGaussianFilter2(Filter *filter, FLOATT radius)
+inline void CreateVerticalGaussianFilter2(Filter *filter, double radius)
 {
 	if (radius <= 0) {
 		FractalNow_error("Radius must be > 0.\n");
@@ -156,26 +155,26 @@ inline void CreateVerticalGaussianFilter2(Filter *filter, FLOATT radius)
 	CreateVerticalGaussianFilter(filter, radius / 3.);
 }
 
-void CreateGaussianFilter(Filter *filter, FLOATT sigma)
+void CreateGaussianFilter(Filter *filter, double sigma)
 {
 	if (sigma <= 0) {
 		FractalNow_error("Sigma must be > 0.\n");
 	}
-	uint_fast32_t radius = floorF(3. * sigma);
+	uint_fast32_t radius = floor(3. * sigma);
 
 	filter->sx = radius*2+1;
 	filter->sy = radius*2+1;
 	filter->cx = radius;
 	filter->cy = radius;
-	filter->data = (FLOATT *)safeMalloc("filter", filter->sx*filter->sy*sizeof(FLOATT));
+	filter->data = (double *)safeMalloc("filter", filter->sx*filter->sy*sizeof(double));
 
-	FLOATT sigma2_x_2 = sigma*sigma*2;
-	FLOATT *value = filter->data;
+	double sigma2_x_2 = sigma*sigma*2;
+	double *value = filter->data;
 	int_fast64_t size = (int_fast64_t)filter->cx;
-	FLOATT sum = 0;
+	double sum = 0;
 	for (int_fast64_t i = -size; i <= size; ++i) {
 		for (int_fast64_t j = -size; j <= size; ++j) {
-			*value = expF(-(i*i+j*j)/sigma2_x_2);
+			*value = exp(-(i*i+j*j)/sigma2_x_2);
 			sum += *(value++);
 		}
 	}
@@ -184,7 +183,7 @@ void CreateGaussianFilter(Filter *filter, FLOATT sigma)
 	}
 }
 
-void CreateGaussianFilter2(Filter *filter, FLOATT radius)
+void CreateGaussianFilter2(Filter *filter, double radius)
 {
 	if (radius <= 0) {
 		FractalNow_error("Radius must be > 0.\n");
@@ -192,14 +191,14 @@ void CreateGaussianFilter2(Filter *filter, FLOATT radius)
 	CreateGaussianFilter(filter, radius / 3.);
 }
 
-inline FLOATT GetFilterValueUnsafe(const Filter *filter, uint_fast32_t x, uint_fast32_t y)
+inline double GetFilterValueUnsafe(const Filter *filter, uint_fast32_t x, uint_fast32_t y)
 {
 	return filter->data[x+y*filter->sx];
 }
 
-void MultiplyFilterByScalar(Filter *filter, FLOATT scalar) 
+void MultiplyFilterByScalar(Filter *filter, double scalar) 
 {
-	FLOATT *value = filter->data;
+	double *value = filter->data;
 	for (uint_fast32_t i = 0; i < filter->sx; ++i) {
 		for (uint_fast32_t j = 0; j < filter->sy; ++j) {
 			*(value++) *= scalar;
@@ -209,8 +208,8 @@ void MultiplyFilterByScalar(Filter *filter, FLOATT scalar)
 
 int NormalizeFilter(Filter *filter)
 {
-	FLOATT *value = filter->data;
-	FLOATT sum = 0;
+	double *value = filter->data;
+	double sum = 0;
 	for (uint_fast32_t i = 0; i < filter->sx; ++i) {
 		for (uint_fast32_t j = 0; j < filter->sy; ++j) {
 			sum += *(value++);
@@ -229,10 +228,10 @@ int NormalizeFilter(Filter *filter)
 Color ApplyFilterOnSinglePixel(const Image *src, uint_fast32_t x, uint_fast32_t y,
 				const Filter *filter)
 {
-	FLOATT value;
+	double value;
 	Color color;
 
-	FLOATT r, g, b;
+	double r, g, b;
 
 	r = 0;
 	g = 0;
@@ -264,7 +263,7 @@ void *ApplyFilterThreadRoutine(void *arg)
 	Filter *filter = c_arg->filter;
 
 	uint_fast32_t nbRectangles = c_arg->nbRectangles;
-	Rectangle *dstRect;
+	UIRectangle *dstRect;
 	uint_fast32_t rectHeight;
 	uint_fast32_t counter = 0;
 	int cancelRequested = CancelTaskRequested(threadArgHeader);
@@ -309,10 +308,10 @@ Task *CreateApplyFilterTask(Image *dst, const Image *src, const Filter *filter, 
 	}
 	uint_fast32_t nbRectangles = nbThreadsNeeded*rectanglesPerThread;
 
-	Rectangle *rectangle;
-	rectangle = (Rectangle *)safeMalloc("rectangles", nbRectangles * sizeof(Rectangle));
-	InitRectangle(&rectangle[0], 0, 0, dst->width-1, dst->height-1);
-	if (CutRectangleInN(rectangle[0], nbRectangles, rectangle)) {
+	UIRectangle *rectangle;
+	rectangle = (UIRectangle *)safeMalloc("rectangles", nbRectangles * sizeof(UIRectangle));
+	InitUIRectangle(&rectangle[0], 0, 0, dst->width-1, dst->height-1);
+	if (CutUIRectangleInN(rectangle[0], nbRectangles, rectangle)) {
 		FractalNow_error("Could not cut rectangle ((%"PRIuFAST32",%"PRIuFAST32"),\
 (%"PRIuFAST32",%"PRIuFAST32") in %"PRIuFAST32" parts.\n", rectangle[0].x1, rectangle[0].y1,
 			rectangle[0].x2, rectangle[0].y2, nbRectangles);

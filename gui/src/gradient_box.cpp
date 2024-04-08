@@ -21,6 +21,7 @@
 #include "gradient_box.h"
 #include "gradient_dialog.h"
 #include "gradient_label.h"
+
 #include <QHBoxLayout>
 #include <QToolButton>
 

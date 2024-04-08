@@ -1,6 +1,6 @@
 #!/bin/bash
 
-version_number="0.7.5"
+version_number="0.8"
 
 win32=`uname -o | grep -i "msys\|cygwin\|mingw"`
 if test -n "${win32}"; then
@@ -12,7 +12,6 @@ else
 	prefix="/usr/local"
 fi
 debug=
-float_type="double"
 no_spinlock=
 qt_debug_char=
 
@@ -43,12 +42,11 @@ examples_dir="examples"
 
 generate_samples_script="generate_samples.sh"
 
-usage="Usage: configure [-prefix DIR] [-float-type FLOAT] [-debug] [-no-spinlock]
+usage="Usage: configure [-prefix DIR] [-debug] [-no-spinlock]
 
 Options:
 
   -prefix DIR         Set the instalation directory to DIR (default: ${prefix})
-  -float-type FLOAT   Set floating point type : float, double, or long_double (default: ${float_type})
   -debug              Build with debugging symbols
   -no-spinlock        Disable POSIX spinlocks (use mutexes only)
 "
@@ -57,10 +55,6 @@ while test $# -gt 0; do
 	case "$1" in
 	"-prefix" )
 		prefix="$2"
-		shift ; shift
-		;;
-	"-float-type" )
-		float_type="$2"
 		shift ; shift
 		;;
 	"-debug" )
@@ -83,23 +77,6 @@ while test $# -gt 0; do
 	esac
 done
 
-case "${float_type}" in
-"float" )
-	float_precision=0;
-	;;
-"double" )
-	float_precision=1;
-	;;
-"long_double" )
-	float_precision=2;
-	;;
-* )
-	echo "*** ERROR: Unrecognized float type '${float_type}'" >&2
-	echo "$usage"
-	exit 1
-	;;
-esac
-
 if test -n "${debug}"; then
 	qt_debug_char='d';
 fi
@@ -117,7 +94,6 @@ if test -z "${is_absolute}"; then
 fi;
 
 echo "Prefix: '${prefix}'"
-echo "Float type: '${float_type}'"
 if test -n "${debug}"; then
 	echo "Debug: yes"
 else
@@ -186,7 +162,6 @@ if test -n "${win32}"; then
 fi
 
 config="VERSION_NUMBER = ${version_number}
-FLOAT_PRECISION = ${float_precision}
 DEBUG = ${debug}
 SPINLOCK_DEFINE = ${spinlock_define}
 quiet-command = "'$(if $(VERB),$1,$(if $(2),@echo $2 && $1, @$1))
@@ -392,6 +367,8 @@ else
 	if test -n "${qtgui4_dll}"; then
 		echo '	$(INSTALL_FILE) "${QT_BIN_DIR}/${QTGUI4_DLL}" "${PREFIX}/${PROJECT_NAME}/"' >> Makefile
 	fi
+	echo '	$(INSTALL_FILE) "ChangeLog" "${PREFIX}/${PROJECT_NAME}/"' >> Makefile
+	echo '	$(INSTALL_FILE) "README" "${PREFIX}/${PROJECT_NAME}/"' >> Makefile
 	echo '
 uninstall:
 	$(DEL_FILE) "${PREFIX}/${PROJECT_NAME}/${COMMAND_LINE_BINARY}"
@@ -414,6 +391,8 @@ uninstall:
 	if test -n "${qtgui4_dll}"; then
 		echo '	$(DEL_FILE) "${PREFIX}/${PROJECT_NAME}/${QTGUI4_DLL}"' >> Makefile
 	fi
+	echo '	$(DEL_FILE) "${PREFIX}/${PROJECT_NAME}/ChangeLog"' >> Makefile
+	echo '	$(DEL_FILE) "${PREFIX}/${PROJECT_NAME}/README"' >> Makefile
 	echo '	$(DEL_EMPTY_DIR) "${PREFIX}/${PROJECT_NAME}"' >> Makefile
 	echo '	$(DEL_EMPTY_DIR) "${PREFIX}"' >> Makefile
 fi
@@ -431,7 +410,7 @@ distclean: clean
 
 echo "#!/bin/bash
 
-./configure -prefix \"${prefix}\" -float-type \"${float_type}\" ${debug} ${no_spinlock}
+./configure -prefix \"${prefix}\" ${debug} ${no_spinlock}
 " > config.status
 chmod +x config.status >/dev/null
 

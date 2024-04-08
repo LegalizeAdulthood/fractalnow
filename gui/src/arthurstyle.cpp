@@ -41,6 +41,7 @@
 
 #include "arthurstyle.h"
 #include "arthurwidgets.h"
+
 #include <QLayout>
 #include <QPainter>
 #include <QPainterPath>

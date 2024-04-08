@@ -19,12 +19,10 @@
  */
 
 #include "fractal_rendering_widget.h"
-#include "fractal_addend_function.h"
-#include "fractal_coloring.h"
-#include "fractal_counting_function.h"
-#include "fractal_transfer_function.h"
+
 #include <stdint.h>
 #include <limits>
+
 #include <QFormLayout>
 #include <QLabel>
 
@@ -36,11 +34,11 @@ FractalRenderingWidget::FractalRenderingWidget(const RenderingParameters &render
 	}
 	coloringMethodComboBox->setCurrentIndex((int)render.coloringMethod);
 
-	countingFunctionComboBox = new QComboBox;
-	for (uint_fast32_t i = 0; i < nbCountingFunctions; ++i) {
-		countingFunctionComboBox->addItem(countingFunctionDescStr[i]);
+	iterationCountComboBox = new QComboBox;
+	for (uint_fast32_t i = 0; i < nbIterationCounts; ++i) {
+		iterationCountComboBox->addItem(iterationCountDescStr[i]);
 	}
-	countingFunctionComboBox->setCurrentIndex((int)render.countingFunction);
+	iterationCountComboBox->setCurrentIndex((int)render.iterationCount);
 
 	addendFunctionComboBox = new QComboBox;
 	for (uint_fast32_t i = 0; i < nbAddendFunctions; ++i) {
@@ -86,7 +84,7 @@ FractalRenderingWidget::FractalRenderingWidget(const RenderingParameters &render
 
 	QFormLayout *formLayout = new QFormLayout;
 	formLayout->addRow(tr("Coloring method:"), coloringMethodComboBox);
-	formLayout->addRow(tr("Counting function:"), countingFunctionComboBox);
+	formLayout->addRow(tr("Iteration count:"), iterationCountComboBox);
 	formLayout->addRow(tr("Addend function:"), addendFunctionComboBox);
 	formLayout->addRow(tr("Stripe density:"), stripeDensitySpinBox);
 	formLayout->addRow(tr("Interpolation method:"), interpolationMethodComboBox);
@@ -114,7 +112,7 @@ FractalRenderingWidget::FractalRenderingWidget(const RenderingParameters &render
 
 void FractalRenderingWidget::blockBoxesSignals(bool block)
 {
-	countingFunctionComboBox->blockSignals(block);
+	iterationCountComboBox->blockSignals(block);
 	coloringMethodComboBox->blockSignals(block);
 	addendFunctionComboBox->blockSignals(block);
 	stripeDensitySpinBox->blockSignals(block);
@@ -129,7 +127,7 @@ void FractalRenderingWidget::blockBoxesSignals(bool block)
 void FractalRenderingWidget::updateBoxesValues(const RenderingParameters &render)
 {
 	blockBoxesSignals(true);
-	countingFunctionComboBox->setCurrentIndex((int)render.countingFunction);
+	iterationCountComboBox->setCurrentIndex((int)render.iterationCount);
 	coloringMethodComboBox->setCurrentIndex((int)render.coloringMethod);
 	addendFunctionComboBox->setCurrentIndex((int)render.addendFunction);
 	stripeDensitySpinBox->setValue(render.stripeDensity);
@@ -152,19 +150,19 @@ void FractalRenderingWidget::updateBoxesEnabledValue()
 
 	switch (coloringMethod) {
 	case CM_ITERATIONCOUNT:
-		countingFunctionComboBox->setEnabled(true);
+		iterationCountComboBox->setEnabled(true);
 		addendFunctionComboBox->setEnabled(false);
 		stripeDensitySpinBox->setEnabled(false);
 		interpolationMethodComboBox->setEnabled(false);
 		break;
 	case CM_AVERAGECOLORING:
-		countingFunctionComboBox->setEnabled(false);
+		iterationCountComboBox->setEnabled(false);
 		addendFunctionComboBox->setEnabled(true);
 		stripeDensitySpinBox->setEnabled(addendFunction == AF_STRIPE);
 		interpolationMethodComboBox->setEnabled(true);
 		break;
 	default:
-		countingFunctionComboBox->setEnabled(true);
+		iterationCountComboBox->setEnabled(true);
 		addendFunctionComboBox->setEnabled(true);
 		stripeDensitySpinBox->setEnabled(true);
 		interpolationMethodComboBox->setEnabled(true);

@@ -1,5 +1,5 @@
 /*
- *  main.h -- part of FractalNow
+ *  macro_build_floats.h -- part of FractalNow
  *
  *  Copyright (c) 2012 Marc Pegon <pe.marc@free.fr>
  *
@@ -17,35 +17,32 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
-
+ 
  /**
-  * \file main.h
-  * \brief Header file related to QFractalNow program.
+  * \file macro_build_floats.h
+  * \brief Header file related to macros for building functions operating on multiple float types.
+  *
   * \author Marc Pegon
   */
 
-#ifndef __MAIN_H__
-#define __MAIN_H__
+#ifndef __MACRO_BUILD_FLOATS_H__
+#define __MACRO_BUILD_FLOATS_H__
 
-#include <float.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-/* Fractal is anti-aliased iteratively from "minimum anti-aliasing size"
- * to "maximum anti-aliasing size" by steps of "anti-aliasing size iteration".
- */
+#define BUILD_FLOAT(fprec) MACRO_BUILD_FLOAT(fprec)
+#define BUILD_FLOATS \
+	BUILD_FLOAT(FP_SINGLE) \
+	BUILD_FLOAT(FP_DOUBLE) \
+	BUILD_FLOAT(FP_LDOUBLE) \
+	BUILD_FLOAT(FP_MP)
+#define MACRO_BUILD_FLOATS BUILD_FLOATS
 
-//! Default minimum anti-aliasing size.
-#define DEFAULT_MIN_ANTIALIASING_SIZE (uint_fast32_t)(3)
-
-//! Default maximum anti-aliasing size.
-#define DEFAULT_MAX_ANTIALIASING_SIZE (uint_fast32_t)(3)
-
-//! Default anti-aliasing size iteration.
-#define DEFAULT_ANTIALIASING_SIZE_ITERATION (uint_fast32_t)(2)
-
-//! Default number of decimals.
-#define DEFAULT_DECIMALS_NUMBER (int)(20)
-
-//! Minimum SingleStep for double & mpfr spin boxes.
-#define MIN_SINGLE_STEP (double)(pow(10, -DBL_DIG))
+#ifdef __cplusplus
+}
+#endif
 
 #endif
+

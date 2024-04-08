@@ -1,5 +1,5 @@
 /*
- *  rectangle.h -- part of FractalNow
+ *  uirectangle.h -- part of FractalNow
  *
  *  Copyright (c) 2011 Marc Pegon <pe.marc@free.fr>
  *
@@ -19,29 +19,29 @@
  */
  
  /**
-  * \file rectangle.h
-  * \brief Header file related to rectangle structure.
+  * \file uirectangle.h
+  * \brief Header file related to UIUIRectangle structure.
   * \author Marc Pegon
   */
 
-#ifndef __RECTANGLE_H__
-#define __RECTANGLE_H__
+#ifndef __UIRECTANGLE_H__
+#define __UIRECTANGLE_H__
+
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <stdint.h>
-
 /**
- * \struct Rectangle
- * \brief Simple rectangle structure.
+ * \struct UIRectangle
+ * \brief Simple rectangle structure made of unsigned integers.
  */
 /**
- * \typedef Rectangle
- * \brief Convenient typedef for struct Rectangle.
+ * \typedef UIRectangle
+ * \brief Convenient typedef for struct UIRectangle.
  */
-typedef struct Rectangle {
+typedef struct UIRectangle {
 	uint_fast32_t x1;
  /*!< X coordinate of the rectangle's top left corner.*/
 	uint_fast32_t y1;
@@ -50,10 +50,10 @@ typedef struct Rectangle {
  /*!< X coordinate of the rectangle's bottom right corner.*/
 	uint_fast32_t y2;
  /*!< Y coordinate of the rectangle's bottom right corner.*/
-} Rectangle;
+} UIRectangle;
 
 /**
- * \fn void InitRectangle(Rectangle *rectangle, uint_fast32_t x1, uint_fast32_t y1, uint_fast32_t x2, uint_fast32_t y2)
+ * \fn void InitUIRectangle(UIRectangle *rectangle, uint_fast32_t x1, uint_fast32_t y1, uint_fast32_t x2, uint_fast32_t y2)
  * \brief Initialize rectangle.
  *
  * x1 must be less than x2 and y1 must be less than y2
@@ -65,19 +65,19 @@ typedef struct Rectangle {
  * \param x2 X coordinate of the rectangle's bottom right corner.
  * \param y2 Y coordinate of the rectangle's bottom right corner.
  */
-void InitRectangle(Rectangle *rectangle, uint_fast32_t x1, uint_fast32_t y1, uint_fast32_t x2, uint_fast32_t y2);
+void InitUIRectangle(UIRectangle *rectangle, uint_fast32_t x1, uint_fast32_t y1, uint_fast32_t x2, uint_fast32_t y2);
 
 /**
- * \fn Rectangle CopyRectangle(const Rectangle *rectangle)
+ * \fn UIRectangle CopyUIRectangle(const UIRectangle *rectangle)
  * \brief Copy rectangle.
  *
  * \param rectangle Pointer to rectangle to copy.
  * \return Copy of rectangle.
  */
-Rectangle CopyRectangle(const Rectangle *rectangle);
+UIRectangle CopyUIRectangle(const UIRectangle *rectangle);
 
 /**
- * \fn int CutRectangleInHalf(Rectangle rectangle, Rectangle *out1, Rectangle *out2)
+ * \fn int CutUIRectangleInHalf(UIRectangle rectangle, UIRectangle *out1, UIRectangle *out2)
  * \brief Cut rectangle in half.
  *
  * Cut rectangle into two rectangles.\n
@@ -88,10 +88,10 @@ Rectangle CopyRectangle(const Rectangle *rectangle);
  * \param out2 Pointer to put the second half of the cut rectangle.
  * \return 1 if rectangle cannot be cut in half, 0 otherwise.
  */
-int CutRectangleInHalf(Rectangle rectangle, Rectangle *out1, Rectangle *out2);
+int CutUIRectangleInHalf(UIRectangle rectangle, UIRectangle *out1, UIRectangle *out2);
 
 /**
- * \fn void CutRectangleMaxSize(Rectangle src, uint_fast32_t size, Rectangle **out, uint_fast32_t *out_size)
+ * \fn void CutUIRectangleMaxSize(UIRectangle src, uint_fast32_t size, UIRectangle **out, uint_fast32_t *out_size)
  * \brief Cut rectangle into smaller rectangles.
  *
  * Cut rectangle into smaller rectangles. Each of these rectangles is smaller
@@ -102,10 +102,10 @@ int CutRectangleInHalf(Rectangle rectangle, Rectangle *out1, Rectangle *out2);
  * \param out Pointer to a (not yet allocated) array of rectangles for the output.
  * \param out_size Pointer to an integer to store the number of small rectangles produced.
  */
-void CutRectangleMaxSize(Rectangle src, uint_fast32_t size, Rectangle **out, uint_fast32_t *out_size);
+void CutUIRectangleMaxSize(UIRectangle src, uint_fast32_t size, UIRectangle **out, uint_fast32_t *out_size);
 
 /**
- * \fn int CutRectangleInN(Rectangle rectangle, uint_fast32_t N, Rectangle *out)
+ * \fn int CutUIRectangleInN(UIRectangle rectangle, uint_fast32_t N, UIRectangle *out)
  * \brief Cut rectangle in N parts.
  *
  * Cut rectangle into N rectangles.\n
@@ -116,7 +116,7 @@ void CutRectangleMaxSize(Rectangle src, uint_fast32_t size, Rectangle **out, uin
  * \param out Pointer to the (allocated) array in which to put the N cut rectangles.
  * \return 1 if rectangle cannot be cut in N, 0 otherwise.
  */
-int CutRectangleInN(Rectangle rectangle, uint_fast32_t N, Rectangle *out);
+int CutUIRectangleInN(UIRectangle rectangle, uint_fast32_t N, UIRectangle *out);
 
 #ifdef __cplusplus
 }

@@ -39,7 +39,7 @@
 
 !define INSTALLER_NAME "${PROJECT_SIMPLE_NAME}-${VERSION}.exe"
 
-!define VERSION "0.7.5"
+!define VERSION "0.8.0"
 
 !include "languages\${PROJECT_SIMPLE_NAME}_en.nsh"
 

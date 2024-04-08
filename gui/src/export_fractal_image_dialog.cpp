@@ -18,10 +18,10 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#include "ppm.h"
-
 #include "export_fractal_image_dialog.h"
 #include "task_progress_dialog.h"
+
+#include <float.h>
 
 #include <QApplication>
 #include <QDesktopServices>
@@ -43,6 +43,7 @@ ExportFractalImageDialog::ExportFractalImageDialog(const FractalConfig &config,
 	 config(CopyFractalConfig(&config)),
 	 fractal(this->config.fractal), render(this->config.render)
 {
+	this->floatPrecision = FP_DOUBLE;
 	this->imageDir = imageDir;
 	if (this->imageDir.isEmpty()) {
 		this->imageDir = QDesktopServices::storageLocation(QDesktopServices::PicturesLocation);
@@ -144,9 +145,14 @@ ExportFractalImageDialog::~ExportFractalImageDialog()
 
 void ExportFractalImageDialog::resetFractalConfig(const FractalConfig &config)
 {
-	FractalConfig oldConfig = this->config;
-	this->config = CopyFractalConfig(&config);
-	FreeFractalConfig(oldConfig);
+	FractalConfig newConfig = CopyFractalConfig(&config);
+	FreeFractalConfig(this->config);
+	this->config = newConfig;
+}
+
+void ExportFractalImageDialog::setFloatPrecision(FloatPrecision floatPrecision)
+{
+	this->floatPrecision = floatPrecision;
 }
 
 QString ExportFractalImageDialog::exportedFile()
@@ -190,14 +196,6 @@ void ExportFractalImageDialog::onAAMOversamplingToggled(bool checked)
 	}
 }
 
-void ExportFractalImageDialog::reInitFractal(Fractal &fractal)
-{
-	InitFractal(&fractal, fractal.fractalFormula, fractal.p, fractal.c,
-			fractal.centerX, fractal.centerY,
-			fractal.spanX, fractal.spanY, 
-			fractal.escapeRadius, fractal.maxIter);
-}
-
 ExportFractalImageDialog::AntiAliasingMethod ExportFractalImageDialog::getAntiAliasingMethod() const
 {
 	if (noAAMButton->isChecked()) {
@@ -232,9 +230,7 @@ void ExportFractalImageDialog::exportImage()
 
 	QFileInfo fileInfo(fileName);
 	QString imageFormat;
-	RenderingParameters render = this->render;
-	Fractal fractal = this->fractal;
-	Gradient gradient16;
+	RenderingParameters render = CopyRenderingParameters(&this->render);
 
 	if (depth == 2) {
 		/* Check that extension is PPM (only format supported for 16 bits).*/
@@ -242,9 +238,9 @@ void ExportFractalImageDialog::exportImage()
 			QMessageBox::warning(this, tr("File name extension is not PPM"),
 				tr("16-bits image will be exported as PPM, ignoring file extension."));
 		}
-		gradient16 = Gradient16(&render.gradient);
-		render.gradient = gradient16;
-		render.bytesPerComponent = 2;
+		Gradient gradient16 = Gradient16(&render.gradient);
+		ResetGradient(&render, gradient16);
+		FreeGradient(gradient16);
 	} else {
 		/* Get image format from extension (suffix). */
 		QString allowedFormats[] = {"PNG","JPG","JPEG","TIFF","PPM"};
@@ -264,15 +260,27 @@ void ExportFractalImageDialog::exportImage()
 		}
 	}
 
+	mpfr_t spanX, spanY;
+	mpfr_init(spanX);
+	mpfr_init(spanY);
 	/* Adjust spanX & spanY to image width and height (keep ratio). */
 	int width = imageWidthBox->value();
 	int height = imageHeightBox->value();
 	if (height / (double)width < 1) {
-		fractal.spanX = width * fractal.spanY / height;
+		mpfr_mul_ui(spanX, fractal.spanY, width, MPFR_RNDN);
+		mpfr_div_ui(spanX, spanX, height, MPFR_RNDN);
+		mpfr_set(spanY, fractal.spanY, MPFR_RNDN);
 	} else {
-		fractal.spanY = height * fractal.spanX / width;
+		mpfr_set(spanX, fractal.spanX, MPFR_RNDN);
+		mpfr_mul_ui(spanY, fractal.spanX, height, MPFR_RNDN);
+		mpfr_div_ui(spanY, spanY, width, MPFR_RNDN);
 	}
-	reInitFractal(fractal);
+	Fractal fractal;
+	InitFractal(&fractal, this->fractal.fractalFormula, this->fractal.p, this->fractal.c,
+			this->fractal.centerX, this->fractal.centerY, spanX, spanY,
+			this->fractal.escapeRadius, this->fractal.maxIter);
+	mpfr_clear(spanX);
+	mpfr_clear(spanY);
 
 	/* Now generate fractal image according to anti-aliasing method. */
 	Image fractalImg, tmpImg;
@@ -284,7 +292,7 @@ void ExportFractalImageDialog::exportImage()
 	case AAM_NONE: {
 		task = CreateDrawFractalTask(&fractalImg, &fractal, &render,
 			DEFAULT_QUAD_INTERPOLATION_SIZE, DEFAULT_COLOR_DISSIMILARITY_THRESHOLD,
-			NULL, threads->N);
+			floatPrecision, NULL, threads->N);
 		LaunchTask(task, threads);
 
 		canceled = TaskProgressDialog::progress(task, tr("Drawing fractal..."),
@@ -296,7 +304,7 @@ void ExportFractalImageDialog::exportImage()
 		
 		task = CreateDrawFractalTask(&fractalImg, &fractal, &render,
 			DEFAULT_QUAD_INTERPOLATION_SIZE, DEFAULT_COLOR_DISSIMILARITY_THRESHOLD,
-			NULL, threads->N);
+			floatPrecision, NULL, threads->N);
 		LaunchTask(task, threads);
 		canceled = TaskProgressDialog::progress(task, tr("Drawing fractal..."),
 							tr("Abort"), this);
@@ -317,7 +325,7 @@ void ExportFractalImageDialog::exportImage()
 
 		task = CreateDrawFractalTask(&tmpImg, &fractal, &render,
 			DEFAULT_QUAD_INTERPOLATION_SIZE, DEFAULT_COLOR_DISSIMILARITY_THRESHOLD,
-			NULL, threads->N);
+			floatPrecision, NULL, threads->N);
 		LaunchTask(task, threads);
 		canceled = TaskProgressDialog::progress(task, tr("Drawing fractal..."),
 							tr("Abort"), this);
@@ -334,7 +342,7 @@ void ExportFractalImageDialog::exportImage()
 	case AAM_ADAPTIVE:
 		task = CreateDrawFractalTask(&fractalImg, &fractal, &render,
 			DEFAULT_QUAD_INTERPOLATION_SIZE, DEFAULT_COLOR_DISSIMILARITY_THRESHOLD,
-			NULL, threads->N);
+			floatPrecision, NULL, threads->N);
 		LaunchTask(task, threads);
 		canceled = TaskProgressDialog::progress(task, tr("Drawing fractal..."),
 							tr("Abort"), this);
@@ -342,7 +350,7 @@ void ExportFractalImageDialog::exportImage()
 			FreeTask(task);
 			task = CreateAntiAliaseFractalTask(&fractalImg, &fractal, &render,
 					adaptiveSizeBox->value(), DEFAULT_ADAPTIVE_AAM_THRESHOLD,
-					NULL, threads->N);
+					floatPrecision, NULL, threads->N);
 			LaunchTask(task, threads);
 			canceled = TaskProgressDialog::progress(task,
 					tr("Anti-aliasing fractal..."), tr("Abort"), this);
@@ -368,7 +376,6 @@ void ExportFractalImageDialog::exportImage()
 				QMessageBox::critical(this, tr("Failed to export image"),
 					tr("Error occured while exporting image."));
 			}
-			FreeGradient(gradient16);
 		} else {
 			QImage qImage(fractalImg.data, fractalImg.width, fractalImg.height,
 					QImage::Format_RGB32);
@@ -376,23 +383,35 @@ void ExportFractalImageDialog::exportImage()
 				+ QApplication::applicationName());
 			qImage.setText("Fractal formula",
 				fractalFormulaDescStr[(int)fractal.fractalFormula]);
-			qImage.setText("Fractal p", QString::number(crealF(fractal.p), 'G', FLOATT_DIG) + " + i*"
-							+ QString::number(cimagF(fractal.p), 'G', FLOATT_DIG));
-			qImage.setText("Fractal c", QString::number(crealF(fractal.c), 'G', FLOATT_DIG) + " + i*"
-							+ QString::number(cimagF(fractal.c), 'G', FLOATT_DIG));
-			qImage.setText("Fractal center", "(" +
-							QString::number(fractal.centerX, 'G', FLOATT_DIG) +
-							", " + QString::number(fractal.centerY, 'G', FLOATT_DIG) +
-							")");
-			qImage.setText("Fractal span X", QString::number(fractal.spanX, 'G', FLOATT_DIG));
-			qImage.setText("Fractal span Y", QString::number(fractal.spanY, 'G', FLOATT_DIG));
-			qImage.setText("Fractal bailout radius", QString::number(fractal.escapeRadius,
-							'G', FLOATT_DIG));
+			char *rePStr, *imPStr, *reCStr, *imCStr;
+			char *centerXStr, *centerYStr, *spanXStr, *spanYStr;
+			mpfr_asprintf(&rePStr, "%Rf", mpc_realref(fractal.p));
+			mpfr_asprintf(&imPStr, "%Rf", mpc_imagref(fractal.p));
+			mpfr_asprintf(&reCStr, "%Rf", mpc_realref(fractal.c));
+			mpfr_asprintf(&imCStr, "%Rf", mpc_imagref(fractal.c));
+			mpfr_asprintf(&centerXStr, "%Rf", fractal.centerX);
+			mpfr_asprintf(&centerYStr, "%Rf", fractal.centerY);
+			mpfr_asprintf(&spanXStr, "%Rf", fractal.spanX);
+			mpfr_asprintf(&spanYStr, "%Rf", fractal.spanY);
+			qImage.setText("Fractal p", QString(rePStr) + " + i*" + QString(imPStr));
+			qImage.setText("Fractal c", QString(reCStr) + " + i*" + QString(imCStr));
+			qImage.setText("Fractal center", "(" + QString(centerXStr) +  ", " + QString(centerYStr) + ")");
+			qImage.setText("Fractal span X", QString(spanXStr));
+			qImage.setText("Fractal span Y", QString(spanYStr));
+			qImage.setText("Fractal bailout radius", QString::number(fractal.escapeRadius, 'G', LDBL_DIG));
 			qImage.setText("Fractal max iterations", QString::number(fractal.maxIter));
 			if ((exportError = !qImage.save(fileName, imageFormat.toStdString().c_str())) != 0) {
 				QMessageBox::critical(this, tr("Failed to export image"),
 					tr("Error occured while exporting image."));
 			}
+			mpfr_free_str(rePStr);
+			mpfr_free_str(imPStr);
+			mpfr_free_str(reCStr);
+			mpfr_free_str(imCStr);
+			mpfr_free_str(centerXStr);
+			mpfr_free_str(centerYStr);
+			mpfr_free_str(spanXStr);
+			mpfr_free_str(spanYStr);
 		}
 		FreeImage(fractalImg);
 		setEnabled(true);
@@ -403,5 +422,8 @@ void ExportFractalImageDialog::exportImage()
 			this->accept();
 		}
 	}
+
+	FreeFractal(fractal);
+	FreeRenderingParameters(render);
 }
 

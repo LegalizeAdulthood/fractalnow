@@ -19,7 +19,7 @@
  */
 
 #include "gradient_label.h"
-#include "misc.h"
+
 #include <QPainter>
 
 GradientLabel::GradientLabel(QWidget *parent) :
@@ -37,7 +37,7 @@ void GradientLabel::setGradientStops(const QGradientStops &gradientStops)
 
 void GradientLabel::paintEvent(QPaintEvent *event)
 {
-	UNUSED(event);
+	Q_UNUSED(event);
 	QPainter painter(this);
 	QLinearGradient qGradient(rect().topLeft(), rect().topRight());
 	qGradient.setStops(gradientStops);

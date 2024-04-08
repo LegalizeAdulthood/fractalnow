@@ -48,15 +48,14 @@ const WriteRenderingFileFunction writeRenderingFileFunction[] = {
 };
 
 inline void InitRenderingParameters(RenderingParameters *param, uint_fast8_t bytesPerComponent, Color spaceColor,
-				CountingFunction countingFunction, ColoringMethod coloringMethod,
+				IterationCount iterationCount, ColoringMethod coloringMethod,
 				AddendFunction addendFunction, uint_fast32_t stripeDensity,
 				InterpolationMethod interpolationMethod, TransferFunction transferFunction,
-				FLOATT multiplier, FLOATT offset, Gradient gradient)
+				double multiplier, double offset, Gradient gradient)
 {
 	param->bytesPerComponent = bytesPerComponent;
 	param->spaceColor = spaceColor;
-	param->countingFunction = countingFunction;
-	param->countingFunctionPtr = GetCountingFunctionPtr(countingFunction);
+	param->iterationCount = iterationCount;
 	param->coloringMethod = coloringMethod;
 	param->addendFunction = addendFunction;
 	param->stripeDensity = stripeDensity;
@@ -72,8 +71,12 @@ inline void InitRenderingParameters(RenderingParameters *param, uint_fast8_t byt
 
 RenderingParameters CopyRenderingParameters(const RenderingParameters *param)
 {
-	RenderingParameters res = *param;
-	res.gradient = CopyGradient(&param->gradient);
+	Gradient copyGradient = CopyGradient(&param->gradient);
+	RenderingParameters res;
+	InitRenderingParameters(&res, param->bytesPerComponent, param->spaceColor, param->iterationCount,
+				param->coloringMethod, param->addendFunction, param->stripeDensity,
+				param->interpolationMethod, param->transferFunction, param->multiplier,
+				param->offset, copyGradient);
 
 	return res;
 }
@@ -81,7 +84,7 @@ RenderingParameters CopyRenderingParameters(const RenderingParameters *param)
 void ResetGradient(RenderingParameters *param, Gradient gradient)
 {
 	FreeGradient(param->gradient);
-	param->gradient = gradient;
+	param->gradient = CopyGradient(&gradient);
 	param->bytesPerComponent = gradient.bytesPerComponent;
 	param->realMultiplier = param->multiplier*gradient.size;
 	param->realOffset = param->offset*gradient.size;
@@ -92,14 +95,14 @@ int ReadRenderingFileV075(RenderingParameters *param, const char *fileName, FILE
 	int res = 0;
 	uint_fast8_t bytesPerComponent;
 	Color spaceColor;
-	CountingFunction countingFunction;
+	IterationCount iterationCount;
 	ColoringMethod coloringMethod;
 	AddendFunction addendFunction;
 	uint32_t stripeDensity;
 	InterpolationMethod interpolationMethod;
 	TransferFunction transferFunction;
-	FLOATT multiplier;
-	FLOATT offset;
+	double multiplier;
+	double offset;
 	Gradient gradient;
 	char str[256];
 
@@ -125,7 +128,7 @@ int ReadRenderingFileV075(RenderingParameters *param, const char *fileName, FILE
 	}
 
 	/* Just to be sure these are initialized, because they are always needed (and thus read). */
-	countingFunction = CF_SMOOTH;
+	iterationCount = IC_SMOOTH;
 	interpolationMethod = IM_NONE;
 	addendFunction = AF_TRIANGLEINEQUALITY;
 	stripeDensity = 1;
@@ -135,7 +138,7 @@ int ReadRenderingFileV075(RenderingParameters *param, const char *fileName, FILE
 		if (readString(file, str) < 1) {
 			FractalNow_read_werror(fileName);
 		}
-		if (GetCountingFunction(&countingFunction, str)) {
+		if (GetIterationCount(&iterationCount, str)) {
 			FractalNow_werror("Invalid rendering file : could not get counting function.\n");
 		}
 		break;
@@ -170,10 +173,10 @@ int ReadRenderingFileV075(RenderingParameters *param, const char *fileName, FILE
 		FractalNow_werror("Invalid rendering file : could not get transfer function.\n");
 	}
 
-	if (readFLOATT(file, &multiplier) < 1) {
+	if (readDouble(file, &multiplier) < 1) {
 		FractalNow_read_werror(fileName);
 	}
-	if (readFLOATT(file, &offset) < 1) {
+	if (readDouble(file, &offset) < 1) {
 		FractalNow_read_werror(fileName);
 	}
 
@@ -181,7 +184,7 @@ int ReadRenderingFileV075(RenderingParameters *param, const char *fileName, FILE
 		FractalNow_werror("Invalid rendering file : failed to read gradient.\n");
 	}
 
-	InitRenderingParameters(param, bytesPerComponent, spaceColor, countingFunction, coloringMethod,
+	InitRenderingParameters(param, bytesPerComponent, spaceColor, iterationCount, coloringMethod,
 				addendFunction, stripeDensity, interpolationMethod, transferFunction,
 				multiplier, offset, gradient);
 
@@ -304,7 +307,7 @@ int WriteRenderingFileV075(const RenderingParameters *param, const char *fileNam
 	}
 	switch (param->coloringMethod) {
 	case CM_ITERATIONCOUNT:
-		if (writeString(file, countingFunctionStr[(int)param->countingFunction], "\n") < 0) {
+		if (writeString(file, iterationCountStr[(int)param->iterationCount], "\n") < 0) {
 			FractalNow_write_werror(fileName);
 		}
 		break;
@@ -328,10 +331,10 @@ int WriteRenderingFileV075(const RenderingParameters *param, const char *fileNam
 	if (writeString(file, transferFunctionStr[(int)param->transferFunction], "\n") < 0) {
 		FractalNow_write_werror(fileName);
 	}
-	if (writeFLOATT(file, param->multiplier, " ") < 0) {
+	if (writeDouble(file, param->multiplier, " ") < 0) {
 		FractalNow_write_werror(fileName);
 	}
-	if (writeFLOATT(file, param->offset, "\n") < 0) {
+	if (writeDouble(file, param->offset, "\n") < 0) {
 		FractalNow_write_werror(fileName);
 	}
 

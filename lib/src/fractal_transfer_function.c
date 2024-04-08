@@ -20,50 +20,49 @@
 
 #include "fractal_transfer_function.h"
 #include "error.h"
-#include "floating_point.h"
 #include "misc.h"
 #include <stdlib.h>
 #include <string.h>
 
-FLOATT logp1logp1F(FLOATT x)
+double logp1logp1(double x)
 {
-	return logF(logF(1+x)+1);
+	return log(log(1+x)+1);
 }
 	
-FLOATT logp1F(FLOATT x)
+double logp1(double x)
 {
-	return logF(1+x);
+	return log(1+x);
 }
 
-FLOATT cubertF(FLOATT x)
+double cubert(double x)
 {
-	return powF(x, 1./3);
+	return pow(x, 1./3);
 }
 
-FLOATT identityF(FLOATT x)
+double identity(double x)
 {
 	return x;
 }
 
-FLOATT squareF(FLOATT x)
+double square(double x)
 {
 	return x*x;
 }
 
-FLOATT cubeF(FLOATT x)
+double cube(double x)
 {
 	return x*x*x;
 }
 
 const TransferFunctionPtr transferFunctionsArray[] = {
-	logp1logp1F,
-	logp1F,
-	cubertF,
-	SQRTF,
-	identityF,
-	squareF,
-	cubeF,
-	EXPF
+	logp1logp1,
+	logp1,
+	cubert,
+	sqrt,
+	identity,
+	square,
+	cube,
+	exp
 };
 
 const char *transferFunctionStr[] = {

@@ -27,13 +27,14 @@
 #ifndef __COMMAND_LINE_H__
 #define __COMMAND_LINE_H__
 
+#include "anti_aliasing.h"
+#include "fractalnow.h"
+
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "anti_aliasing.h"
-#include "floating_point.h"
-#include <stdint.h>
 
 /**
  * \struct CommandLineArguments
@@ -64,14 +65,18 @@ typedef struct CommandLineArguments {
  /*!< Maximum size of quadrilaterals for interpolation.*/
 	int nbThreads;
  /*!< Number of threads. Negative if not specified. */
-	FLOATT colorDissimilarityThreshold;
+	double colorDissimilarityThreshold;
  /*!< Dissimilarity threshold for interpolation.*/
 	AntiAliasingMethod antiAliasingMethod;
  /*!< Anti-aliasing method.*/
-	FLOATT antiAliasingSize;
+	double antiAliasingSize;
  /*!< Size for anti-aliasing (radius for blur, factor for oversampling and adaptive).*/
-	FLOATT adaptiveAAMThreshold;
+	double adaptiveAAMThreshold;
  /*!< Threshold used when anti-aliasing method is adaptive.*/
+	FloatPrecision floatPrecision;
+ /*!< Float precision.*/
+	mpfr_prec_t MPFloatPrecision;
+ /*!< Precision (value) of Multiple Precision floats.*/
 } CommandLineArguments;
 
 /**

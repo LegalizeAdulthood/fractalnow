@@ -18,11 +18,14 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
  
+#include "task_progress_dialog.h"
+
+#include <time.h>
+
 #include <QApplication>
 #include <QFuture>
 #include <QProgressDialog>
 #include <QtConcurrentRun>
-#include "task_progress_dialog.h"
 
 int TaskProgressDialog::progress(Task *task, QString labelText, QString cancelButtonText, QWidget *parent)
 {

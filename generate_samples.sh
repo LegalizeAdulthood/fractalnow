@@ -41,6 +41,8 @@ FRACTALNOW OPTIONS (see fractalnow help) :
 -v 
 -x <width>
 -y <height>
+-l <float_type>
+-L <MP_float_precision>
 -a <aa_method>
 -s <aa_size>
 -j <nb_threads>
@@ -57,7 +59,7 @@ function error {
 	fi;
 }
 
-while getopts ":hc:e:f:r:o:qvdnx:y:a:s:j:" opt; do
+while getopts ":hc:e:f:r:o:qvdnx:y:a:s:j:l:L:" opt; do
 	case "$opt" in
 		'h')
 			usage;
@@ -103,6 +105,12 @@ while getopts ":hc:e:f:r:o:qvdnx:y:a:s:j:" opt; do
 			else
 				error 'Height is not a number.';
 			fi;
+		;;
+		'l')
+			FLOATTYPE="$OPTARG";
+		;;
+		'L')
+			MPFLOATPRECISION="$OPTARG";
 		;;
 		'a')
 			AAM="$OPTARG";
@@ -203,6 +211,14 @@ if [ ! -z ${HEIGHT} ]; then
 	FLAGS="$FLAGS -y ${HEIGHT}";
 	IMG_SUFFIX="${IMG_SUFFIX}_y${HEIGHT}";
 fi;
+if [ ! -z ${FLOATTYPE} ]; then
+	FLAGS="$FLAGS -l ${FLOATTYPE}";
+	IMG_SUFFIX="${IMG_SUFFIX}_l${FLOATTYPE}";
+fi
+if [ ! -z ${MPFLOATPRECISION} ]; then
+	FLAGS="$FLAGS -L ${MPFLOATPRECISION}";
+	IMG_SUFFIX="${IMG_SUFFIX}_L${MPFLOATPRECISION}";
+fi
 if [ ! -z ${AAM} ]; then
 	FLAGS="$FLAGS -a ${AAM}";
 	IMG_SUFFIX="${IMG_SUFFIX}_a${AAM}";

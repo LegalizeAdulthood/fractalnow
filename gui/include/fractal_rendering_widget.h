@@ -31,6 +31,7 @@
 #include "fractal_rendering_parameters.h"
 #include "color_button.h"
 #include "gradient_box.h"
+
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QWidget>
@@ -42,7 +43,7 @@ class FractalRenderingWidget : public QWidget
 	public:
 	FractalRenderingWidget(const RenderingParameters &render);
 
-	QComboBox *countingFunctionComboBox;
+	QComboBox *iterationCountComboBox;
 	QComboBox *coloringMethodComboBox;
 	QComboBox *addendFunctionComboBox;
 	QSpinBox *stripeDensitySpinBox;

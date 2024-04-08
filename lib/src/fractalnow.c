@@ -23,6 +23,8 @@
 #define STR_EXPAND(tok) #tok
 #define STR(tok) STR_EXPAND(tok)
 
+mpfr_prec_t fractalnow_mpfr_precision = DEFAULT_MPFR_PRECISION;
+
 const char *FractalNow_VersionNumber()
 {
 	return STR(VERSION_NUMBER);

@@ -30,13 +30,14 @@
 #ifndef __FRACTAL_COLORING_H__
 #define __FRACTAL_COLORING_H__
 
+#include "float_precision.h"
+#include "fractal_addend_function.h"
+#include "fractal_iteration_count.h"
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "floating_point.h"
-#include "fractal_counting_function.h"
-#include <stdint.h>
 
 /**
  * \enum e_ColoringMethod
@@ -157,78 +158,187 @@ extern const char *interpolationMethodDescStr[];
 int GetInterpolationMethod(InterpolationMethod *interpolationMethod, const char *str);
 
 /********************CM_ITERATIONCOUNT********************/
-#define LOOP_INIT_CM_ITERATIONCOUNT(addend,interpolation) \
+#define ENGINE_DECL_VAR_CM_ITERATIONCOUNT(iterationcount,addend,interpolation,fprec) \
+ENGINE_DECL_VAR_##iterationcount(fprec)
+
+#define ENGINE_INIT_VAR_CM_ITERATIONCOUNT(iterationcount,addend,interpolation,fprec) \
+ENGINE_INIT_VAR_##iterationcount(fprec)
+
+#define ENGINE_CLEAR_VAR_CM_ITERATIONCOUNT(iterationcount,addend,interpolation,fprec) \
+ENGINE_CLEAR_VAR_##iterationcount(fprec)
+
+#define LOOP_INIT_CM_ITERATIONCOUNT(iterationcount,addend,interpolation,fprec) \
 (void)NULL;
 
-#define LOOP_ITERATION_CM_ITERATIONCOUNT(addend,interpolation) \
+#define LOOP_ITERATION_CM_ITERATIONCOUNT(iterationcount,addend,interpolation,fprec) \
 (void)NULL;
 
-#define LOOP_END_CM_ITERATIONCOUNT(addend,interpolation) \
-res = countingFunction(fractal, n, sqrtF(normZ2));
+#define LOOP_END_CM_ITERATIONCOUNT(iterationcount,addend,interpolation,fprec) \
+COMPUTE_##iterationcount(fprec);\
 /*********************************************************/
 
-
 /********************CM_AVERAGECOLORING*******************/
-#define LOOP_INIT_CM_AVERAGECOLORING(addend,interpolation) \
-LOOP_INIT_IM_##interpolation(addend)
+#define ENGINE_DECL_VAR_CM_AVERAGECOLORING(iterationcount,addend,interpolation,fprec) \
+ENGINE_DECL_VAR_##interpolation(addend,fprec)
 
-#define LOOP_ITERATION_CM_AVERAGECOLORING(addend,interpolation) \
-LOOP_ITERATION_IM_##interpolation(addend)
+#define ENGINE_INIT_VAR_CM_AVERAGECOLORING(iterationcount,addend,interpolation,fprec) \
+ENGINE_INIT_VAR_##interpolation(addend,fprec)
 
-#define LOOP_END_CM_AVERAGECOLORING(addend,interpolation) \
-LOOP_END_IM_##interpolation(addend)
+#define ENGINE_CLEAR_VAR_CM_AVERAGECOLORING(iterationcount,addend,interpolation,fprec) \
+ENGINE_CLEAR_VAR_##interpolation(addend,fprec)
+
+#define LOOP_INIT_CM_AVERAGECOLORING(iterationcount,addend,interpolation,fprec) \
+LOOP_INIT_##interpolation(addend,fprec)
+
+#define LOOP_ITERATION_CM_AVERAGECOLORING(iterationcount,addend,interpolation,fprec) \
+LOOP_ITERATION_##interpolation(addend,fprec)
+
+#define LOOP_END_CM_AVERAGECOLORING(iterationcount,addend,interpolation,fprec) \
+LOOP_END_##interpolation(addend,fprec)
 /*********************************************************/
 
 /*************************IM_NONE*************************/
-#define LOOP_INIT_IM_NONE(addend) \
-FLOATT SN[1];\
-LOOP_INIT_AF_##addend(1)
+#define ENGINE_DECL_VAR_IM_NONE(addend,fprec) \
+FLOATTYPE(fprec) SN_IM[1];\
+ENGINE_DECL_VAR_##addend(1,fprec)
 
-#define LOOP_ITERATION_IM_NONE(addend) \
-LOOP_ITERATION_AF_##addend(1)
+#define ENGINE_INIT_VAR_IM_NONE(addend,fprec) \
+initF(fprec, data->SN_IM[0]);\
+ENGINE_INIT_VAR_##addend(1,fprec)
 
-#define LOOP_END_IM_NONE(addend) \
-LOOP_END_AF_##addend(1)\
-res = SN[0];
+#define ENGINE_CLEAR_VAR_IM_NONE(addend,fprec) \
+clearF(fprec, data->SN_IM[0]);\
+ENGINE_CLEAR_VAR_##addend(1,fprec)
+
+#define LOOP_INIT_IM_NONE(addend,fprec) \
+LOOP_INIT_##addend(1,fprec)
+
+#define LOOP_ITERATION_IM_NONE(addend,fprec) \
+LOOP_ITERATION_##addend(1,fprec)
+
+#define LOOP_END_IM_NONE(addend,fprec) \
+LOOP_END_##addend(1,fprec)\
+assignF(fprec,data->res,data->SN_IM[0]);
 /*********************************************************/
-
 
 /************************IM_LINEAR************************/
-#define LOOP_INIT_IM_LINEAR(addend) \
-FLOATT SN[2];\
-LOOP_INIT_AF_##addend(2)
+#define ENGINE_DECL_VAR_IM_LINEAR(addend,fprec) \
+ENGINE_DECL_VAR_IC_SMOOTH(fprec)\
+FLOATTYPE(fprec) tmp_IM;\
+FLOATTYPE(fprec) SN_IM[2];\
+ENGINE_DECL_VAR_##addend(2,fprec)
 
-#define LOOP_ITERATION_IM_LINEAR(addend) \
-LOOP_ITERATION_AF_##addend(2)
+#define ENGINE_INIT_VAR_IM_LINEAR(addend,fprec) \
+ENGINE_INIT_VAR_IC_SMOOTH(fprec)\
+initF(fprec, data->tmp_IM);\
+initF(fprec, data->SN_IM[0]);\
+initF(fprec, data->SN_IM[1]);\
+ENGINE_INIT_VAR_##addend(2,fprec)
 
-#define LOOP_END_IM_LINEAR(addend) \
-LOOP_END_AF_##addend(2)\
-res = SmoothIterationCount(fractal, n, sqrtF(normZ2));\
-FLOATT d, unused;\
-d = modfF(res, &unused);\
-res = d*SN[0] + (1-d)*SN[1];
+#define ENGINE_CLEAR_VAR_IM_LINEAR(addend,fprec) \
+ENGINE_CLEAR_VAR_IC_SMOOTH(fprec)\
+clearF(fprec, data->tmp_IM);\
+clearF(fprec, data->SN_IM[0]);\
+clearF(fprec, data->SN_IM[1]);\
+ENGINE_CLEAR_VAR_##addend(2,fprec)
+
+#define LOOP_INIT_IM_LINEAR(addend,fprec) \
+LOOP_INIT_##addend(2,fprec)
+
+#define LOOP_ITERATION_IM_LINEAR(addend,fprec) \
+LOOP_ITERATION_##addend(2,fprec)
+
+#define LOOP_END_IM_LINEAR(addend,fprec) \
+LOOP_END_##addend(2,fprec)\
+COMPUTE_IC_SMOOTH(fprec)\
+modfF(fprec, data->tmp_IM, data->res, data->res);\
+sub_uiF(fprec, data->tmp_IM, data->res, 1);\
+mulF(fprec, data->tmp_IM, data->tmp_IM, data->SN_IM[1]);\
+mulF(fprec, data->res, data->res, data->SN_IM[0]);\
+subF(fprec, data->res, data->res, data->tmp_IM);
 /*********************************************************/
 
-
 /************************IM_SPLINE************************/
-#define LOOP_INIT_IM_SPLINE(addend) \
-FLOATT SN[4];\
-LOOP_INIT_AF_##addend(4)
+#define ENGINE_DECL_VAR_IM_SPLINE(addend,fprec) \
+ENGINE_DECL_VAR_IC_SMOOTH(fprec)\
+FLOATTYPE(fprec) tmp_IM;\
+FLOATTYPE(fprec) d1_IM;\
+FLOATTYPE(fprec) d2_IM;\
+FLOATTYPE(fprec) d3_IM;\
+FLOATTYPE(fprec) s1_IM;\
+FLOATTYPE(fprec) s2_IM;\
+FLOATTYPE(fprec) s3_IM;\
+FLOATTYPE(fprec) SN_IM[4];\
+ENGINE_DECL_VAR_##addend(4,fprec)
 
-#define LOOP_ITERATION_IM_SPLINE(addend) \
-LOOP_ITERATION_AF_##addend(4)
+#define ENGINE_INIT_VAR_IM_SPLINE(addend,fprec) \
+ENGINE_INIT_VAR_IC_SMOOTH(fprec)\
+initF(fprec,data->tmp_IM);\
+initF(fprec,data->d1_IM);\
+initF(fprec,data->d2_IM);\
+initF(fprec,data->d3_IM);\
+initF(fprec,data->s1_IM);\
+initF(fprec,data->s2_IM);\
+initF(fprec,data->s3_IM);\
+for (uint_fast32_t i = 0; i < 4; ++i) {\
+	initF(fprec,data->SN_IM[i]);\
+}\
+ENGINE_INIT_VAR_##addend(4,fprec)
 
-#define LOOP_END_IM_SPLINE(addend) \
-LOOP_END_AF_##addend(4)\
-res = SmoothIterationCount(fractal, n, sqrtF(normZ2));\
-FLOATT unused, d1, d2, d3;\
-d1 = modfF(res, &unused);\
-d2 = d1*d1;\
-d3 = d1*d2;\
-res = ((-d2+d3)*SN[0] +\
-	(d1+4*d2-3*d3)*SN[1] +\
-	(2-5*d2+3*d3)*SN[2] +\
-	(-d1+2*d2-d3)*SN[3]) /2;\
+#define ENGINE_CLEAR_VAR_IM_SPLINE(addend,fprec) \
+ENGINE_CLEAR_VAR_IC_SMOOTH(fprec)\
+clearF(fprec,data->tmp_IM);\
+clearF(fprec,data->d1_IM);\
+clearF(fprec,data->d2_IM);\
+clearF(fprec,data->d3_IM);\
+clearF(fprec,data->s1_IM);\
+clearF(fprec,data->s2_IM);\
+clearF(fprec,data->s3_IM);\
+for (uint_fast32_t i = 0; i < 4; ++i) {\
+	clearF(fprec,data->SN_IM[i]);\
+}\
+ENGINE_CLEAR_VAR_##addend(4,fprec)
+
+#define LOOP_INIT_IM_SPLINE(addend,fprec) \
+LOOP_INIT_##addend(4,fprec)
+
+#define LOOP_ITERATION_IM_SPLINE(addend,fprec) \
+LOOP_ITERATION_##addend(4,fprec)
+
+#define LOOP_END_IM_SPLINE(addend,fprec) \
+LOOP_END_##addend(4,fprec)\
+COMPUTE_IC_SMOOTH(fprec)\
+modfF(fprec,data->tmp_IM,data->d1_IM,data->res);\
+mulF(fprec,data->d2_IM,data->d1_IM,data->d1_IM);\
+mulF(fprec,data->d3_IM,data->d1_IM,data->d2_IM);\
+\
+/* Compute s1 */\
+mul_uiF(fprec,data->tmp_IM,data->d2_IM,4);\
+addF(fprec,data->s1_IM,data->d1_IM,data->tmp_IM);\
+mul_uiF(fprec,data->tmp_IM,data->d3_IM,3);\
+subF(fprec,data->s1_IM,data->s1_IM,data->tmp_IM);\
+mulF(fprec,data->s1_IM,data->s1_IM,data->SN_IM[1]);\
+\
+/* Compute s2 */\
+mul_uiF(fprec,data->s2_IM,data->d3_IM,3);\
+mul_uiF(fprec,data->tmp_IM,data->d2_IM,5);\
+subF(fprec,data->s2_IM,data->s2_IM,data->tmp_IM);\
+add_uiF(fprec,data->s2_IM,data->s2_IM,2);\
+mulF(fprec,data->s2_IM,data->s2_IM,data->SN_IM[2]);\
+\
+/* Compute s3 */\
+mul_uiF(fprec,data->s3_IM,data->d2_IM,2);\
+subF(fprec,data->s3_IM,data->s3_IM,data->d1_IM);\
+subF(fprec,data->s3_IM,data->s3_IM,data->d3_IM);\
+mulF(fprec,data->s3_IM,data->s3_IM,data->SN_IM[3]);\
+\
+/* Compute res */\
+subF(fprec,data->res,data->d3_IM,data->d2_IM);\
+mulF(fprec,data->res,data->res,data->SN_IM[0]);\
+addF(fprec,data->res,data->res,data->s1_IM);\
+addF(fprec,data->res,data->res,data->s2_IM);\
+addF(fprec,data->res,data->res,data->s3_IM);\
+div_uiF(fprec,data->res,data->res,2);
 /*********************************************************/
 
 #ifdef __cplusplus

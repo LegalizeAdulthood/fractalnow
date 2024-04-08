@@ -18,9 +18,9 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
  
-#include "fractalnow.h"
 #include "main.h"
 #include "main_window.h"
+
 #include <QApplication>
  
 int main(int argc, char *argv[])
