@@ -32,7 +32,7 @@ MainWindow::MainWindow(int argc, char *argv[])
 		std::string smoothName = "smooth";
 		/* Init rendering parameters */
 		InitRenderingParameters(&render, 1, ColorFromUint32(0x0), GetCountingFunction(
-					smoothName.c_str()), CM_SIMPLE, AF_TRIANGLEINEQUALITY,
+					smoothName.c_str()), CM_SIMPLE, AF_TRIANGLEINEQUALITY, 0,
 					IM_NONE, GetTransferFunction(identityName.c_str()),
 					1E3, 0, gradient);
 	} else {

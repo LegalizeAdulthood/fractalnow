@@ -25,15 +25,16 @@
 
 inline void InitRenderingParameters(RenderingParameters *param, uint_fast8_t bytesPerComponent, Color spaceColor,
 				CountingFunction countingFunction, ColoringMethod coloringMethod,
-				AddendFunction addendFunction, InterpolationMethod interpolationMethod,
-				TransferFunction transferFunction, FLOAT multiplier, FLOAT offset,
-				Gradient gradient)
+				AddendFunction addendFunction, uint_fast32_t stripeDensity,
+				InterpolationMethod interpolationMethod, TransferFunction transferFunction,
+				FLOAT multiplier, FLOAT offset, Gradient gradient)
 {
 	param->bytesPerComponent = bytesPerComponent;
 	param->spaceColor = spaceColor;
 	param->countingFunction = countingFunction;
 	param->coloringMethod = coloringMethod;
 	param->addendFunction = addendFunction;
+	param->stripeDensity = stripeDensity;
 	param->interpolationMethod = interpolationMethod;
 	param->transferFunction = transferFunction;
 	param->multiplier = multiplier;
@@ -57,6 +58,7 @@ void ReadRenderingFile(RenderingParameters *param, const char *fileName)
 	CountingFunction countingFunction;
 	ColoringMethod coloringMethod;
 	AddendFunction addendFunction;
+	uint_fast32_t stripeDensity;
 	InterpolationMethod interpolationMethod;
 	TransferFunction transferFunction;
 	FLOAT multiplier;
@@ -79,15 +81,19 @@ void ReadRenderingFile(RenderingParameters *param, const char *fileName)
 	safeReadString(file, fileName, str);
 	coloringMethod = GetColoringMethod(str);
 
+	/* Just to be sure these are initialized, because they are always needed (and thus read). */
+	interpolationMethod = IM_NONE;
+	addendFunction = AF_TRIANGLEINEQUALITY;
+	stripeDensity = 0;
+
 	if (coloringMethod == CM_AVERAGE) {
 		safeReadString(file, fileName, str);
 		addendFunction = GetAddendFunction(str);
+		if (addendFunction == AF_STRIPE) {
+			stripeDensity = safeReadUint32(file, fileName);
+		}
 		safeReadString(file, fileName, str);
 		interpolationMethod = GetInterpolationMethod(str);
-	} else {
-		/* These do not matter for CM_SIMPLE. It is just to initialize them. */
-		interpolationMethod = IM_NONE;
-		addendFunction = AF_TRIANGLEINEQUALITY;
 	}
 
 	safeReadString(file, fileName, str);
@@ -118,8 +124,8 @@ void ReadRenderingFile(RenderingParameters *param, const char *fileName)
 	GenerateGradient(&gradient, color, nbColors, nbTransitions);
 
 	InitRenderingParameters(param, bytesPerComponent, spaceColor, countingFunction, coloringMethod,
-				addendFunction, interpolationMethod, transferFunction, multiplier, offset,
-				gradient);
+				addendFunction, stripeDensity, interpolationMethod, transferFunction,
+				multiplier, offset, gradient);
 
 	if (fclose(file)) {
 		close_error(fileName);

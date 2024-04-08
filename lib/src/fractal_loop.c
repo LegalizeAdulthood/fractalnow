@@ -45,13 +45,14 @@ FLOAT FractalLoop##formula##ptype##coloring##addend##interpolation( \
 	FLOAT normC = cabsF(c);\
 	(void)normC;\
 	FLOAT normZ2 = cnorm2F(z);\
-	uint_fast32_t n=1;\
-	for (; n<fractal->maxIter && normZ2 < fractal->escapeRadius2; n++) {\
+	uint_fast32_t n;\
+	for (n=0; n<fractal->maxIter && normZ2 < fractal->escapeRadius2; n++) {\
+		LOOP_ITERATION_CM_##coloring(addend,interpolation)\
 		LOOP_ITERATION_FRAC_##formula(ptype)\
 		normZ2 = cnorm2F(z);\
-		LOOP_ITERATION_CM_##coloring(addend,interpolation)\
 	}\
-	--n;\
+	/* Color even the last iteration, when |z| becomes > escape radius */\
+	LOOP_ITERATION_CM_##coloring(addend,interpolation)\
 	if (normZ2 < fractal->escapeRadius) {\
 		return -1;\
 	} else {\

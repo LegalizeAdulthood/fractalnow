@@ -24,7 +24,9 @@
 #include <string.h>
 
 const char *AddendFunctionStr[] = {
-	(char *)("triangleinequality")
+	(char *)"triangleinequality",
+	(char *)"curvature",
+	(char *)"stripe"
 };
 
 AddendFunction GetAddendFunction(const char *str)

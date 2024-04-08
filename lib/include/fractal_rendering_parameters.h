@@ -54,6 +54,8 @@ typedef struct s_RenderingParameters {
  /*!< Fractal coloring method.*/
 	AddendFunction addendFunction;
  /*!< Fractal addend function (used only for CM_AVERAGE coloring method).*/
+	uint_fast32_t stripeDensity;
+ /*!< Stripe density (used only for AF_STRIPE addend function).*/
 	InterpolationMethod interpolationMethod;
  /*!< Fractal interpolation method (used only for CM_AVERAGE coloring method).*/
 	TransferFunction transferFunction;
@@ -79,6 +81,7 @@ typedef struct s_RenderingParameters {
  * \param countingFunction  Fractal counting function.
  * \param coloringMethod Fractal coloring method.
  * \param addendFunction Fractal addend function (used only for CM_AVERAGE coloring method).
+ * \param stripeDensity Stripe density (used only for AF_STRIPE addend function).
  * \param interpolationMethod Fractal interpolation method (used only for CM_AVERAGE coloring method).
  * \param transferFunction Fractal transfer function (to make the values fit the gradient better).
  * \param multiplier Value with which fractal values will be multiplied (to make the values fit the gradient better).
@@ -87,9 +90,9 @@ typedef struct s_RenderingParameters {
  */
 void InitRenderingParameters(RenderingParameters *param, uint_fast8_t bytesPerComponent, Color spaceColor,
 				CountingFunction countingFunction, ColoringMethod coloringMethod,
-				AddendFunction addendFunction, InterpolationMethod interpolationMethod,
-				TransferFunction transferFunction, FLOAT multiplier, FLOAT offset,
-				Gradient gradient);
+				AddendFunction addendFunction, uint_fast32_t stripeDensity,
+				InterpolationMethod interpolationMethod, TransferFunction transferFunction,
+				FLOAT multiplier, FLOAT offset, Gradient gradient);
 
 /**
  * \fn void ReadRenderingFile(RenderingParameters *param, const char *fileName)

@@ -69,14 +69,14 @@ const TransferFunction TransferFunctionsArray[] = {
 };
 
 const char *TransferFunctionStr[] = {
-	"zero",
-	"log",
-	"cuberoot",
-	"squareroot",
-	"identity",
-	"square",
-	"cube",
-	"exp"
+	(char *)"zero",
+	(char *)"log",
+	(char *)"cuberoot",
+	(char *)"squareroot",
+	(char *)"identity",
+	(char *)"square",
+	(char *)"cube",
+	(char *)"exp"
 };
 
 TransferFunction GetTransferFunction(const char *str)

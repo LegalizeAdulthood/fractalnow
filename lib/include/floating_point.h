@@ -61,6 +61,7 @@ extern "C" {
 	#define cabsF(z) cabsf(z)
 	#define crealF(z) crealf(z)
 	#define cimagF(z) cimagf(z)
+	#define cargF(z) cargf(z)
 	#define cpowF(z,y) cpowf(z,y)
 	#define roundF(x) roundf(x)
 	#define floorF(x) floorf(x)
@@ -69,6 +70,7 @@ extern "C" {
 	#define modfF(x,y) modff(x,y)
 	#define logF(x) logf(x)
 	#define sqrtF(x) sqrtf(x)
+	#define sinF(x) sinf(x)
 	#define LOGF logf
 	#define SQRTF sqrtf
 	#define EXPF expf
@@ -81,6 +83,7 @@ extern "C" {
 	#define cabsF(z) cabs(z)
 	#define crealF(z) creal(z)
 	#define cimagF(z) cimag(z)
+	#define cargF(z) carg(z)
 	#define cpowF(z,y) cpow(z,y)
 	#define roundF(x) round(x)
 	#define floorF(x) floor(x)
@@ -89,6 +92,7 @@ extern "C" {
 	#define modfF(x,y) modf(x,y)
 	#define logF(x) log(x)
 	#define sqrtF(x) sqrt(x)
+	#define sinF(x) sin(x)
 	#define LOGF log
 	#define SQRTF sqrt
 	#define EXPF exp
@@ -101,6 +105,7 @@ extern "C" {
 	#define cabsF(z) cabsl(z)
 	#define crealF(z) creall(z)
 	#define cimagF(z) cimagl(z)
+	#define cargF(z) cargl(z)
 	#define cpowF(z,y) cpowl(z,y)
 	#define roundF(x) roundl(x)
 	#define floorF(x) floorl(x)
@@ -109,6 +114,7 @@ extern "C" {
 	#define modfF(x,y) modfl(x,y)
 	#define logF(x) logl(x)
 	#define sqrtF(x) sqrtl(x)
+	#define sinF(x) sinl(x)
 	#define LOGF logl
 	#define SQRTF sqrtl
 	#define EXPF expl

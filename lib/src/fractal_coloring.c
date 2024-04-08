@@ -24,8 +24,8 @@
 #include <string.h>
 
 const char *ColoringMethodStr[] = {
-	(char *)("simple"),
-	(char *)("average")
+	(char *)"simple",
+	(char *)"average"
 };
 
 ColoringMethod GetColoringMethod(const char *str)

@@ -3,7 +3,7 @@ Rendering file syntax :
 BYTES_PER_COMPONENT
 SPACE_COLOR
 COUNTING_ALGORITHM
-COLORING_METHOD [ADDEND_FUNCTION INTERPOLATION_METHOD]
+COLORING_METHOD [ADDEND_FUNCTION [STRIPE_DENSITY] INTERPOLATION_METHOD]
 COLOR_SCALING COLOR_OFFSET NB_TRANSITIONS
 Color1 ... ColorN
 
@@ -25,12 +25,16 @@ COLORING_METHOD can be :
 ADDEND_FUNCTION and INTERPOLATION_METHOD are only needed for AVERAGE coloring method, and should *not* be specified for SIMPLE coloring method.
 
 ADDEND_FUNCION can be :
- - TRIANGLEINEQUALITY, which uses the counting algorithm to compute the average sums
+ - TRIANGLEINEQUALITY
+ - CURVATURE
+ - STRIPE
+
+STRIPE_DENSITY is a positive integer used only for STRIPE addend function. It should not be specified for other addend functions.
 
 INTERPOLATION_METHOD can be :
  - NONE : only 1 average sum is computed and is directly used
- - LINEAR : 2 average sums are computed and interpolated linearly to produce one value
- - SPLINE : 4 average sums are computed and interpolated using polynomials to produce one value
+ - LINEAR : 2 average sums are computed and interpolated linearly using counting algorithm to produce one value
+ - SPLINE : 4 average sums are computed and interpolated with polynomials using counting algorithm to produce one value
 
 TRANSFER_FUNCTION specifies the transfer function to apply to the (nearly) final value, in order to map it better to the gradient. It can be :
  - LOG for logarithm (base e)

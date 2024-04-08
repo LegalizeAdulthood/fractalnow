@@ -56,7 +56,9 @@ extern "C" {
  * iterations (in orbit) is too small (N must be >= size).
  */
 typedef enum e_AddendFunction {
-	AF_TRIANGLEINEQUALITY = 0
+	AF_TRIANGLEINEQUALITY = 0,
+	AF_CURVATURE,
+	AF_STRIPE
 } AddendFunction;
 
 /**
@@ -117,7 +119,11 @@ if (n >= m) {\
 uint_fast32_t m = 1;\
 if (n >= m+size-1) {\
 	for (uint_fast32_t i = 0; i < size; ++i) {\
-		SN[i] /= n+1-m-i-zeros[i];\
+		if (zeros[i] == n-m-i) {\
+			SN[i] = 0;\
+		} else {\
+			SN[i] /= n+1-m-i-zeros[i];\
+		}\
 	}\
 } else {\
 	/* Result undefined. 0 chosen. */\
@@ -125,6 +131,83 @@ if (n >= m+size-1) {\
 		SN[i] = 0;\
 	}\
 }
+/*********************************************************/
+
+/***********************AF_CURVATURE**********************/
+#define LOOP_INIT_AF_CURVATURE(size) \
+FLOAT zeros[size];\
+FLOAT complex znm1 = 0;\
+FLOAT complex znm2 = 0;\
+for (uint_fast32_t i = 0; i < size; ++i) {\
+	SN[i] = 0;\
+	zeros[i] = 0;\
+}
+
+#define LOOP_ITERATION_AF_CURVATURE(size) \
+uint_fast32_t m = 1;\
+if (n >= m+1) {\
+	for (uint_fast32_t i = size-1; i > 0; --i) {\
+		SN[i] = SN[i-1];\
+		zeros[i] = zeros[i-1];\
+	}\
+	FLOAT complex diff = znm1-znm2;\
+	if (diff != 0) {\
+		/* Avoid division by zero. */\
+		SN[0] += fabsF(cargF((z-znm1) / diff));\
+	} else {\
+		/* Counting zeros in order to divide by*/\
+		/* the exact number of terms added to SN.*/\
+		++zeros[0];\
+	}\
+}\
+znm2 = znm1;\
+znm1 = z;
+
+#define LOOP_END_AF_CURVATURE(size) \
+uint_fast32_t m = 1;\
+if (n >= m+size) {\
+	for (uint_fast32_t i = 0; i < size; ++i) {\
+		if (zeros[i] == n-m-i) {\
+			SN[i] = 0;\
+		} else {\
+			SN[i] /= n-m-i-zeros[i];\
+		}\
+	}\
+} else {\
+	/* Result undefined. 0 chosen. */\
+	for (uint_fast32_t i = 0; i < size; ++i) {\
+		SN[i] = 0;\
+	}\
+}
+/*********************************************************/
+
+/************************AF_STRIPE************************/
+#define LOOP_INIT_AF_STRIPE(size) \
+for (uint_fast32_t i = 0; i < size; ++i) {\
+	SN[i] = 0;\
+}
+
+#define LOOP_ITERATION_AF_STRIPE(size) \
+uint_fast32_t m = 1;\
+if (n >= m) {\
+	for (uint_fast32_t i = size-1; i > 0; --i) {\
+		SN[i] = SN[i-1];\
+	}\
+	SN[0] += sinF(render->stripeDensity*cargF(z))+1;\
+}
+
+#define LOOP_END_AF_STRIPE(size) \
+uint_fast32_t m = 1;\
+if (n >= m+size-1) {\
+	for (uint_fast32_t i = 0; i < size; ++i) {\
+		SN[i] /= 2*(n+1-m-i);\
+	}\
+} else {\
+	/* Result undefined. 0 chosen. */\
+	for (uint_fast32_t i = 0; i < size; ++i) {\
+		SN[i] = 0;\
+	}\
+}\
 /*********************************************************/
 
 #ifdef __cplusplus

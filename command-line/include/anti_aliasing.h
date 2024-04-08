@@ -43,6 +43,12 @@ typedef enum e_AntiAliasingMethod {
 } AntiAliasingMethod;
 
 /**
+ * \var AntiAliasingMethodStr
+ * \brief Strings of anti-aliasing method enum values.
+ */
+extern const char *AntiAliasingMethodStr[];
+
+/**
  * \fn AntiAliasingMethod GetAAM(const char *str)
  * \brief Get anti-aliasing method from string.
  *

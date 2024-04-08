@@ -24,11 +24,11 @@
 #include <string.h>
 
 const char *FractalFormulaStr[] = {
-	"mandelbrot",
-	"mandelbrotp",
-	"julia",
-	"juliap",
-	"rudy"
+	(char *)"mandelbrot",
+	(char *)"mandelbrotp",
+	(char *)"julia",
+	(char *)"juliap",
+	(char *)"rudy"
 };
 
 FractalFormula GetFractalFormula(const char *str)

@@ -52,9 +52,9 @@ const CountingFunction CountingFunctionsArray[] = {
 };
 
 const char *CountingFunctionStr[] = {
-	"discrete",
-	"continuous",
-	"smooth"
+	(char *)"discrete",
+	(char *)"continuous",
+	(char *)"smooth"
 };
 
 CountingFunction GetCountingFunction(const char *str)

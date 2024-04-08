@@ -21,7 +21,15 @@
 #include "anti_aliasing.h"
 #include "error.h"
 #include "misc.h"
+#include <stdlib.h>
 #include <string.h>
+
+const char *AntiAliasingMethodStr[] = {
+	(char *)"none",
+	(char *)"blur",
+	(char *)"oversampling",
+	(char *)"adaptive"
+};
 
 AntiAliasingMethod GetAAM(const char *str)
 {
@@ -33,17 +41,20 @@ AntiAliasingMethod GetAAM(const char *str)
 	char AAMStr[256];
 	strcpy(AAMStr, str);
 	toLowerCase(AAMStr);
+	AntiAliasingMethod res;
 
-	if (strcmp(AAMStr, "none") == 0) {
-		return AAM_NONE;
-	} else if (strcmp(AAMStr, "blur") == 0) {
-		return AAM_GAUSSIANBLUR;
-	} else if (strcmp(AAMStr, "oversampling") == 0) {
-		return AAM_OVERSAMPLING;
-	} else if (strcmp(AAMStr, "adaptive") == 0) {
-		return AAM_ADAPTIVE;
-	} else {
+	uint_fast32_t i;
+	uint_fast32_t nb_elem = sizeof(AntiAliasingMethodStr) / sizeof(char *);
+	for (i = 0; i < nb_elem; ++i) {
+		if (strcmp(AAMStr, AntiAliasingMethodStr[i]) == 0) {
+			res = (AntiAliasingMethod)i;
+			break;
+		}
+	}
+	if (i == nb_elem) {
 		error("Unknown anti-aliasing method \'%s\'.\n", str);
 	}
+
+	return res;
 }
 
